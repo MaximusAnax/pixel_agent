@@ -1,0 +1,1 @@
+{"trace_path": "data/traces/opencua-7b/pilot-001/0/trace.jsonl", "primary_mode": "Action Looping (Repetition)", "secondary_modes": [], "propagated": false, "meta_labels": [], "tier_used": "programmatic", "evidence_cot_span": "Repeated identical action 3+ times at steps 3-5", "confidence": 0.9, "t_star": 5}

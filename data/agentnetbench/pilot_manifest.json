@@ -1,0 +1,10 @@
+{
+  "status": "setup",
+  "opencua_path": "/Users/Productivity/Documents/School/Research/errorAnalysis/external/OpenCUA",
+  "agentnetbench_path": "/Users/Productivity/Documents/School/Research/errorAnalysis/external/OpenCUA/AgentNetBench",
+  "next_steps": [
+    "Install OpenCUA / AgentNetBench deps per upstream README",
+    "Run offline eval; write per-step predictions to /Users/Productivity/Documents/School/Research/errorAnalysis/data/agentnetbench",
+    "python -m cua_failure_analysis.cli attribute --traces-root ..."
+  ]
+}

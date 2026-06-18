@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cua-failure-analysis"
+version = "0.1.0"
+description = "Failure-mode analysis pipeline for computer-use agents on OSWorld"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "openai>=1.0",
+    "pillow>=10.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+cua-trace = "cua_failure_analysis.cli:trace_cmd"
+cua-attribute = "cua_failure_analysis.cli:attribute_cmd"
+cua-agreement = "cua_failure_analysis.cli:agreement_cmd"
+cua-judge = "cua_failure_analysis.cli:judge_cmd"
+cua-prevalence = "cua_failure_analysis.cli:prevalence_cmd"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

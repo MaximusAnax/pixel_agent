@@ -1,0 +1,130 @@
+[
+  {
+    "leaf": "Action Looping (Repetition)",
+    "count": 1,
+    "n_failures": 1,
+    "prevalence": 1.0,
+    "ci_low": 0.20654329147389294,
+    "ci_high": 1.0
+  },
+  {
+    "leaf": "Click Region Error",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Cross-Application Context Loss",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Fine-Grained Manipulation Failure",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Goal Hallucination",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Hidden Operation Blindness",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Instruction Ambiguity Failure",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Location Hallucination",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Long-Horizon Memory Failure",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Reasoning Drift",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Refusal/Infeasibility Error",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Resolution/Scale Brittleness",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Software Commonsense (Icon Recognition) Failure",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Spatial Reasoning Error",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Text Matching Bias",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  },
+  {
+    "leaf": "Visual Confusion (Primitive Reliance)",
+    "count": 0,
+    "n_failures": 1,
+    "prevalence": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.7934567085261071
+  }
+]

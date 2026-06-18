@@ -1,0 +1,11 @@
+{
+  "n": 3,
+  "observed_agreement": 1.0,
+  "cohens_kappa": 1.0,
+  "per_category_counts": {
+    "Action Looping (Repetition)": 1,
+    "Click Region Error": 1,
+    "Hidden Operation Blindness": 1
+  },
+  "n_gold": 3
+}

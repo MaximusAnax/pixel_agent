@@ -1,0 +1,65 @@
+# Judge calibration anchors (5 per leaf where feasible; expand during Phase D)
+
+"Click Region Error":
+  - "CoT says 'click Done button' but coordinates land 10px below the button bbox."
+  - "Correct element named in reasoning; click misses submit by a small margin."
+
+"Visual Confusion (Primitive Reliance)":
+  - "Agent clicks white rectangle search-looking region that is a disabled banner."
+  - "Picks colored shape matching instruction color but wrong widget type."
+
+"Text Matching Bias":
+  - "Clicks static label 'Email' instead of adjacent input field."
+  - "Clicks heading text matching query token, not the link."
+
+"Action Looping (Repetition)":
+  - "Types same query three times without pressing Search."
+  - "Repeated identical click on non-responsive element."
+
+"Location Hallucination":
+  - "CoT names sidebar Notifications; click is on opposite side of screen."
+  - "Reasoning cites correct menu; coordinates point to desktop wallpaper."
+
+"Spatial Reasoning Error":
+  - "Instruction says left of logo; landmark correct, click is on the right."
+  - "Relational 'below Save' violated despite correct Save identification."
+
+"Hidden Operation Blindness":
+  - "Task needs right-sidebar tab; agent only clicks top menu bar."
+  - "Required keyboard shortcut never attempted; visible clicks fail."
+
+"Cross-Application Context Loss":
+  - "After terminal copy, pastes old clipboard into spreadsheet."
+  - "Switches from browser to editor but loses extracted value."
+
+"Goal Hallucination":
+  - "Adds 'save to favorites' subgoal not in instruction."
+  - "Opens unrelated settings panel assuming user wants configuration."
+
+"Reasoning Drift":
+  - "CoT claims element at bottom of page; clicks footer ad instead."
+  - "Self-generated false layout claim misleads click."
+
+"Long-Horizon Memory Failure":
+  - "Forgets which files processed in batch rename after step 12."
+  - "Repeats completed subtask in multi-step workflow."
+
+"Instruction Ambiguity Failure":
+  - "Save file without filename; agent picks wrong default vs evaluator."
+  - "Underspecified font change applies to doc not global setting."
+
+"Refusal/Infeasibility Error":
+  - "Firefox not installed; agent clicks random icons instead of CALL_USER."
+  - "Impossible UI state; speculative clicks without terminate."
+
+"Resolution/Scale Brittleness":
+  - "At 70% zoom clicks empty region where button was at 100%."
+  - "Memorized pixel position fails after resolution change."
+
+"Fine-Grained Manipulation Failure":
+  - "Cursor placement between characters fails in tiny text field."
+  - "Slider moved to wrong notch despite correct panel."
+
+"Software Commonsense (Icon Recognition) Failure":
+  - "Fails to use magnifying glass icon as Search."
+  - "Does not recognize gear icon as Settings."

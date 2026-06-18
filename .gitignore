@@ -1,0 +1,7 @@
+external/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+logs/
+config/bridges.env
+.env

@@ -1,0 +1,45 @@
+# Model roles for core study (100 x 3 seeds x models)
+
+agents:
+  - id: qwen35-0.8b
+    model: Qwen/Qwen3.5-VL-0.8B-Instruct
+    served_name: qwen35-0.8b
+    vllm_args:
+      - --trust-remote-code
+    osworld_agent: qwen3vl
+    role: ultra_small
+
+  - id: opencua-7b
+    model: xlangai/OpenCUA-7B
+    served_name: opencua-7b
+    vllm_args:
+      - --trust-remote-code
+    osworld_agent: opencua
+    coordinate_type: qwen25
+    role: trained_small_cua
+
+  - id: opencua-32b
+    model: xlangai/OpenCUA-32B
+    served_name: opencua-32b
+    vllm_args:
+      - --trust-remote-code
+    osworld_agent: opencua
+    coordinate_type: qwen25
+    role: optional_mid
+    tensor_parallel_size: 4
+
+judge:
+  draft:
+    model: Qwen/Qwen3.5-VL-9B-Instruct
+    served_name: qwen35-9b-judge
+    base_url_env: JUDGE_VLLM_BASE_URL
+  validation:
+    provider: openai
+    model: gpt-4o
+    env_key: OPENAI_API_KEY
+
+study:
+  seeds: [0, 1, 2]
+  pilot_task_count: 30
+  core_task_count: 100
+  max_steps: 100

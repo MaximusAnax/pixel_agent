@@ -1,0 +1,775 @@
+{
+  "version": "1.0",
+  "source": "OSWorld test_all_no_gdrive / test_nogdrive",
+  "core_count": 100,
+  "pilot_count": 30,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "pilot_task_ids": [
+    "bb5e4c0d-f964-439c-97b6-bdb9747de3f4",
+    "7b6c7e24-c58a-49fc-a5bb-d57b80e5b4c3",
+    "06fe7178-4491-4589-810f-2e2bc9502122",
+    "e1e75309-3ddb-4d09-92ec-de869c928143",
+    "35253b65-1c19-4304-8aa4-6884b8218fc0",
+    "2ad9387a-65d8-4e33-ad5b-7580065a27ca",
+    "7a5a7856-f1b6-42a4-ade9-1ca81ca0f263",
+    "2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3",
+    "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+    "af630914-714e-4a24-a7bb-f9af687d3b91",
+    "7a4deb26-d57d-4ea9-9a73-630f66a7b568",
+    "554785e9-4523-4e7a-b8e1-8016f565f56a",
+    "77b8ab4d-994f-43ac-8930-8ca087d7c4b4",
+    "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+    "d52d6308-ec58-42b7-a2c9-de80e4837b2b",
+    "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+    "b148e375-fe0b-4bec-90e7-38632b0d73c2",
+    "a746add2-cab0-4740-ac36-c3769d9bfb46",
+    "7b7617bd-57cc-468e-9c91-40c4ec2bcb3d",
+    "d16c99dc-2a1e-46f2-b350-d97c86c85c15",
+    "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+    "42e0a640-4f19-4b28-973d-729602b5a4a7",
+    "51719eea-10bc-4246-a428-ac7c433dd4b3",
+    "1954cced-e748-45c4-9c26-9855b97fbc5e",
+    "2bd59342-0664-4ccb-ba87-79379096cc08",
+    "3aaa4e37-dc91-482e-99af-132a612d40f3",
+    "1273e544-688f-496b-8d89-3e0f40aa0606",
+    "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+    "f9584479-3d0d-4c79-affa-9ad7afdd8850",
+    "535364ea-05bd-46ea-9937-9f55c68507e8"
+  ],
+  "tasks": [
+    {
+      "task_id": "bb5e4c0d-f964-439c-97b6-bdb9747de3f4",
+      "domain": "chrome",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "7b6c7e24-c58a-49fc-a5bb-d57b80e5b4c3",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "06fe7178-4491-4589-810f-2e2bc9502122",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "e1e75309-3ddb-4d09-92ec-de869c928143",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "35253b65-1c19-4304-8aa4-6884b8218fc0",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "2ad9387a-65d8-4e33-ad5b-7580065a27ca",
+      "domain": "chrome",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "7a5a7856-f1b6-42a4-ade9-1ca81ca0f263",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "af630914-714e-4a24-a7bb-f9af687d3b91",
+      "domain": "chrome",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "7a4deb26-d57d-4ea9-9a73-630f66a7b568",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation",
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "554785e9-4523-4e7a-b8e1-8016f565f56a",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "77b8ab4d-994f-43ac-8930-8ca087d7c4b4",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "d52d6308-ec58-42b7-a2c9-de80e4837b2b",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation",
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "b148e375-fe0b-4bec-90e7-38632b0d73c2",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "a746add2-cab0-4740-ac36-c3769d9bfb46",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "7b7617bd-57cc-468e-9c91-40c4ec2bcb3d",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "d16c99dc-2a1e-46f2-b350-d97c86c85c15",
+      "domain": "gimp",
+      "task_tags": [
+        "fine_manipulation"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app",
+        "underspecified"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "42e0a640-4f19-4b28-973d-729602b5a4a7",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "51719eea-10bc-4246-a428-ac7c433dd4b3",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "1954cced-e748-45c4-9c26-9855b97fbc5e",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "2bd59342-0664-4ccb-ba87-79379096cc08",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "3aaa4e37-dc91-482e-99af-132a612d40f3",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app",
+        "underspecified"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "1273e544-688f-496b-8d89-3e0f40aa0606",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "f9584479-3d0d-4c79-affa-9ad7afdd8850",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "535364ea-05bd-46ea-9937-9f55c68507e8",
+      "domain": "libreoffice_calc",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "5d901039-a89c-4bfb-967b-bf66f4df075e",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation",
+        "underspecified"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "550ce7e7-747b-495f-b122-acdc4d0b8e54",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "455d3c66-7dc6-4537-a39a-36d3e9119df7",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "af23762e-2bfd-4a1d-aada-20fa8de9ce07",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "c59742c0-4323-4b9d-8a02-723c251deaa0",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "ef9d12bd-bcee-4ba0-a40e-918400f43ddf",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation",
+        "underspecified"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "9ec204e4-f0a3-42f8-8458-b772a6797cab",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "0f84bef9-9790-432e-92b7-eece357603fb",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "ce88f674-ab7a-43da-9201-468d38539e4a",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "3b27600c-3668-4abd-8f84-7bcdebbccbdb",
+      "domain": "libreoffice_impress",
+      "task_tags": [
+        "hidden_operation"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "0810415c-bde4-4443-9047-d5f70165a697",
+      "domain": "libreoffice_writer",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "0a0faba3-5580-44df-965d-f562a99b291c",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "0b17a146-2934-46c7-8727-73ff6b6483e8",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "0e47de2a-32e0-456c-a366-8c607ef7a9d2",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "0e763496-b6bb-4508-a427-fad0b6c3e195",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "3ef2b351-8a84-4ff2-8724-d86eae9b842e",
+      "domain": "libreoffice_writer",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "long"
+    },
+    {
+      "task_id": "4bcb1253-a636-4df4-8cb0-a35c04dfef31",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "66399b0d-8fda-4618-95c4-bfc6191617e9",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "6a33f9b9-0a56-4844-9c3f-96ec3ffb3ba2",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "6ada715d-3aae-4a32-a6a7-429b2e43fb93",
+      "domain": "libreoffice_writer",
+      "task_tags": [],
+      "horizon": "long"
+    },
+    {
+      "task_id": "2b9493d7-49b8-493a-a71b-56cd1f4d6908",
+      "domain": "multi_apps",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "2c9fc0de-3ee7-45e1-a5df-c86206ad78b5",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "2fe4b718-3bd7-46ec-bdce-b184f5653624",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "3680a5ee-6870-426a-a997-eba929a0d25c",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "510f64c8-9bcc-4be1-8d30-638705850618",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "51f5801c-18b3-4f25-b0c3-02f85507a078",
+      "domain": "multi_apps",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "58565672-7bfe-48ab-b828-db349231de6b",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "937087b6-f668-4ba6-9110-60682ee33441",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "c867c42d-a52d-4a24-8ae3-f75d256b5618",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "d9b7c649-c975-4f53-88f5-940b29c47247",
+      "domain": "multi_apps",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "94d95f96-9699-4208-98ba-3c3119edf9c2",
+      "domain": "os",
+      "task_tags": [
+        "infeasible",
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "bedcedc4-4d72-425e-ad62-21960b11fe0d",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "ec4e3f68-9ea4-4c18-a5c9-69f89d1178b3",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "a462a795-fdc7-4b23-b689-e8b6df786b78",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "f9be0997-4b7c-45c5-b05c-4612b44a6118",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "28cc3b7e-b194-4bc9-8353-d04c0f4d56d2",
+      "domain": "os",
+      "task_tags": [
+        "infeasible",
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "5ea617a3-0e86-4ba6-aab2-dac9aa2e8d57",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "e0df059f-28a6-4169-924f-b9623e7184cc",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "b6781586-6346-41cd-935a-a6b1487918fc",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "b3d4a89c-53f2-4d6b-8b6a-541fb5d205fa",
+      "domain": "os",
+      "task_tags": [
+        "infeasible"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "dfac9ee8-9bc4-4cdc-b465-4a4bfcd2f397",
+      "domain": "thunderbird",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "15c3b339-88f7-4a86-ab16-e71c58dcb01e",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "7b1e1ff9-bb85-49be-b01d-d6424be18cd0",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "9bc3cc16-074a-45ac-9bdc-b2a362e1daf3",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "3f28fe4f-5d9d-4994-a456-efd78cfae1a3",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "5203d847-2572-4150-912a-03f062254390",
+      "domain": "thunderbird",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "dd84e895-72fd-4023-a336-97689ded257c",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "9b7bc335-06b5-4cd3-9119-1a649c478509",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "d38192b0-17dc-4e1d-99c3-786d0117de77",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "a10b69e1-6034-4a2b-93e1-571d45194f75",
+      "domain": "thunderbird",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "59f21cfb-0120-4326-b255-a5b827b38967",
+      "domain": "vlc",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "8ba5ae7a-5ae5-4eab-9fcc-5dd4fe3abf89",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "8f080098-ddb1-424c-b438-4e96e5e4786e",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "bba3381f-b5eb-4439-bd9e-80c22218d5a7",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "fba2c100-79e8-42df-ae74-b592418d54f4",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "efcf0d81-0835-4880-b2fd-d866e8bc2294",
+      "domain": "vlc",
+      "task_tags": [
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "8d9fd4e2-6fdb-46b0-b9b9-02f06495c62f",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "aa4b5023-aef6-4ed9-bdc9-705f59ab9ad6",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "386dbd0e-0241-4a0a-b6a2-6704fba26b1c",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "9195653c-f4aa-453d-aa95-787f6ccfaae9",
+      "domain": "vlc",
+      "task_tags": [],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "0ed39f63-6049-43d4-ba4d-5fa2fe04a951",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app",
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "53ad5833-3455-407b-bbc6-45b4c79ab8fb",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "eabc805a-bfcf-4460-b250-ac92135819f6",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "982d12a5-beab-424f-8d38-d2a48429e511",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "4e60007a-f5be-4bfc-9723-c39affa0a6d3",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "e2b5e914-ffe1-44d2-8e92-58f8c5d92bb2",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app",
+        "underspecified"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "9439a27b-18ae-42d8-9778-5f68f891805e",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "ea98c5d7-3cf9-4f9b-8ad3-366b58e0fcae",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "930fdb3b-11a8-46fe-9bac-577332e2640e",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    },
+    {
+      "task_id": "276cc624-87ea-4f08-ab93-f770e3790175",
+      "domain": "vs_code",
+      "task_tags": [
+        "cross_app"
+      ],
+      "horizon": "medium"
+    }
+  ]
+}
