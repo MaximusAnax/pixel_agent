@@ -54,6 +54,11 @@ scripts/babel/sync_outputs.sh <run_id>
 See [docs/babel_hf_orchestration.md](docs/babel_hf_orchestration.md) and
 [hermes/SOUL.md](hermes/SOUL.md).
 
+To drive this through the Hermes agent (multi-agent orchestration), follow
+[docs/hermes_setup.md](docs/hermes_setup.md). Project context lives in
+[AGENTS.md](AGENTS.md); the runnable workflow is the
+`hermes/skills/babel-osworld-analysis` skill.
+
 ## Layout
 
 ```
