@@ -16,10 +16,10 @@ gets its own top-level subdirectory with its own `AGENTS.md`. Over time this wil
 include stages such as experimentation, implementation, and evaluation of
 particular ideas — not just the current one.
 
-| Stage / subdir | Purpose | Status | Contract |
-|---|---|---|---|
-| `errorAnalysis/` | Phase 1: failure analysis of low-parameter CUA agents on OSWorld, run remotely on CMU Babel | Active | `errorAnalysis/AGENTS.md` |
-| _(future)_ | e.g. `experimentation/`, `implementation/`, `evaluation/` of a given idea | Planned | add one when the stage is created |
+| Stage / subdir   | Purpose                                                                                     | Status  | Contract                          |
+| ---------------- | ------------------------------------------------------------------------------------------- | ------- | --------------------------------- |
+| `errorAnalysis/` | Phase 1: failure analysis of low-parameter CUA agents on OSWorld, run remotely on CMU Babel | Active  | `errorAnalysis/AGENTS.md`         |
+| *(future)*       | e.g. `experimentation/`, `implementation/`, `evaluation/` of a given idea                   | Planned | add one when the stage is created |
 
 When a new stage is added: create the subdirectory and give it an `AGENTS.md`
 describing its scope, commands, and conventions. Add a row above. Keep this root
@@ -29,8 +29,8 @@ file about what is shared across stages, not the specifics of any one.
 
 Build rigorous, evidence-backed understanding of how and why computer-use agents
 (especially small models) fail, and turn that into reusable methodology. The
-human researcher is **Andi**; Hermes is the research-operations agent that helps
-move the work forward and explains its reasoning so Andi learns the system.
+human researcher is **Abdoul**; Hermes is the research-operations agent that helps
+move the work forward and explains its reasoning so Abdoul learns the system.
 
 ## Project-wide principles (apply to every stage)
 
@@ -39,9 +39,9 @@ move the work forward and explains its reasoning so Andi learns the system.
 - Prefer remote/cluster computation over hoarding large data locally.
 - Produce small, inspectable artifacts over raw-data piles.
 - Favor fast calibration loops over premature large-scale sweeps.
-- Don't run large/expensive compute (e.g. GPU jobs) without Andi approving the reason.
+- Don't run large/expensive compute (e.g. GPU jobs) without Abdoul approving the reason.
 - Never overwrite prior results, and never change a stage's core definitions
-  (taxonomies, protocols) without Andi's explicit approval.
+  (taxonomies, protocols) without Abdoul's explicit approval.
 
 ## Active stage: errorAnalysis
 
@@ -53,7 +53,7 @@ Critical boundaries for this stage (so even a first message is safe):
 - Never mirror the full Hugging Face dataset (~480GB).
 - Never use `/home/andiongu` on Babel for large zips, traces, or HF caches.
 - Never treat best-effort adapter labels as final scientific labels.
-- Never modify `errorAnalysis/failureTaxonomy.md` without Andi's approval.
+- Never modify `errorAnalysis/failureTaxonomy.md` without Abdoul's approval.
 
 Entry points:
 

@@ -261,11 +261,11 @@ Hermes can hibernate on Daytona/Modal between jobs.
 
 - [x] `AGENTS.md` project context (this branch).
 - [x] `babel-osworld-analysis` skill (this branch).
-- [ ] Install Hermes + `hermes setup --portal`.
-- [ ] `~/.ssh/config` babel/ProxyJump block; verify `ssh babel true`.
-- [ ] `cp config/babel.env.example config/babel.env`.
-- [ ] One-time `scripts/babel/setup_env.sh` on Babel (creates `.venv`).
-- [ ] Install/tap the skill; `hermes config set skills.config.babel.project_dir ...`.
+- [x] Install Hermes + `hermes setup --portal`.
+- [x] `~/.ssh/config` babel/ProxyJump block; verify `ssh babel true`.
+- [x] `cp config/babel.env.example config/babel.env`.
+- [x] One-time `scripts/babel/setup_env.sh` on Babel (creates `.venv`).
+- [x] Install/tap the skill; `hermes config set skills.config.babel.project_dir ...`.
 - [ ] Smoke test (section 7) on the OpenCUA A3B 15-step package.
 - [ ] (Optional) move Hermes to a VPS for durable cron polling.
 - [ ] (Optional) add a package-specific adapter once a zip layout is confirmed,
