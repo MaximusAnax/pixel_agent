@@ -156,34 +156,52 @@ Full background: [docs/babel_hf_orchestration.md](babel_hf_orchestration.md).
 ## 6. Install the Babel skill
 
 The repo ships a skill at `hermes/skills/babel-osworld-analysis/SKILL.md` that
-encodes the submit → poll → sync procedure.
+encodes the submit → poll → sync procedure. Hermes only discovers skills under
+`~/.hermes/skills/<category>/<skill>/` (two levels deep), so you must place it
+there — pointing config at the repo path is **not** enough.
 
-- Easiest: keep it discoverable by Hermes by pointing your skills directory at it
-  or copying it into your Hermes skills path, then set the project dir:
+1. Link (or copy) the skill into your Hermes skills directory. A symlink keeps it
+   in sync with the repo as you edit it:
 
-  ```bash
-  hermes config set skills.config.babel.project_dir \
-    ~/Documents/School/Research/pixelAgent/errorAnalysis
-  ```
+   ```bash
+   ln -s ~/Documents/School/Research/pixelAgent/errorAnalysis/hermes/skills/babel-osworld-analysis \
+     ~/.hermes/skills/research/babel-osworld-analysis
+   ```
 
-- Verify the exact local-install command for your Hermes version with
-  `hermes skills --help` (commands include `hermes skills browse`,
-  `hermes skills install <owner/repo>`, and `hermes skills tap add <owner/repo>`).
-  Because this skill lives in your GitHub repo, tapping the repo is a clean option:
+   (Use `cp -R` instead of `ln -s` if you prefer a snapshot over a live link.)
 
-  ```bash
-  hermes skills tap add MaximusAnax/pixel_agent
-  ```
+2. Confirm Hermes sees it:
 
-- Test it loads:
+   ```bash
+   hermes skills list | grep babel
+   # → babel-osworld-analysis  │ research │ local │ ... │ enabled
+   ```
 
-  ```bash
-  hermes chat --toolsets skills,terminal,file \
-    -q "Use the babel-osworld-analysis skill to list the priority packages."
-  ```
+3. (Optional) set the project dir the skill reads — this is a *value the skill
+   consumes after it loads*, not how it is discovered:
 
-Even without installing the skill, `AGENTS.md` already tells Hermes the workflow —
-the skill just makes it crisper and reusable. See
+   ```bash
+   hermes config set skills.config.babel.project_dir \
+     ~/Documents/School/Research/pixelAgent/errorAnalysis
+   ```
+
+4. Test it loads (skills take effect in a *new* session, which `hermes chat -q`
+   starts; inside an existing session use `/reset` or `--now`):
+
+   ```bash
+   hermes chat --toolsets skills,terminal,file \
+     -q "Use the babel-osworld-analysis skill to list the priority packages."
+   ```
+
+   It should `skill_view` the skill, read `config/hf_osworld_packages.yaml`, and
+   list the packages with `opencua_a3b_15` as the default smoke-test target.
+
+> If Hermes replies "that skill doesn't exist," the skill is not in
+> `~/.hermes/skills/`. Re-check step 1 — the most common mistake is only running
+> the `hermes config set ...` from step 3.
+
+Even without the skill, `AGENTS.md` already tells Hermes the workflow — the skill
+just makes it crisper and reusable. See
 [Work with Skills](https://hermes-agent.nousresearch.com/docs/guides/work-with-skills).
 
 ## 7. Run it end to end (smoke test)
