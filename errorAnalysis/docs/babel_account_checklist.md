@@ -8,7 +8,7 @@
 2. [ ] Cluster name: `babel`
 3. [ ] Enter faculty sponsor / advisor
 4. [ ] Complete safety quiz on [hpc.cs.cmu.edu](https://hpc.cs.cmu.edu/)
-5. [ ] SSH test: `ssh <andrew_id>@babel.lti.cs.cmu.edu`
+5. [ ] SSH test: `ssh <andrew_id>@login.babel.cs.cmu.edu`
 6. [ ] Ask advisor for lab partition (e.g. `swl_general`) and group quotas
 
 ## When to use Babel vs Bridges

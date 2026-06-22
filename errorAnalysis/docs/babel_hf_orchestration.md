@@ -48,7 +48,7 @@ export BABEL_QOS=<qos>
 After the first sync, create the remote Python environment:
 
 ```bash
-ssh andiongu@babel.lti.cs.cmu.edu
+ssh andiongu@login.babel.cs.cmu.edu
 cd /home/andiongu/cua-failure-analysis
 scripts/babel/setup_env.sh
 ```
@@ -164,15 +164,17 @@ adding a new host entry per node, configure `~/.ssh/config` as in the guide:
 
 ```ssh-config
 Host babel
-  HostName babel.lti.cs.cmu.edu
+  HostName login.babel.cs.cmu.edu
+  User yourandrewID
+  IdentityFile ~/.ssh/id_ed25519
   StrictHostKeyChecking no
 
 Host babel-*
   HostName %h
-  StrictHostKeyChecking no
   User yourandrewID
   IdentityFile ~/.ssh/id_ed25519
   ProxyJump babel
+  StrictHostKeyChecking no
 ```
 
 Then `ssh babel` reaches the login node and `ssh babel-x9-16` (etc.) jumps to a

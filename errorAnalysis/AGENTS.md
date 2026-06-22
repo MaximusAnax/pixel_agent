@@ -48,7 +48,7 @@ that help Andi learn the system.
 
 ## Babel ground truth (from the quickstart guide)
 
-- Login: `ssh andiongu@babel.lti.cs.cmu.edu`; compute nodes are `babel-*`, reached
+- Login: `ssh andiongu@login.babel.cs.cmu.edu`; compute nodes are `babel-*`, reached
   via a ProxyJump through the login host.
 - `/home/andiongu` — 100GB, all nodes. Code and small logs only.
 - `/data/user_data/andiongu` — 500GB, compute nodes, persistent across jobs. HF

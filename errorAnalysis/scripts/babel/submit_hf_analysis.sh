@@ -17,7 +17,7 @@ if [[ -f "${REPO_ROOT}/config/babel.env" ]]; then
 fi
 
 : "${BABEL_USER:=andiongu}"
-: "${BABEL_LOGIN:=andiongu@babel.lti.cs.cmu.edu}"
+: "${BABEL_LOGIN:=andiongu@login.babel.cs.cmu.edu}"
 : "${BABEL_PROJECT_DIR:=/home/${BABEL_USER}/cua-failure-analysis}"
 : "${BABEL_PARTITION:=cpu}"
 : "${BABEL_TIME:=06:00:00}"

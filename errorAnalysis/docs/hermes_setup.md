@@ -103,15 +103,17 @@ See [Use SOUL.md with Hermes](https://hermes-agent.nousresearch.com/docs/guides/
 
    ```ssh-config
    Host babel
-     HostName babel.lti.cs.cmu.edu
+     HostName login.babel.cs.cmu.edu
+     User andiongu
+     IdentityFile ~/.ssh/id_ed25519
      StrictHostKeyChecking no
 
    Host babel-*
      HostName %h
-     StrictHostKeyChecking no
      User andiongu
      IdentityFile ~/.ssh/id_ed25519
      ProxyJump babel
+     StrictHostKeyChecking no
    ```
 
    Confirm key-based, non-interactive login works: `ssh babel true && echo ok`.

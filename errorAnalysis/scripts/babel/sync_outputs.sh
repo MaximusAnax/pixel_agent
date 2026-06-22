@@ -12,7 +12,7 @@ if [[ -f "${REPO_ROOT}/config/babel.env" ]]; then
 fi
 
 : "${BABEL_USER:=andiongu}"
-: "${BABEL_LOGIN:=andiongu@babel.lti.cs.cmu.edu}"
+: "${BABEL_LOGIN:=andiongu@login.babel.cs.cmu.edu}"
 : "${BABEL_OUTPUT_ROOT:=/data/user_data/${BABEL_USER}/cua_failure_analysis/outputs}"
 
 RUN_ID="${1:-}"

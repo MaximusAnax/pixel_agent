@@ -38,7 +38,7 @@ Hermes should optimize for:
 
 ## Babel Ground Truth
 
-- Login: `ssh andiongu@babel.lti.cs.cmu.edu` (compute nodes `babel-*` via ProxyJump).
+- Login: `ssh andiongu@login.babel.cs.cmu.edu` (compute nodes `babel-*` via ProxyJump).
 - `/home/andiongu`: 100GB, mounted on all nodes (login + compute). Code and small
   logs only.
 - `/data/user_data/andiongu`: 500GB, on compute nodes, persistent across jobs. Use

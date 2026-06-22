@@ -33,7 +33,7 @@ only analyzes already-generated ones.
 - `config/babel.env` exists (copy from `config/babel.env.example`). It is git-ignored.
 - The repo has been synced to Babel and `/home/andiongu/cua-failure-analysis/.venv`
   exists (created once via `scripts/babel/setup_env.sh` on Babel).
-- SSH to `babel.lti.cs.cmu.edu` works non-interactively (key-based).
+- SSH to `login.babel.cs.cmu.edu` works non-interactively (key-based).
 
 ## Quick Reference
 
@@ -43,7 +43,7 @@ All commands run from the project directory (`babel.project_dir`).
 |---|---|
 | Pick a package | inspect `config/hf_osworld_packages.yaml` |
 | Submit a job | `scripts/babel/submit_hf_analysis.sh <package.zip>` |
-| Inspect queue | `ssh andiongu@babel.lti.cs.cmu.edu squeue --me` |
+| Inspect queue | `ssh andiongu@login.babel.cs.cmu.edu squeue --me` |
 | Sync outputs | `scripts/babel/sync_outputs.sh <run_id>` |
 | Read result | `data/babel_outputs/<run_id>/summary.md` |
 
@@ -64,7 +64,7 @@ All commands run from the project directory (`babel.project_dir`).
    background and notify when done — e.g.:
 
    ```bash
-   ssh andiongu@babel.lti.cs.cmu.edu \
+   ssh andiongu@login.babel.cs.cmu.edu \
      "until [ -f /data/user_data/andiongu/cua_failure_analysis/outputs/<run_id>/summary.md ]; do sleep 120; done; echo DONE"
    ```
 
