@@ -7,3 +7,12 @@ config/bridges.env
 errorAnalysis/config/babel.env
 errorAnalysis/data/babel_outputs/
 .env
+
+# Raw meeting recordings are large and may be sensitive — keep them local.
+# Transcripts and notes (the synthesized text) ARE committed.
+errorAnalysis/ops/meetings/**/recording.*
+errorAnalysis/ops/meetings/**/*.mp3
+errorAnalysis/ops/meetings/**/*.m4a
+errorAnalysis/ops/meetings/**/*.mp4
+errorAnalysis/ops/meetings/**/*.wav
+errorAnalysis/ops/meetings/**/*.webm

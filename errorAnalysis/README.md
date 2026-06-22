@@ -59,6 +59,25 @@ To drive this through the Hermes agent (multi-agent orchestration), follow
 [AGENTS.md](AGENTS.md); the runnable workflow is the
 `hermes/skills/babel-osworld-analysis` skill.
 
+## Project-state automation
+
+A closed loop that keeps the team and Hermes current with minimal manual work:
+auto-drafts a weekly progress report (merged PRs, code churn, experiment runs),
+transcribes meetings locally, and synthesizes both into a living
+`ops/state/PROJECT_STATE.md` plus a block in `AGENTS.md` that Hermes auto-loads
+every turn.
+
+```bash
+python ops/weekly_report.py --days 7        # ops/reports/<ISO-week>.md (+ optional GH issue)
+python ops/transcribe_meeting.py rec.m4a    # ops/meetings/<date>/transcript.md (local Whisper)
+python ops/synthesize_state.py --meetings 3 # PROJECT_STATE.md + AGENTS.md live-state block
+```
+
+A weekly GitHub Action runs the report automatically. See
+[ops/README.md](ops/README.md) and
+[docs/project_state_automation.md](docs/project_state_automation.md); Hermes
+drives it via the `hermes/skills/project-state-sync` skill.
+
 ## Layout
 
 ```
