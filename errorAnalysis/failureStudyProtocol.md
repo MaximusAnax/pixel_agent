@@ -360,7 +360,7 @@ Account not yet provisioned. When ready:
 
 1. LTI intranet → HPC Cluster User Account Request (`babel`)
 2. Safety quiz on [hpc.cs.cmu.edu](https://hpc.cs.cmu.edu/)
-3. SSH: `login.babel.cs.cmu.edu`
+3. SSH: `babel.lti.cs.cmu.edu`
 4. Same split architecture and vLLM commands as Bridges
 
 Use Babel for overflow GPU or if lab standardizes workflows there.

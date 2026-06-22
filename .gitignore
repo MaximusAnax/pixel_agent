@@ -4,4 +4,6 @@ __pycache__/
 .pytest_cache/
 logs/
 config/bridges.env
+errorAnalysis/config/babel.env
+errorAnalysis/data/babel_outputs/
 .env
