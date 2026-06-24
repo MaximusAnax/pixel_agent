@@ -55,10 +55,15 @@ echo "Output: ${OUTPUT_DIR}"
 echo "Work root: ${JOB_WORK_ROOT}"
 echo "HF_HOME: ${HF_HOME}"
 
-if [[ -z "${PYTHON_BIN:-}" && -x "${BABEL_PROJECT_DIR}/.venv/bin/python" ]]; then
-  PYTHON_BIN="${BABEL_PROJECT_DIR}/.venv/bin/python"
+if [[ -z "${PYTHON_BIN:-}" ]]; then
+  if [[ -x "${BABEL_PROJECT_DIR}/.venv/bin/python" ]]; then
+    PYTHON_BIN="${BABEL_PROJECT_DIR}/.venv/bin/python"
+  else
+    echo "ERROR: ${BABEL_PROJECT_DIR}/.venv/bin/python not found." >&2
+    echo "Run on Babel: cd ${BABEL_PROJECT_DIR} && scripts/babel/setup_env.sh" >&2
+    exit 1
+  fi
 fi
-PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 "${PYTHON_BIN}" scripts/hf_osworld_analyze.py \
   --repo-id "${OSWORLD_HF_REPO}" \

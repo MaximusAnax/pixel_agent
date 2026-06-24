@@ -41,10 +41,19 @@ rsync -az --delete \
   --exclude '.pytest_cache' \
   --exclude '__pycache__' \
   --exclude '*.pyc' \
+  --exclude '.venv' \
   --exclude 'data/babel_outputs' \
   --exclude 'external' \
   --exclude 'logs' \
   "${REPO_ROOT}/" "${BABEL_LOGIN}:${BABEL_PROJECT_DIR}/"
+
+if ! ssh "${BABEL_LOGIN}" "test -x '${BABEL_PROJECT_DIR}/.venv/bin/python'"; then
+  echo "ERROR: Remote Python env missing at ${BABEL_PROJECT_DIR}/.venv" >&2
+  echo "Create it once on Babel, then resubmit:" >&2
+  echo "  ssh ${BABEL_LOGIN}" >&2
+  echo "  cd ${BABEL_PROJECT_DIR} && scripts/babel/setup_env.sh" >&2
+  exit 1
+fi
 
 SBATCH_ARGS=(--partition "${BABEL_PARTITION}" --time "${BABEL_TIME}" --cpus-per-task "${BABEL_CPUS}" --mem "${BABEL_MEM}")
 

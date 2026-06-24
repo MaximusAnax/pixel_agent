@@ -32,7 +32,9 @@ only analyzes already-generated ones.
 
 - `config/babel.env` exists (copy from `config/babel.env.example`). It is git-ignored.
 - The repo has been synced to Babel and `/home/andiongu/cua-failure-analysis/.venv`
-  exists (created once via `scripts/babel/setup_env.sh` on Babel).
+  exists (created once via `scripts/babel/setup_env.sh` on Babel after the first code
+  sync). `submit_hf_analysis.sh` preserves `.venv` across syncs and refuses to submit
+  without it.
 - SSH to `login.babel.cs.cmu.edu` works non-interactively (key-based).
 
 ## Quick Reference
@@ -70,7 +72,8 @@ All commands run from the project directory (`babel.project_dir`).
 
    Run this via `terminal(background=True, notify_on_complete=True)`, or register a
    `cronjob` that runs step 5 and reports back. Never tie up a synchronous
-   `delegate_task` subagent waiting on Slurm.
+   `delegate_task` subagent waiting on Slurm. On a laptop, remind Andi to run
+   `caffeinate -dims` so background SSH polls survive until the job finishes.
 5. When `summary.md` exists remotely, sync only compact artifacts:
 
    ```bash
@@ -101,6 +104,8 @@ jobs. An `oom_kill` means CPU RAM ran out — raise `BABEL_MEM`, not GPU count.
 - Listing `/data/user_data` or `/data/group_data` from the login node may show
   empty dirs (AutoFS). The scripts `stat` full paths on the compute node to mount.
 - `--gres` must include a GPU type (`gpu:L40S:1`), never `gpu:1`.
+- If `submit_hf_analysis.sh` errors about a missing `.venv`, run
+  `scripts/babel/setup_env.sh` on Babel once (after code is synced).
 - Best-effort labels are provisional. `Unresolved` / `needs_human_review=true` are
   adapter signals, not scientific conclusions.
 - Do not re-run a run id that already has outputs unless Andi asks (no overwrites).

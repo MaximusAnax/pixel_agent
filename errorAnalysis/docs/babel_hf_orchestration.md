@@ -25,7 +25,7 @@ Local pixelAgent repo
 | `config/hf_osworld_packages.yaml` | Curated package inventory for modern models |
 | `scripts/babel/submit_hf_analysis.sh` | Local helper that syncs code and submits Slurm |
 | `scripts/babel/analyze_hf_osworld.sbatch` | Remote Slurm job wrapper |
-| `scripts/babel/setup_env.sh` | One-time Python environment setup on Babel |
+| `scripts/babel/setup_env.sh` | One-time Python environment setup on Babel (persists across syncs) |
 | `scripts/babel/sync_outputs.sh` | Pulls compact outputs back locally |
 | `scripts/hf_osworld_analyze.py` | Remote zip inventory and best-effort analyzer |
 | `hermes/SOUL.md` | Hermes operating contract for Phase 1 |
@@ -45,7 +45,9 @@ export BABEL_ACCOUNT=<account>
 export BABEL_QOS=<qos>
 ```
 
-After the first sync, create the remote Python environment:
+After the first code sync, create the remote Python environment (once per Babel
+account; preserved across future submits because `submit_hf_analysis.sh` excludes
+`.venv` from rsync):
 
 ```bash
 ssh andiongu@login.babel.cs.cmu.edu
@@ -53,8 +55,10 @@ cd /home/andiongu/cua-failure-analysis
 scripts/babel/setup_env.sh
 ```
 
-The sbatch wrapper automatically uses `/home/andiongu/cua-failure-analysis/.venv`
-when it exists.
+The first `submit_hf_analysis.sh` run syncs code even if the venv is not ready yet;
+it exits before queuing Slurm and prints setup instructions. After `setup_env.sh`,
+submits use `/home/andiongu/cua-failure-analysis/.venv/bin/python` exclusively — the
+sbatch wrapper fails fast if that interpreter is missing.
 
 ## Smoke Test
 
@@ -242,3 +246,11 @@ success/failure
 into `cua_failure_analysis.trace.schema.TraceStep`.
 
 Then rerun the same Babel workflow and enable the calibrated judge.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `submit_hf_analysis.sh` exits before Slurm | Remote `.venv` missing — run `scripts/babel/setup_env.sh` on Babel. |
+| `ModuleNotFoundError: huggingface_hub` in Slurm logs | Same — job ran without the project venv (should not happen after the fail-fast check). |
+| `oom_kill` | CPU RAM, not HBM — raise `BABEL_MEM`. |

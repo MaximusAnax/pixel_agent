@@ -27,9 +27,9 @@ You ── chat (CLI / Telegram / ...) ──▶ Hermes Agent (local laptop or a
                                  errorAnalysis/data/babel_outputs/<run_id>
 ```
 
-Hermes itself does no GPU work. It runs locally (or on a cheap always-on VPS so
-long Slurm waits and cron polls survive your laptop sleeping), and reaches Babel
-over SSH exactly like you would by hand.
+Hermes itself does no GPU work. It runs locally and reaches Babel over SSH exactly
+like you would by hand. For long Slurm waits, use `caffeinate -dims` on macOS so
+background polls are not killed by sleep (see section 9).
 
 ## 1. Install Hermes
 
@@ -126,17 +126,20 @@ See [Use SOUL.md with Hermes](https://hermes-agent.nousresearch.com/docs/guides/
    cp config/babel.env.example config/babel.env   # edit only if account/paths change
    ```
 
-3. First sync + remote env (creates `/home/andiongu/cua-failure-analysis/.venv`):
+3. Sync code, then create the remote Python env:
 
    ```bash
-   scripts/babel/submit_hf_analysis.sh --help   # ensure scripts are reachable
+   # Syncs the repo; exits with setup instructions if .venv is not on Babel yet
+   scripts/babel/submit_hf_analysis.sh || true
+
    ssh babel
    cd /home/andiongu/cua-failure-analysis && scripts/babel/setup_env.sh
    exit
    ```
 
-   (The first `submit_hf_analysis.sh` run also rsyncs the repo up; you can let
-   Hermes do this once you trust it.)
+   **Order matters:** sync first (any `submit_hf_analysis.sh` run does this), then
+   `setup_env.sh` once. Later submits sync code but **preserve** `.venv` (rsync
+   excludes it). `submit_hf_analysis.sh` refuses to queue Slurm if the venv is missing.
 
 Full background: [docs/babel_hf_orchestration.md](babel_hf_orchestration.md).
 
@@ -234,17 +237,33 @@ Hermes should:
   is discarded if the turn is interrupted, so use `cronjob` or
   `terminal(background=True, notify_on_complete=True)` for the wait. See
   [Cron Jobs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron).
+- **Laptop polling** — background SSH polls die if the Mac sleeps. Before a long
+  wait, run `caffeinate -dims` in a terminal (or `caffeinate -dims &` in the same
+  shell) to prevent deep sleep while Hermes polls. If the laptop did sleep, Hermes
+  should re-check `squeue` / remote logs on wake rather than assuming the poll is
+  still alive.
 - **Collapse mechanical steps** — use `execute_code` to chain submit → poll → sync
   in one inference call when no reasoning is needed between steps.
 - **Concurrency** — bump `delegation.max_concurrent_children` in `config.yaml` if
   you want more than 3 packages in flight at once.
 
-## 9. Optional: run Hermes on a VPS
+## 9. Keeping polls alive on a laptop
 
-So long polls/cron survive your laptop, install Hermes on a $5 VPS, put your Babel
-SSH key + `config/babel.env` there, and chat to it from Telegram/Discord
-([Messaging](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/index)).
-Hermes can hibernate on Daytona/Modal between jobs.
+For long Slurm waits while Hermes runs locally, prevent macOS deep sleep so
+background SSH polls stay connected:
+
+```bash
+caffeinate -dims
+```
+
+Leave that running in a terminal for the duration of the job (or start it in the
+background before asking Hermes to poll). If the machine did sleep, ask Hermes to
+check remote job state directly (`squeue`, Slurm logs) — the Babel job keeps running;
+only the local poll died.
+
+(Optional later: run Hermes on a small always-on VPS so polls survive without
+`caffeinate` — see section 8 and
+[Messaging](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/index).)
 
 ## Troubleshooting
 
@@ -255,6 +274,8 @@ Hermes can hibernate on Daytona/Modal between jobs.
 | `/data/...` looks empty | AutoFS — paths mount when `stat`'d on a compute node; the scripts handle this. |
 | `--gres` rejected | Must include a GPU type: `gpu:L40S:1`, set `BABEL_GPU_TYPE`. |
 | `oom_kill` | CPU RAM, not HBM — raise `BABEL_MEM`. |
+| `ModuleNotFoundError: huggingface_hub` (or similar) | Remote `.venv` missing. On Babel: `cd /home/andiongu/cua-failure-analysis && scripts/babel/setup_env.sh`. `submit_hf_analysis.sh` now refuses to submit without a venv. |
+| Background poll died / no notification | Laptop slept — use `caffeinate -dims` during waits, or ask Hermes to re-check `squeue` and remote logs. |
 | Subagent "lost" the Slurm job | It was a synchronous child; use cron/background terminal for the wait. |
 
 ## Next-steps checklist (to "fully working")
@@ -264,10 +285,10 @@ Hermes can hibernate on Daytona/Modal between jobs.
 - [x] Install Hermes + `hermes setup --portal`.
 - [x] `~/.ssh/config` babel/ProxyJump block; verify `ssh babel true`.
 - [x] `cp config/babel.env.example config/babel.env`.
-- [x] One-time `scripts/babel/setup_env.sh` on Babel (creates `.venv`).
+- [x] Sync code to Babel, then one-time `scripts/babel/setup_env.sh` (creates `.venv`).
 - [x] Install/tap the skill; `hermes config set skills.config.babel.project_dir ...`.
 - [ ] Smoke test (section 7) on the OpenCUA A3B 15-step package.
-- [ ] (Optional) move Hermes to a VPS for durable cron polling.
+- [ ] Use `caffeinate -dims` during long polls so the laptop does not sleep.
 - [ ] (Optional) add a package-specific adapter once a zip layout is confirmed,
       then enable a calibrated judge (GPU run) — see
       [babel_hf_orchestration.md](babel_hf_orchestration.md).

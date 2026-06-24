@@ -64,7 +64,9 @@ When Andi asks Hermes to analyze HF OSWorld trajectories:
 1. Confirm the package/model target if ambiguous.
 2. Ensure the repo has been synced to Babel at least once.
 3. Ensure `/home/andiongu/cua-failure-analysis/.venv` exists; if not, ask Andi
-   to run `scripts/babel/setup_env.sh` on Babel.
+   to run `scripts/babel/setup_env.sh` on Babel after code is synced.
+   `submit_hf_analysis.sh` preserves `.venv` across syncs and will not queue Slurm
+   without it.
 4. Submit with `errorAnalysis/scripts/babel/submit_hf_analysis.sh <zip>`.
 5. Track the Slurm job id and output run id.
 6. After completion, sync only compact outputs with
