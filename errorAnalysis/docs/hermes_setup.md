@@ -220,7 +220,8 @@ and summarize summary.md and adapter_gaps.json.
 Hermes should:
 
 1. run `scripts/babel/submit_hf_analysis.sh opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip` and capture the run id;
-2. start a background/cron poll on the remote `summary.md` (NOT a blocking subagent);
+2. start a background poll with `scripts/babel/wait_for_run.sh <job_id> <run_id>`
+   (NOT a bare `until summary.md` loop — failed jobs never create that file);
 3. run `scripts/babel/sync_outputs.sh <run_id>`;
 4. read `data/babel_outputs/<run_id>/summary.md` and report using the Output
    Standard in `AGENTS.md`.
@@ -276,6 +277,7 @@ only the local poll died.
 | `oom_kill` | CPU RAM, not HBM — raise `BABEL_MEM`. |
 | `ModuleNotFoundError: huggingface_hub` (or similar) | Remote `.venv` missing. On Babel: `cd /home/andiongu/cua-failure-analysis && scripts/babel/setup_env.sh`. `submit_hf_analysis.sh` now refuses to submit without a venv. |
 | Background poll died / no notification | Laptop slept — use `caffeinate -dims` during waits, or ask Hermes to re-check `squeue` and remote logs. |
+| Poll runs for hours, job already gone | Job failed without writing `summary.md`. Use `wait_for_run.sh` (checks `sacct`); inspect `logs/cua-hf-analysis-<job_id>.err`. |
 | Subagent "lost" the Slurm job | It was a synchronous child; use cron/background terminal for the wait. |
 
 ## Next-steps checklist (to "fully working")

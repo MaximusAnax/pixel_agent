@@ -27,6 +27,7 @@ Local pixelAgent repo
 | `scripts/babel/analyze_hf_osworld.sbatch` | Remote Slurm job wrapper |
 | `scripts/babel/setup_env.sh` | One-time Python environment setup on Babel (persists across syncs) |
 | `scripts/babel/sync_outputs.sh` | Pulls compact outputs back locally |
+| `scripts/babel/wait_for_run.sh` | Polls until summary.md exists or Slurm job fails |
 | `scripts/hf_osworld_analyze.py` | Remote zip inventory and best-effort analyzer |
 | `hermes/SOUL.md` | Hermes operating contract for Phase 1 |
 
@@ -253,4 +254,5 @@ Then rerun the same Babel workflow and enable the calibrated judge.
 |---|---|
 | `submit_hf_analysis.sh` exits before Slurm | Remote `.venv` missing — run `scripts/babel/setup_env.sh` on Babel. |
 | `ModuleNotFoundError: huggingface_hub` in Slurm logs | Same — job ran without the project venv (should not happen after the fail-fast check). |
+| Poll runs for hours, job already gone | Job failed without `summary.md`. Use `wait_for_run.sh`; inspect `logs/cua-hf-analysis-<job_id>.err`. |
 | `oom_kill` | CPU RAM, not HBM — raise `BABEL_MEM`. |

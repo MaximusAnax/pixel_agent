@@ -73,8 +73,9 @@ Run everything from the `errorAnalysis/` directory.
    run `scripts/babel/setup_env.sh` on Babel (after sync). `submit_hf_analysis.sh`
    preserves `.venv` across syncs and will not queue Slurm without it.
 4. Submit: `scripts/babel/submit_hf_analysis.sh <zip>`. Record the run id.
-5. The Slurm job is asynchronous. Do NOT block a subagent on it — poll with a
-   background terminal or a cron job (see the skill `babel-osworld-analysis`). On a
+5. The Slurm job is asynchronous. Do NOT block a subagent on it — poll with
+   `scripts/babel/wait_for_run.sh <job_id> <run_id>` (checks `sacct`, not just
+   `summary.md`) or a cron job (see the skill `babel-osworld-analysis`). On a
    laptop, suggest `caffeinate -dims` so polls survive sleep.
 6. After completion, sync only compact outputs:
    `scripts/babel/sync_outputs.sh <run_id>` → `data/babel_outputs/<run_id>`.

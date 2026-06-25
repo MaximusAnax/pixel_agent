@@ -47,6 +47,7 @@ All commands run from the project directory (`babel.project_dir`).
 | Submit a job | `scripts/babel/submit_hf_analysis.sh <package.zip>` |
 | Inspect queue | `ssh andiongu@login.babel.cs.cmu.edu squeue --me` |
 | Sync outputs | `scripts/babel/sync_outputs.sh <run_id>` |
+| Wait for job | `scripts/babel/wait_for_run.sh <slurm_job_id> <run_id>` |
 | Read result | `data/babel_outputs/<run_id>/summary.md` |
 
 ## Procedure
@@ -63,15 +64,16 @@ All commands run from the project directory (`babel.project_dir`).
    Capture the printed `RUN_ID` and the remote output dir
    (`/data/user_data/andiongu/cua_failure_analysis/outputs/<run_id>`).
 4. The Slurm job is **asynchronous**. Do not block. Poll for completion in the
-   background and notify when done — e.g.:
+   background and notify when done — use `wait_for_run.sh` (checks both `summary.md`
+   and `sacct` so a failed job does not poll forever):
 
    ```bash
-   ssh andiongu@login.babel.cs.cmu.edu \
-     "until [ -f /data/user_data/andiongu/cua_failure_analysis/outputs/<run_id>/summary.md ]; do sleep 120; done; echo DONE"
+   scripts/babel/wait_for_run.sh <slurm_job_id> <run_id>
    ```
 
-   Run this via `terminal(background=True, notify_on_complete=True)`, or register a
-   `cronjob` that runs step 5 and reports back. Never tie up a synchronous
+   Capture `<slurm_job_id>` from the `Submitted batch job NNNNN` line printed by
+   `submit_hf_analysis.sh`. Run via `terminal(background=True, notify_on_complete=True)`,
+   or register a `cronjob` that runs step 5 and reports back. Never tie up a synchronous
    `delegate_task` subagent waiting on Slurm. On a laptop, remind Andi to run
    `caffeinate -dims` so background SSH polls survive until the job finishes.
 5. When `summary.md` exists remotely, sync only compact artifacts:
@@ -106,6 +108,8 @@ jobs. An `oom_kill` means CPU RAM ran out — raise `BABEL_MEM`, not GPU count.
 - `--gres` must include a GPU type (`gpu:L40S:1`), never `gpu:1`.
 - If `submit_hf_analysis.sh` errors about a missing `.venv`, run
   `scripts/babel/setup_env.sh` on Babel once (after code is synced).
+- Never poll with a bare `until [ -f summary.md ]` loop — use
+  `scripts/babel/wait_for_run.sh` so Slurm failures exit instead of waiting forever.
 - Best-effort labels are provisional. `Unresolved` / `needs_human_review=true` are
   adapter signals, not scientific conclusions.
 - Do not re-run a run id that already has outputs unless Andi asks (no overwrites).
