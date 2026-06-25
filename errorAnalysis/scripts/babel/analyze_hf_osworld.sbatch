@@ -82,3 +82,4 @@ fi
   ${JUDGE_API_KEY:+--judge-api-key "${JUDGE_API_KEY}"}
 
 echo "Analysis complete: ${OUTPUT_DIR}"
+scripts/babel/stage_outputs_to_home.sh "${RUN_ID}"

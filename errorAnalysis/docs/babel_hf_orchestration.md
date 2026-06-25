@@ -26,6 +26,7 @@ Local pixelAgent repo
 | `scripts/babel/submit_hf_analysis.sh` | Local helper that syncs code and submits Slurm |
 | `scripts/babel/analyze_hf_osworld.sbatch` | Remote Slurm job wrapper |
 | `scripts/babel/setup_env.sh` | One-time Python environment setup on Babel (persists across syncs) |
+| `scripts/babel/stage_outputs_to_home.sh` | Copy compact outputs from compute storage to home (login-visible) |
 | `scripts/babel/sync_outputs.sh` | Pulls compact outputs back locally |
 | `scripts/babel/wait_for_run.sh` | Polls until summary.md exists or Slurm job fails |
 | `scripts/hf_osworld_analyze.py` | Remote zip inventory and best-effort analyzer |
@@ -255,4 +256,5 @@ Then rerun the same Babel workflow and enable the calibrated judge.
 | `submit_hf_analysis.sh` exits before Slurm | Remote `.venv` missing — run `scripts/babel/setup_env.sh` on Babel. |
 | `ModuleNotFoundError: huggingface_hub` in Slurm logs | Same — job ran without the project venv (should not happen after the fail-fast check). |
 | Poll runs for hours, job already gone | Job failed without `summary.md`. Use `wait_for_run.sh`; inspect `logs/cua-hf-analysis-<job_id>.err`. |
+| `wait_for_run` errors but log says Analysis complete | Outputs live on compute-node `/data/user_data/...` only. Run `sync_outputs.sh` (stages via srun, then rsyncs). |
 | `oom_kill` | CPU RAM, not HBM — raise `BABEL_MEM`. |

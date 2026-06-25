@@ -278,6 +278,7 @@ only the local poll died.
 | `ModuleNotFoundError: huggingface_hub` (or similar) | Remote `.venv` missing. On Babel: `cd /home/andiongu/cua-failure-analysis && scripts/babel/setup_env.sh`. `submit_hf_analysis.sh` now refuses to submit without a venv. |
 | Background poll died / no notification | Laptop slept — use `caffeinate -dims` during waits, or ask Hermes to re-check `squeue` and remote logs. |
 | Poll runs for hours, job already gone | Job failed without writing `summary.md`. Use `wait_for_run.sh` (checks `sacct`); inspect `logs/cua-hf-analysis-<job_id>.err`. |
+| `wait_for_run` errors but log says Analysis complete | False alarm — outputs are on compute storage. Run `sync_outputs.sh <run_id>`. |
 | Subagent "lost" the Slurm job | It was a synchronous child; use cron/background terminal for the wait. |
 
 ## Next-steps checklist (to "fully working")
