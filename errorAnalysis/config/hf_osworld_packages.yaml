@@ -1,0 +1,77 @@
+# Curated package inventory for xlangai/ubuntu_osworld_verified_trajs.
+# Keep this list small and research-relevant. The full repository is about
+# 480GB, so Phase 1 should download one package at a time on Babel.
+
+repo_id: xlangai/ubuntu_osworld_verified_trajs
+revision: main
+
+priority_packages:
+  - key: opencua_a3b_15
+    model_family: OpenCUA
+    model_id: opencua-a3b
+    step_limit: 15
+    file: opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip
+    role: target_small_model_smoke_test
+
+  - key: opencua_a3b_50
+    model_family: OpenCUA
+    model_id: opencua-a3b
+    step_limit: 50
+    file: opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-50step.zip
+    role: target_small_model_standard
+
+  - key: opencua_7b_15
+    model_family: OpenCUA
+    model_id: opencua-7b
+    step_limit: 15
+    file: opencua_agent-opencua_7b-cot_l2-action_history-3image-Ubuntu-15steps.zip
+    role: trained_small_model_smoke_test
+
+  - key: opencua_7b_50
+    model_family: OpenCUA
+    model_id: opencua-7b
+    step_limit: 50
+    file: opencua_agent-opencua_7b-cot_l2-action_history-3image-Ubuntu-50steps.zip
+    role: trained_small_model_standard
+
+  - key: opencua_32b_50
+    model_family: OpenCUA
+    model_id: opencua-32b
+    step_limit: 50
+    file: opencua_agent-opencua_32b-cot_l2-action_history-3image-Ubuntu-50steps.zip
+    role: mid_model_comparator
+
+  - key: kimi_k26
+    model_family: Kimi
+    model_id: kimi-k26
+    step_limit: null
+    file: kimi-k26.zip
+    role: modern_comparator
+
+  - key: kimi_vl_a3b_15
+    model_family: Kimi
+    model_id: kimi-vl-a3b
+    step_limit: 15
+    file: kimi-vl-a3b-15step.zip
+    role: small_vl_comparator
+
+  - key: sonnet_45_15
+    model_family: Claude
+    model_id: claude-sonnet-4.5
+    step_limit: 15
+    file: claude-sonnet-4-5-20250929_15steps.zip
+    role: frontier_reference_smoke_test
+
+  - key: sonnet_45_50
+    model_family: Claude
+    model_id: claude-sonnet-4.5
+    step_limit: 50
+    file: claude-sonnet-4-5-20250929_50steps.zip
+    role: frontier_reference_standard
+
+  - key: sonnet_45_100
+    model_family: Claude
+    model_id: claude-sonnet-4.5
+    step_limit: 100
+    file: claude-sonnet-4-5-20250929_100steps.zip
+    role: frontier_reference_extended
