@@ -37,9 +37,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dependencies
+        run: pip install -r ops/requirements.txt
+
       - name: Generate report and open issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           python ops/weekly_report.py --days "${{ github.event.inputs.days || '7' }}" --open-issue
 

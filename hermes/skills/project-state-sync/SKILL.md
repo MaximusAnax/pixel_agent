@@ -58,10 +58,14 @@ All commands run from the **pixelAgent repo root** (`project.root` config value)
 ### 1. Generate the weekly report (pre-meeting)
 
 ```bash
-python ops/weekly_report.py --days 7            # writes ops/reports/<week>.md
+python ops/weekly_report.py --days 7            # LLM narrative if key set
+python ops/weekly_report.py --days 7 --no-llm   # extractive narrative
 # or, to also file a GitHub issue for discussion:
 python ops/weekly_report.py --days 7 --open-issue
 ```
+
+The report leads with **Executive summary**, **Key advancements**, and **Experiment
+findings** (deduped runs); raw PR/run lists live in a collapsed appendix.
 
 Read the result and report to Andi using the project Output Standard (model/
 package, episodes, labels, adapter gaps where relevant). The `## To discuss` and
@@ -127,7 +131,7 @@ git commit -m "chore(ops): sync project state $(date +%F)"
 
 ## Verification
 
-- `ops/reports/<ISO-week>.md` exists and shows non-empty "At a glance" counts.
+- `ops/reports/<ISO-week>.md` exists with **Executive summary** (or legacy **At a glance**).
 - `ops/state/PROJECT_STATE.md` exists and its "As of" date is today.
 - `AGENTS.md` contains exactly one `BEGIN:PROJECT_STATE` / `END:PROJECT_STATE`
   pair, with the latest digest between them.
