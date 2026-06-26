@@ -20,7 +20,8 @@ class AnthropicJudgeConfig:
   api_key: str
   model: str = "claude-sonnet-4-6"
   anchors_path: Path | None = None
-  max_tokens: int = 512
+  # Headroom so the JSON object always completes after any brief reasoning.
+  max_tokens: int = 1024
 
 
 @dataclass

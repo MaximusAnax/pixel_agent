@@ -1,65 +1,116 @@
-# Judge calibration anchors (5 per leaf where feasible; expand during Phase D)
+# Judge calibration anchors (5+ per leaf). These are illustrative cue phrases for
+# the judge prompt only; they do NOT redefine the taxonomy. The authoritative
+# definitions and decision rules live in failureTaxonomy.md (do not edit there).
+# Expand further during Phase D as human gold labels surface new patterns.
 
 "Click Region Error":
   - "CoT says 'click Done button' but coordinates land 10px below the button bbox."
   - "Correct element named in reasoning; click misses submit by a small margin."
+  - "Reasoning identifies the right toolbar icon, but the click is just outside its bounding box."
+  - "Names the correct checkbox; click lands on its label gap, not the box."
+  - "Target widget correctly chosen in CoT; click coordinate is near but not within the element."
 
 "Visual Confusion (Primitive Reliance)":
   - "Agent clicks white rectangle search-looking region that is a disabled banner."
   - "Picks colored shape matching instruction color but wrong widget type."
+  - "Treats a screenshot thumbnail as a live button and clicks it."
+  - "Selects a decorative rounded box because it resembles a text field."
+  - "Relies on shape/color primitive instead of recognizing the actual control."
 
 "Text Matching Bias":
   - "Clicks static label 'Email' instead of adjacent input field."
   - "Clicks heading text matching query token, not the link."
+  - "Selects a paragraph containing the keyword rather than the matching menu item."
+  - "Clicks the column header bearing the instruction word instead of the cell."
+  - "Matches an instruction token to visible text and clicks the non-interactive text."
 
 "Action Looping (Repetition)":
   - "Types same query three times without pressing Search."
   - "Repeated identical click on non-responsive element."
+  - "Re-issues the same keystroke combination across consecutive steps with no UI change."
+  - "Clicks the frozen dialog button repeatedly instead of changing approach."
+  - "Cycles the identical action while state hash stays constant for 3+ steps."
 
 "Location Hallucination":
   - "CoT names sidebar Notifications; click is on opposite side of screen."
   - "Reasoning cites correct menu; coordinates point to desktop wallpaper."
+  - "Describes a top-bar control but clicks an empty region far from it."
+  - "States the button is on the right; clicks the far left with no element there."
+  - "Confident location claim with no plausible target near the click point."
 
 "Spatial Reasoning Error":
   - "Instruction says left of logo; landmark correct, click is on the right."
   - "Relational 'below Save' violated despite correct Save identification."
+  - "Correctly finds the reference icon but applies the wrong directional offset."
+  - "Picks the element above the anchor when asked for the one below it."
+  - "Landmark recognized; relative position computed in the wrong axis."
 
 "Hidden Operation Blindness":
   - "Task needs right-sidebar tab; agent only clicks top menu bar."
   - "Required keyboard shortcut never attempted; visible clicks fail."
+  - "Context-menu (right-click) action needed but only left-clicks are tried."
+  - "Hidden scroll region holds the control; agent never scrolls to reveal it."
+  - "A collapsed panel must be expanded first, but the agent ignores the toggle."
 
 "Cross-Application Context Loss":
   - "After terminal copy, pastes old clipboard into spreadsheet."
   - "Switches from browser to editor but loses extracted value."
+  - "Reads a number in one app, types a different remembered value in the next."
+  - "Loses track of which window holds the source after an app switch."
+  - "Carries stale state across applications, breaking a multi-app workflow."
 
 "Goal Hallucination":
   - "Adds 'save to favorites' subgoal not in instruction."
   - "Opens unrelated settings panel assuming user wants configuration."
+  - "Invents an export step the task never requested."
+  - "Pursues a plausible but unrequested cleanup action mid-task."
+  - "Reframes the objective into a related task that was not asked for."
 
 "Reasoning Drift":
   - "CoT claims element at bottom of page; clicks footer ad instead."
   - "Self-generated false layout claim misleads click."
+  - "Builds an incorrect mental model of the page and acts on it."
+  - "Asserts a dialog is open when it is not, then acts as if it were."
+  - "Chains conclusions from an earlier false premise about the UI state."
 
 "Long-Horizon Memory Failure":
   - "Forgets which files processed in batch rename after step 12."
   - "Repeats completed subtask in multi-step workflow."
+  - "Loses track of an earlier copied value needed many steps later."
+  - "Re-opens a document it already edited, undoing prior progress."
+  - "Drops a constraint stated at the start once the trajectory grows long."
 
 "Instruction Ambiguity Failure":
   - "Save file without filename; agent picks wrong default vs evaluator."
   - "Underspecified font change applies to doc not global setting."
+  - "Ambiguous 'the file' resolved to the wrong document."
+  - "Underspecified target leads to a defensible but evaluator-mismatched choice."
+  - "Picks one of several valid interpretations that the evaluator rejects."
 
 "Refusal/Infeasibility Error":
   - "Firefox not installed; agent clicks random icons instead of CALL_USER."
   - "Impossible UI state; speculative clicks without terminate."
+  - "Required app missing, yet agent never signals infeasibility."
+  - "Task is impossible in current state but agent keeps guessing actions."
+  - "Should call the user for missing info but fabricates an answer instead."
 
 "Resolution/Scale Brittleness":
   - "At 70% zoom clicks empty region where button was at 100%."
   - "Memorized pixel position fails after resolution change."
+  - "Browser zoom shifts layout; clicks land on stale coordinates."
+  - "Hard-coded coordinate breaks when window is resized."
+  - "Scale change moves the control but the click does not adapt."
 
 "Fine-Grained Manipulation Failure":
   - "Cursor placement between characters fails in tiny text field."
   - "Slider moved to wrong notch despite correct panel."
+  - "Drag distance overshoots the small drop target."
+  - "Precise double-click on a narrow handle misses repeatedly."
+  - "Sub-pixel selection in a dense control fails despite correct intent."
 
 "Software Commonsense (Icon Recognition) Failure":
   - "Fails to use magnifying glass icon as Search."
   - "Does not recognize gear icon as Settings."
+  - "Misses the hamburger icon as the menu toggle."
+  - "Ignores the floppy-disk icon meaning Save."
+  - "Does not associate the trash-can icon with Delete."

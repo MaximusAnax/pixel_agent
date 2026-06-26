@@ -89,6 +89,24 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument("--work-root", type=Path, required=True)
   parser.add_argument("--output-dir", type=Path, required=True)
   parser.add_argument("--max-episodes", type=int, default=25)
+  parser.add_argument(
+    "--phase",
+    choices=("pilot", "core", "all"),
+    default=os.environ.get("OSWORLD_PHASE", "all"),
+    help="Restrict episodes to the pre-registered pilot (30) or core (100) task IDs.",
+  )
+  parser.add_argument(
+    "--tasks-file",
+    type=Path,
+    default=Path(os.environ.get("OSWORLD_TASKS_FILE", "config/stratified_tasks.json")),
+    help="Pre-registered stratified task list used by --phase.",
+  )
+  parser.add_argument(
+    "--failed-only",
+    action="store_true",
+    default=os.environ.get("OSWORLD_FAILED_ONLY", "") not in ("", "0", "false", "False"),
+    help="Attribute only failed episodes; successful episodes are inventoried but not labeled.",
+  )
   parser.add_argument("--taxonomy", type=Path, default=Path("failureTaxonomy.md"))
   parser.add_argument("--analysis-plan", type=Path, default=Path("failureAnalysisFinalPlan.md"))
   parser.add_argument(
@@ -119,6 +137,22 @@ def parse_args() -> argparse.Namespace:
 def write_json(path: Path, data: Any) -> None:
   path.parent.mkdir(parents=True, exist_ok=True)
   path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def load_phase_task_ids(phase: str, tasks_file: Path) -> set[str] | None:
+  """Return the pre-registered task IDs for ``phase`` (None means no filter)."""
+  if phase == "all":
+    return None
+  if not tasks_file.exists():
+    raise FileNotFoundError(
+      f"--phase {phase} requires {tasks_file}; run scripts/build_stratified_tasks.py first."
+    )
+  data = json.loads(tasks_file.read_text(encoding="utf-8"))
+  if phase == "pilot":
+    ids = data.get("pilot_task_ids") or [t["task_id"] for t in data.get("tasks", [])[:30]]
+  else:  # core
+    ids = [t["task_id"] for t in data.get("tasks", [])]
+  return set(ids)
 
 
 def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -589,6 +623,8 @@ def _label_from_attribution(
     "status": "failed",
     "primary_mode": result.primary_mode,
     "secondary_modes": result.secondary_modes,
+    "propagated": result.propagated,
+    "meta_labels": result.meta_labels,
     "confidence": result.confidence,
     "t_star": result.t_star,
     "tier_used": result.tier_used,
@@ -739,6 +775,8 @@ def main() -> int:
   adapter_gaps: list[dict[str, Any]] = []
   episodes_inventoried = 0
 
+  phase_task_ids = load_phase_task_ids(args.phase, args.tasks_file)
+
   with zipfile.ZipFile(package_path) as zf:
     adapter = get_adapter(args.package)
     if uses_opencua_grouping(args.package):
@@ -756,6 +794,21 @@ def main() -> int:
         for b in bundles
       ]
       write_json(args.output_dir / "zip_inventory.json", inventory)
+
+      if phase_task_ids is not None:
+        present = {b.task_id for b in bundles}
+        write_json(
+          args.output_dir / "phase_task_coverage.json",
+          {
+            "phase": args.phase,
+            "expected": sorted(phase_task_ids),
+            "present": sorted(phase_task_ids & present),
+            "missing": sorted(phase_task_ids - present),
+            "n_expected": len(phase_task_ids),
+            "n_present": len(phase_task_ids & present),
+          },
+        )
+        bundles = [b for b in bundles if b.task_id in phase_task_ids]
 
       for bundle in bundles[: args.max_episodes]:
         with tempfile.TemporaryDirectory(dir=args.work_root) as tmp:
@@ -820,6 +873,8 @@ def main() -> int:
           )
 
           if result.manifest.success:
+            if args.failed_only:
+              continue
             label = _label_success_episode()
             usage_row = None
           else:

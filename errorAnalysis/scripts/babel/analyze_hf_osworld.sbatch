@@ -25,6 +25,8 @@ fi
 : "${OSWORLD_HF_REVISION:=main}"
 : "${OSWORLD_PACKAGE:=opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip}"
 : "${OSWORLD_MAX_EPISODES:=25}"
+: "${OSWORLD_PHASE:=all}"
+: "${OSWORLD_FAILED_ONLY:=0}"
 
 export HF_HOME HF_HUB_CACHE HF_DATASETS_CACHE
 
@@ -76,8 +78,10 @@ export PYTHONPATH="${BABEL_PROJECT_DIR}/src:${PYTHONPATH:-}"
   --work-root "${JOB_WORK_ROOT}" \
   --output-dir "${OUTPUT_DIR}" \
   --max-episodes "${OSWORLD_MAX_EPISODES}" \
+  --phase "${OSWORLD_PHASE}" \
   --taxonomy failureTaxonomy.md \
   --analysis-plan failureAnalysisFinalPlan.md \
+  $([[ "${OSWORLD_FAILED_ONLY}" != "0" && -n "${OSWORLD_FAILED_ONLY}" ]] && echo --failed-only) \
   ${HF_DOWNLOAD_MODE:+--download-mode "${HF_DOWNLOAD_MODE}"} \
   ${JUDGE_PROVIDER:+--judge-provider "${JUDGE_PROVIDER}"} \
   ${JUDGE_BASE_URL:+--judge-base-url "${JUDGE_BASE_URL}"} \

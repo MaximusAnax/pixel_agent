@@ -28,6 +28,9 @@ fi
 : "${BABEL_GPU_TYPE:=L40S}"
 : "${OSWORLD_PACKAGE:=${1:-opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip}}"
 : "${OSWORLD_MAX_EPISODES:=25}"
+: "${OSWORLD_PHASE:=all}"
+: "${OSWORLD_FAILED_ONLY:=0}"
+: "${STAGE_NORMALIZED_TRACES:=0}"
 
 if [[ $# -ge 1 ]]; then
   OSWORLD_PACKAGE="$1"
@@ -71,7 +74,9 @@ fi
 REMOTE_CMD=$(cat <<EOF
 cd '${BABEL_PROJECT_DIR}' &&
 RUN_ID='${RUN_ID}' OSWORLD_PACKAGE='${OSWORLD_PACKAGE}' OSWORLD_MAX_EPISODES='${OSWORLD_MAX_EPISODES}' \
-sbatch ${SBATCH_ARGS[*]} scripts/babel/analyze_hf_osworld.sbatch
+OSWORLD_PHASE='${OSWORLD_PHASE}' OSWORLD_FAILED_ONLY='${OSWORLD_FAILED_ONLY}' \
+STAGE_NORMALIZED_TRACES='${STAGE_NORMALIZED_TRACES}' \
+sbatch --export=ALL ${SBATCH_ARGS[*]} scripts/babel/analyze_hf_osworld.sbatch
 EOF
 )
 

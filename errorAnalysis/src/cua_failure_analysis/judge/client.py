@@ -88,12 +88,55 @@ class VLMJudge:
 
   @staticmethod
   def _parse_json(raw: str) -> dict:
-    raw = raw.strip()
-    if raw.startswith("```"):
-      raw = raw.split("```")[1]
-      if raw.startswith("json"):
-        raw = raw[4:]
+    text = raw.strip()
+    # Strip a leading ```json fence when the whole response is fenced.
+    if text.startswith("```"):
+      fenced = text.split("```")
+      if len(fenced) >= 2:
+        text = fenced[1]
+        if text.startswith("json"):
+          text = text[4:]
+    text = text.strip()
     try:
-      return json.loads(raw)
+      return json.loads(text)
     except json.JSONDecodeError:
-      return {"primary_mode": "Unresolved", "evidence_cot_span": raw[:200]}
+      pass
+    # The model often emits reasoning prose before/around the JSON object.
+    # Recover the JSON by parsing the first balanced-brace object in the text.
+    obj = _extract_json_object(raw)
+    if obj is not None:
+      return obj
+    return {"primary_mode": "Unresolved", "evidence_cot_span": raw.strip()[:200]}
+
+
+def _extract_json_object(text: str) -> dict | None:
+  """Return the first balanced {...} object parseable as JSON, else None."""
+  start = text.find("{")
+  while start != -1:
+    depth = 0
+    in_str = False
+    escape = False
+    for i in range(start, len(text)):
+      ch = text[i]
+      if in_str:
+        if escape:
+          escape = False
+        elif ch == "\\":
+          escape = True
+        elif ch == '"':
+          in_str = False
+        continue
+      if ch == '"':
+        in_str = True
+      elif ch == "{":
+        depth += 1
+      elif ch == "}":
+        depth -= 1
+        if depth == 0:
+          candidate = text[start : i + 1]
+          try:
+            return json.loads(candidate)
+          except json.JSONDecodeError:
+            break
+    start = text.find("{", start + 1)
+  return None

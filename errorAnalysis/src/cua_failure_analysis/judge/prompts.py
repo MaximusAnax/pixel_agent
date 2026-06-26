@@ -71,7 +71,9 @@ Evaluator message:
 Previous steps (compressed):
 {previous_summary}
 
-Return JSON:
+Respond with ONLY the following JSON object and nothing else. Do not write any
+reasoning, preamble, or explanation outside the JSON. Put your evidence inside
+`evidence_cot_span`. `primary_mode` MUST be one of the exact leaf names above.
 {{
   "primary_mode": "<exact leaf name>",
   "secondary_modes": [],

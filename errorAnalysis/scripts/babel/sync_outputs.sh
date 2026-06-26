@@ -56,12 +56,24 @@ fi
 
 mkdir -p "${LOCAL_DIR}"
 
+# Compact artifacts (json/jsonl/csv/md) are always pulled. Set
+# SYNC_NORMALIZED_TRACES=1 to also pull the per-episode normalized_traces/ tree
+# (only present when staged with STAGE_NORMALIZED_TRACES=1).
+: "${SYNC_NORMALIZED_TRACES:=0}"
+
+RSYNC_INCLUDES=(
+  --include '*/'
+  --include '*.json'
+  --include '*.jsonl'
+  --include '*.csv'
+  --include '*.md'
+)
+if [[ "${SYNC_NORMALIZED_TRACES}" != "0" ]]; then
+  RSYNC_INCLUDES+=(--include 'normalized_traces/**')
+fi
+
 rsync -az \
-  --include '*/' \
-  --include '*.json' \
-  --include '*.jsonl' \
-  --include '*.csv' \
-  --include '*.md' \
+  "${RSYNC_INCLUDES[@]}" \
   --exclude '*' \
   "${BABEL_LOGIN}:${REMOTE_DIR}/" "${LOCAL_DIR}/"
 

@@ -1,7 +1,12 @@
 """End-to-end adapter + Tier-1 attribution on fixture episodes."""
 
+import importlib.util
+import json
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from cua_failure_analysis.adapters.base import EpisodeBundle
 from cua_failure_analysis.adapters.opencua_osworld import normalize_opencua_episode
@@ -10,6 +15,39 @@ from cua_failure_analysis.taxonomy import FailureLeaf
 from cua_failure_analysis.trace.schema import AttributionResult
 
 FIXTURES = Path(__file__).parent / "fixtures" / "opencua_a3b"
+SCRIPT_PATH = Path(__file__).parents[1] / "scripts" / "hf_osworld_analyze.py"
+
+
+def _load_analyze_module():
+  if "hf_osworld_analyze" in sys.modules:
+    return sys.modules["hf_osworld_analyze"]
+  spec = importlib.util.spec_from_file_location("hf_osworld_analyze", SCRIPT_PATH)
+  module = importlib.util.module_from_spec(spec)
+  sys.modules["hf_osworld_analyze"] = module
+  spec.loader.exec_module(module)
+  return module
+
+
+def test_load_phase_task_ids_pilot(tmp_path: Path):
+  module = _load_analyze_module()
+  tasks_file = tmp_path / "stratified_tasks.json"
+  tasks_file.write_text(
+    json.dumps(
+      {
+        "pilot_task_ids": ["a", "b", "c"],
+        "tasks": [{"task_id": x} for x in ["a", "b", "c", "d", "e"]],
+      }
+    )
+  )
+  assert module.load_phase_task_ids("pilot", tasks_file) == {"a", "b", "c"}
+  assert module.load_phase_task_ids("core", tasks_file) == {"a", "b", "c", "d", "e"}
+  assert module.load_phase_task_ids("all", tasks_file) is None
+
+
+def test_load_phase_task_ids_missing_file(tmp_path: Path):
+  module = _load_analyze_module()
+  with pytest.raises(FileNotFoundError):
+    module.load_phase_task_ids("pilot", tmp_path / "nope.json")
 
 
 def test_looping_episode_gets_action_looping_label(tmp_path: Path):

@@ -7,7 +7,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from cua_failure_analysis.attribution.first_failure import find_first_failure_step
-from cua_failure_analysis.detectors.tier1 import run_tier1_at_step
+from cua_failure_analysis.detectors.tier1 import (
+  detect_click_region_or_location,
+  detect_spatial_reasoning,
+  detect_text_matching_bias,
+  run_tier1_at_step,
+)
 from cua_failure_analysis.judge.client import VLMJudge, VLMJudgeConfig
 from cua_failure_analysis.judge.protocol import JudgeClient
 from cua_failure_analysis.taxonomy import TASK_TAG_GATED, FailureLeaf
@@ -16,12 +21,54 @@ from cua_failure_analysis.trace.schema import AttributionResult, TraceStep, load
 if TYPE_CHECKING:
   pass
 
+# Leaves that are commonly downstream consequences of an earlier root error.
+CONSEQUENCE_LEAVES = frozenset(
+  {FailureLeaf.ACTION_LOOPING.value, FailureLeaf.LONG_HORIZON_MEMORY.value}
+)
+
 
 def _gate_controlled_leaf(leaf: FailureLeaf, task_tags: list[str]) -> bool:
   required = TASK_TAG_GATED.get(leaf)
   if required is None:
     return True
   return required in task_tags
+
+
+def _find_earlier_root_cause(
+  steps: list[TraceStep], t_idx: int, instruction: str
+) -> tuple[int, str] | None:
+  """Scan steps before ``t_idx`` for an earlier grounding error (root cause)."""
+  for idx in range(t_idx):
+    step = steps[idx]
+    for detector in (
+      detect_click_region_or_location(step),
+      detect_text_matching_bias(step, instruction),
+    ):
+      if detector and detector.leaf:
+        return step.step, detector.leaf.value
+    spatial = detect_spatial_reasoning(step, instruction)
+    if spatial and spatial.leaf and "relational" in step.task_tags:
+      return step.step, spatial.leaf.value
+  return None
+
+
+def _tag_propagation(
+  result: AttributionResult, steps: list[TraceStep], t_idx: int, instruction: str
+) -> AttributionResult:
+  """Mark consequence labels as propagated when an earlier root cause exists."""
+  if result.primary_mode not in CONSEQUENCE_LEAVES:
+    return result
+  earlier = _find_earlier_root_cause(steps, t_idx, instruction)
+  if earlier is None:
+    return result
+  root_step, root_leaf = earlier
+  result.propagated = True
+  if "propagated_failure" not in result.meta_labels:
+    result.meta_labels = [*result.meta_labels, "propagated_failure"]
+  suffix = f" | propagated from {root_leaf} at step {root_step}"
+  if suffix not in result.evidence_cot_span:
+    result.evidence_cot_span = f"{result.evidence_cot_span}{suffix}"
+  return result
 
 
 def attribute_run(
@@ -40,7 +87,7 @@ def attribute_run(
 
   tier1 = run_tier1_at_step(steps, t_idx, instruction, len(steps))
   if tier1 and tier1.leaf and _gate_controlled_leaf(tier1.leaf, task_tags):
-    return AttributionResult(
+    result = AttributionResult(
       primary_mode=tier1.leaf.value,
       secondary_modes=[],
       propagated=False,
@@ -49,6 +96,7 @@ def attribute_run(
       confidence=tier1.confidence,
       t_star=step.step,
     )
+    return _tag_propagation(result, steps, t_idx, instruction)
 
   if judge is not None:
     prev = steps[max(0, t_idx - 3) : t_idx]
@@ -64,7 +112,7 @@ def attribute_run(
       result.confidence = 0.0
     result.t_star = step.step
     result.tier_used = "judge"
-    return result
+    return _tag_propagation(result, steps, t_idx, instruction)
 
   return AttributionResult(
     primary_mode="Unresolved",
