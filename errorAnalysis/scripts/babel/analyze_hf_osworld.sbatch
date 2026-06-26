@@ -65,6 +65,8 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
   fi
 fi
 
+export PYTHONPATH="${BABEL_PROJECT_DIR}/src:${PYTHONPATH:-}"
+
 "${PYTHON_BIN}" scripts/hf_osworld_analyze.py \
   --repo-id "${OSWORLD_HF_REPO}" \
   --revision "${OSWORLD_HF_REVISION}" \

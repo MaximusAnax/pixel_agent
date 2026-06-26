@@ -31,6 +31,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from cua_failure_analysis.adapters import (
+  EpisodeBundle,
+  get_adapter,
+  group_opencua_episodes,
+  uses_opencua_grouping,
+)
+from cua_failure_analysis.attribution.pipeline import attribute_run
+from cua_failure_analysis.trace.schema import RunManifest, TraceStep
+
 
 REASONING_KEYS = (
   "cot",
@@ -85,6 +94,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument("--judge-base-url", default="")
   parser.add_argument("--judge-model", default="")
   parser.add_argument("--judge-api-key", default="EMPTY")
+  # Judge CLI args are reserved for a follow-up PR; Tier-1 attribution runs without GPU.
   return parser.parse_args()
 
 
@@ -432,23 +442,123 @@ def classify_best_effort(manifest: dict[str, Any], steps: list[dict[str, Any]]) 
   }
 
 
+def _inventory_row(
+  episode_id: str,
+  members: list[str],
+  json_members: list[str],
+  text_members: list[str],
+  image_members: list[str],
+  result_members: list[str],
+) -> dict[str, Any]:
+  return {
+    "episode_id": episode_id,
+    "num_members": len(members),
+    "num_json_members": len(json_members),
+    "num_text_members": len(text_members),
+    "num_image_members": len(image_members),
+    "num_result_members": len(result_members),
+    "sample_members": members[:20],
+    "result_members": result_members[:20],
+  }
+
+
+def _opencua_members_to_extract(bundle: EpisodeBundle) -> list[str]:
+  names = ("traj.jsonl", "result.txt", "instruction.txt")
+  members: list[str] = []
+  for name in names:
+    member = f"{bundle.episode_id}/{name}"
+    if member in bundle.members:
+      members.append(member)
+  return members
+
+
+def _write_normalized_trace(
+  output_dir: Path,
+  episode_id: str,
+  steps: list[TraceStep],
+  manifest: RunManifest,
+) -> Path:
+  trace_dir = output_dir / "normalized_traces" / episode_id
+  trace_dir.mkdir(parents=True, exist_ok=True)
+  trace_path = trace_dir / "trace.jsonl"
+  with trace_path.open("w", encoding="utf-8") as f:
+    for step in steps:
+      f.write(step.model_dump_json() + "\n")
+  (trace_dir / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+  return trace_path
+
+
+def _label_success_episode() -> dict[str, Any]:
+  return {
+    "status": "success",
+    "primary_mode": None,
+    "secondary_modes": [],
+    "confidence": 1.0,
+    "t_star": None,
+    "tier_used": "n/a",
+    "needs_human_review": False,
+    "evidence": "",
+    "adapter_status": "mapped",
+  }
+
+
+def _label_from_attribution(trace_path: Path, instruction: str) -> dict[str, Any]:
+  result = attribute_run(trace_path, instruction=instruction, judge=None)
+  return {
+    "status": "failed",
+    "primary_mode": result.primary_mode,
+    "secondary_modes": result.secondary_modes,
+    "confidence": result.confidence,
+    "t_star": result.t_star,
+    "tier_used": result.tier_used,
+    "needs_human_review": True,
+    "evidence": result.evidence_cot_span,
+    "adapter_status": "mapped",
+  }
+
+
+def _adapter_manifest_dict(
+  package: str,
+  model_id: str,
+  bundle: EpisodeBundle,
+  manifest: RunManifest,
+  num_steps: int,
+) -> dict[str, Any]:
+  return {
+    "package": package,
+    "model_id": model_id,
+    "episode_id": bundle.episode_id,
+    "task_id": bundle.task_id,
+    "domain": bundle.domain,
+    "success": manifest.success,
+    "instruction": manifest.instruction,
+    "num_members": len(bundle.members),
+    "num_json_members": len(bundle.json_members),
+    "num_text_members": len(bundle.text_members),
+    "num_image_members": len(bundle.image_members),
+    "num_result_members": len(bundle.result_members),
+    "num_normalized_steps": num_steps,
+    "result_members": bundle.result_members[:20],
+  }
+
+
 def write_summary(
   output_dir: Path,
   package_path: Path,
   package: str,
   model_id: str,
-  candidates: list[EpisodeCandidate],
+  episodes_inventoried: int,
   labels: list[dict[str, Any]],
   adapter_gaps: list[dict[str, Any]],
 ) -> None:
-  counts = Counter(row["primary_mode"] for row in labels)
+  counts = Counter(row["primary_mode"] for row in labels if row.get("primary_mode"))
   review_count = sum(1 for row in labels if row.get("needs_human_review"))
   lines = [
     f"# HF OSWorld Failure Analysis: {model_id}",
     "",
     f"- Package: `{package}`",
     f"- Zip path: `{package_path}`",
-    f"- Episodes inventoried: {len(candidates)}",
+    f"- Episodes inventoried: {episodes_inventoried}",
     f"- Episodes analyzed/sample-labeled: {len(labels)}",
     f"- Human review queue: {review_count}",
     f"- Adapter gaps: {len(adapter_gaps)}",
@@ -508,52 +618,147 @@ def main() -> int:
   labels: list[dict[str, Any]] = []
   manifests: list[dict[str, Any]] = []
   adapter_gaps: list[dict[str, Any]] = []
+  episodes_inventoried = 0
 
   with zipfile.ZipFile(package_path) as zf:
-    candidates = group_episodes(zf)
-    inventory = [
-      {
-        "episode_id": c.episode_id,
-        "num_members": len(c.members),
-        "num_json_members": len(c.json_members),
-        "num_text_members": len(c.text_members),
-        "num_image_members": len(c.image_members),
-        "num_result_members": len(c.result_members),
-        "sample_members": c.members[:20],
-        "result_members": c.result_members[:20],
-      }
-      for c in candidates
-    ]
-    write_json(args.output_dir / "zip_inventory.json", inventory)
+    adapter = get_adapter(args.package)
+    if uses_opencua_grouping(args.package):
+      bundles = group_opencua_episodes(zf)
+      episodes_inventoried = len(bundles)
+      inventory = [
+        _inventory_row(
+          b.episode_id,
+          b.members,
+          b.json_members,
+          b.text_members,
+          b.image_members,
+          b.result_members,
+        )
+        for b in bundles
+      ]
+      write_json(args.output_dir / "zip_inventory.json", inventory)
 
-    for candidate in candidates[: args.max_episodes]:
-      with tempfile.TemporaryDirectory(dir=args.work_root) as tmp:
-        tmp_path = Path(tmp)
-        members_to_extract = candidate.json_members + candidate.text_members[:10]
-        extracted = safe_extract_members(zf, members_to_extract, tmp_path)
-        manifest, steps = normalize_episode(args.package, model_id, candidate, extracted)
-        manifests.append(manifest)
+      for bundle in bundles[: args.max_episodes]:
+        with tempfile.TemporaryDirectory(dir=args.work_root) as tmp:
+          tmp_path = Path(tmp)
+          members_to_extract = _opencua_members_to_extract(bundle)
+          extracted = safe_extract_members(zf, members_to_extract, tmp_path)
+          try:
+            result = adapter.normalize_episode(
+              bundle,
+              extracted,
+              model_id=model_id,
+              package=args.package,
+            )
+          except ValueError as exc:
+            manifests.append(
+              {
+                "package": args.package,
+                "model_id": model_id,
+                "episode_id": bundle.episode_id,
+                "num_normalized_steps": 0,
+                "error": str(exc),
+              }
+            )
+            adapter_gaps.append(
+              {
+                "episode_id": bundle.episode_id,
+                "reason": str(exc),
+                "result_members": bundle.result_members[:20],
+                "json_members": bundle.json_members[:20],
+                "text_members": bundle.text_members[:20],
+              }
+            )
+            continue
 
-        label = classify_best_effort(manifest, steps)
-        label_record = {
-          "model_id": model_id,
-          "package": args.package,
-          "episode_id": candidate.episode_id,
-          "success": manifest["success"],
-          **label,
-        }
-        labels.append(label_record)
+          manifests.append(
+            _adapter_manifest_dict(
+              args.package,
+              model_id,
+              bundle,
+              result.manifest,
+              len(result.steps),
+            )
+          )
 
-        if label["adapter_status"] == "needs_mapping" or manifest["num_normalized_steps"] == 0:
-          adapter_gaps.append(
+          if not result.steps:
+            adapter_gaps.append(
+              {
+                "episode_id": bundle.episode_id,
+                "reason": "No normalized reasoning/action steps found",
+                "result_members": bundle.result_members[:20],
+                "json_members": bundle.json_members[:20],
+                "text_members": bundle.text_members[:20],
+              }
+            )
+            continue
+
+          trace_path = _write_normalized_trace(
+            args.output_dir,
+            bundle.episode_id,
+            result.steps,
+            result.manifest,
+          )
+
+          if result.manifest.success:
+            label = _label_success_episode()
+          else:
+            label = _label_from_attribution(trace_path, result.manifest.instruction)
+
+          labels.append(
             {
-              "episode_id": candidate.episode_id,
-              "reason": "No normalized reasoning/action steps found",
-              "result_members": candidate.result_members[:20],
-              "json_members": candidate.json_members[:20],
-              "text_members": candidate.text_members[:20],
+              "model_id": model_id,
+              "package": args.package,
+              "episode_id": bundle.episode_id,
+              "success": result.manifest.success,
+              **label,
             }
           )
+    else:
+      candidates = group_episodes(zf)
+      episodes_inventoried = len(candidates)
+      inventory = [
+        _inventory_row(
+          c.episode_id,
+          c.members,
+          c.json_members,
+          c.text_members,
+          c.image_members,
+          c.result_members,
+        )
+        for c in candidates
+      ]
+      write_json(args.output_dir / "zip_inventory.json", inventory)
+
+      for candidate in candidates[: args.max_episodes]:
+        with tempfile.TemporaryDirectory(dir=args.work_root) as tmp:
+          tmp_path = Path(tmp)
+          members_to_extract = candidate.json_members + candidate.text_members[:10]
+          extracted = safe_extract_members(zf, members_to_extract, tmp_path)
+          manifest, steps = normalize_episode(args.package, model_id, candidate, extracted)
+          manifests.append(manifest)
+
+          label = classify_best_effort(manifest, steps)
+          labels.append(
+            {
+              "model_id": model_id,
+              "package": args.package,
+              "episode_id": candidate.episode_id,
+              "success": manifest["success"],
+              **label,
+            }
+          )
+
+          if label["adapter_status"] == "needs_mapping" or manifest["num_normalized_steps"] == 0:
+            adapter_gaps.append(
+              {
+                "episode_id": candidate.episode_id,
+                "reason": "No normalized reasoning/action steps found",
+                "result_members": candidate.result_members[:20],
+                "json_members": candidate.json_members[:20],
+                "text_members": candidate.text_members[:20],
+              }
+            )
 
   write_json(args.output_dir / "episode_manifests.json", manifests)
   write_json(args.output_dir / "adapter_gaps.json", adapter_gaps)
@@ -563,10 +768,20 @@ def main() -> int:
   with (args.output_dir / "aggregate_stats.csv").open("w", encoding="utf-8", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=["primary_mode", "count"])
     writer.writeheader()
-    for primary_mode, count in Counter(r["primary_mode"] for r in labels).most_common():
+    for primary_mode, count in Counter(
+      r["primary_mode"] for r in labels if r.get("primary_mode")
+    ).most_common():
       writer.writerow({"primary_mode": primary_mode, "count": count})
 
-  write_summary(args.output_dir, package_path, args.package, model_id, candidates, labels, adapter_gaps)
+  write_summary(
+    args.output_dir,
+    package_path,
+    args.package,
+    model_id,
+    episodes_inventoried,
+    labels,
+    adapter_gaps,
+  )
   return 0
 
 
