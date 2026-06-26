@@ -11,10 +11,31 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# Caller-provided run-control overrides (e.g. `OSWORLD_MAX_EPISODES=999 submit ...`)
+# must win over config/babel.env, which `export`s defaults like
+# OSWORLD_MAX_EPISODES=25. Snapshot them before sourcing, then re-apply.
+# Kept bash-3.2 compatible (no associative arrays) since this runs on the laptop.
+# Empty is never a meaningful caller value for these, so -n is a safe "was set" test.
+_CALLER_RUN_ID="${RUN_ID:-}"
+_CALLER_OSWORLD_PACKAGE="${OSWORLD_PACKAGE:-}"
+_CALLER_OSWORLD_MAX_EPISODES="${OSWORLD_MAX_EPISODES:-}"
+_CALLER_OSWORLD_PHASE="${OSWORLD_PHASE:-}"
+_CALLER_OSWORLD_FAILED_ONLY="${OSWORLD_FAILED_ONLY:-}"
+_CALLER_OSWORLD_SELECT_TURN="${OSWORLD_SELECT_TURN:-}"
+_CALLER_STAGE_NORMALIZED_TRACES="${STAGE_NORMALIZED_TRACES:-}"
+
 if [[ -f "${REPO_ROOT}/config/babel.env" ]]; then
   # shellcheck disable=SC1091
   source "${REPO_ROOT}/config/babel.env"
 fi
+
+if [[ -n "${_CALLER_RUN_ID}" ]]; then RUN_ID="${_CALLER_RUN_ID}"; fi
+if [[ -n "${_CALLER_OSWORLD_PACKAGE}" ]]; then OSWORLD_PACKAGE="${_CALLER_OSWORLD_PACKAGE}"; fi
+if [[ -n "${_CALLER_OSWORLD_MAX_EPISODES}" ]]; then OSWORLD_MAX_EPISODES="${_CALLER_OSWORLD_MAX_EPISODES}"; fi
+if [[ -n "${_CALLER_OSWORLD_PHASE}" ]]; then OSWORLD_PHASE="${_CALLER_OSWORLD_PHASE}"; fi
+if [[ -n "${_CALLER_OSWORLD_FAILED_ONLY}" ]]; then OSWORLD_FAILED_ONLY="${_CALLER_OSWORLD_FAILED_ONLY}"; fi
+if [[ -n "${_CALLER_OSWORLD_SELECT_TURN}" ]]; then OSWORLD_SELECT_TURN="${_CALLER_OSWORLD_SELECT_TURN}"; fi
+if [[ -n "${_CALLER_STAGE_NORMALIZED_TRACES}" ]]; then STAGE_NORMALIZED_TRACES="${_CALLER_STAGE_NORMALIZED_TRACES}"; fi
 
 : "${BABEL_USER:=andiongu}"
 : "${BABEL_LOGIN:=andiongu@login.babel.cs.cmu.edu}"
@@ -30,6 +51,7 @@ fi
 : "${OSWORLD_MAX_EPISODES:=25}"
 : "${OSWORLD_PHASE:=all}"
 : "${OSWORLD_FAILED_ONLY:=0}"
+: "${OSWORLD_SELECT_TURN:=turn_1}"
 : "${STAGE_NORMALIZED_TRACES:=0}"
 
 if [[ $# -ge 1 ]]; then
@@ -71,12 +93,16 @@ if [[ "${BABEL_GPUS}" != "0" && -n "${BABEL_GPUS}" ]]; then
   SBATCH_ARGS+=(--gres "gpu:${BABEL_GPU_TYPE}:${BABEL_GPUS}")
 fi
 
+# Inject run-control vars via an explicit --export list (not just inline + ALL).
+# config/babel.env on the cluster `export`s some of these (e.g. OSWORLD_MAX_EPISODES=25);
+# the sbatch script snapshots --export values before sourcing babel.env and
+# re-applies them, so explicit per-run choices reliably win over babel.env.
+# Values must not contain commas (package/run-id names don't).
+SBATCH_EXPORT="ALL,RUN_ID=${RUN_ID},OSWORLD_PACKAGE=${OSWORLD_PACKAGE},OSWORLD_MAX_EPISODES=${OSWORLD_MAX_EPISODES},OSWORLD_PHASE=${OSWORLD_PHASE},OSWORLD_FAILED_ONLY=${OSWORLD_FAILED_ONLY},OSWORLD_SELECT_TURN=${OSWORLD_SELECT_TURN},STAGE_NORMALIZED_TRACES=${STAGE_NORMALIZED_TRACES}"
+
 REMOTE_CMD=$(cat <<EOF
 cd '${BABEL_PROJECT_DIR}' &&
-RUN_ID='${RUN_ID}' OSWORLD_PACKAGE='${OSWORLD_PACKAGE}' OSWORLD_MAX_EPISODES='${OSWORLD_MAX_EPISODES}' \
-OSWORLD_PHASE='${OSWORLD_PHASE}' OSWORLD_FAILED_ONLY='${OSWORLD_FAILED_ONLY}' \
-STAGE_NORMALIZED_TRACES='${STAGE_NORMALIZED_TRACES}' \
-sbatch --export=ALL ${SBATCH_ARGS[*]} scripts/babel/analyze_hf_osworld.sbatch
+sbatch --export='${SBATCH_EXPORT}' ${SBATCH_ARGS[*]} scripts/babel/analyze_hf_osworld.sbatch
 EOF
 )
 

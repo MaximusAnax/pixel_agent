@@ -5,10 +5,32 @@
 
 set -euo pipefail
 
+# Preserve submission-time run-control overrides before sourcing babel.env.
+# config/babel.env may also `export` some of these (e.g. OSWORLD_PACKAGE,
+# OSWORLD_MAX_EPISODES); without this guard, sourcing it would clobber an
+# explicit per-run choice passed via `sbatch --export=ALL`.
+_OVERRIDE_VARS=(
+  RUN_ID OSWORLD_PACKAGE OSWORLD_MAX_EPISODES OSWORLD_PHASE
+  OSWORLD_FAILED_ONLY OSWORLD_SELECT_TURN STAGE_NORMALIZED_TRACES HF_DOWNLOAD_MODE
+)
+declare -A _SUBMIT_OVERRIDE=()
+for _v in "${_OVERRIDE_VARS[@]}"; do
+  if [[ -n "${!_v+x}" ]]; then
+    _SUBMIT_OVERRIDE["${_v}"]="${!_v}"
+  fi
+done
+
 if [[ -f "${HOME}/cua-failure-analysis/config/babel.env" ]]; then
   # shellcheck disable=SC1091
   source "${HOME}/cua-failure-analysis/config/babel.env"
 fi
+
+# Re-apply submission-time overrides so explicit per-run choices win.
+for _v in "${_OVERRIDE_VARS[@]}"; do
+  if [[ -n "${_SUBMIT_OVERRIDE[${_v}]+x}" ]]; then
+    printf -v "${_v}" '%s' "${_SUBMIT_OVERRIDE[${_v}]}"
+  fi
+done
 
 : "${BABEL_USER:=andiongu}"
 : "${BABEL_PROJECT_DIR:=/home/${BABEL_USER}/cua-failure-analysis}"
@@ -27,8 +49,14 @@ fi
 : "${OSWORLD_MAX_EPISODES:=25}"
 : "${OSWORLD_PHASE:=all}"
 : "${OSWORLD_FAILED_ONLY:=0}"
+: "${OSWORLD_SELECT_TURN:=turn_1}"
+# HF Xet transfers have hung indefinitely on Babel for large packages (e.g. the
+# 7.9GB OpenCUA-7B zip downloaded 0 bytes over 2.5h with no error). Default to
+# the plain HTTPS/LFS path, which is reliable here. Override by exporting
+# HF_HUB_DISABLE_XET=0 in config/babel.env if Xet is confirmed healthy.
+: "${HF_HUB_DISABLE_XET:=1}"
 
-export HF_HOME HF_HUB_CACHE HF_DATASETS_CACHE
+export HF_HOME HF_HUB_CACHE HF_DATASETS_CACHE HF_HUB_DISABLE_XET
 
 RUN_ID="${RUN_ID:-$(date +%Y%m%d_%H%M%S)_${OSWORLD_PACKAGE%.zip}}"
 OUTPUT_DIR="${BABEL_OUTPUT_ROOT}/${RUN_ID}"
@@ -79,6 +107,7 @@ export PYTHONPATH="${BABEL_PROJECT_DIR}/src:${PYTHONPATH:-}"
   --output-dir "${OUTPUT_DIR}" \
   --max-episodes "${OSWORLD_MAX_EPISODES}" \
   --phase "${OSWORLD_PHASE}" \
+  --select-turn "${OSWORLD_SELECT_TURN}" \
   --taxonomy failureTaxonomy.md \
   --analysis-plan failureAnalysisFinalPlan.md \
   $([[ "${OSWORLD_FAILED_ONLY}" != "0" && -n "${OSWORLD_FAILED_ONLY}" ]] && echo --failed-only) \

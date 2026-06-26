@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from cua_failure_analysis.adapters.base import AdapterResult, EpisodeBundle, TrajectoryAdapter
-from cua_failure_analysis.adapters.grouping import episode_key_from_member, group_opencua_episodes
+from cua_failure_analysis.adapters.grouping import (
+  detect_turns,
+  episode_key_from_member,
+  group_opencua_episodes,
+)
 from cua_failure_analysis.adapters.opencua_osworld import OpenCuaOsworldAdapter, normalize_opencua_episode
 
 _OPENCUA_PREFIXES = (
@@ -29,6 +33,7 @@ __all__ = [
   "EpisodeBundle",
   "OpenCuaOsworldAdapter",
   "TrajectoryAdapter",
+  "detect_turns",
   "episode_key_from_member",
   "get_adapter",
   "group_opencua_episodes",

@@ -33,6 +33,7 @@ from typing import Any
 
 from cua_failure_analysis.adapters import (
   EpisodeBundle,
+  detect_turns,
   get_adapter,
   group_opencua_episodes,
   uses_opencua_grouping,
@@ -106,6 +107,15 @@ def parse_args() -> argparse.Namespace:
     action="store_true",
     default=os.environ.get("OSWORLD_FAILED_ONLY", "") not in ("", "0", "false", "False"),
     help="Attribute only failed episodes; successful episodes are inventoried but not labeled.",
+  )
+  parser.add_argument(
+    "--select-turn",
+    default=os.environ.get("OSWORLD_SELECT_TURN", "turn_1"),
+    help=(
+      "For multi-attempt packages laid out as turn_N/{domain}/{uuid}/... (e.g. "
+      "OpenCUA-7B-15), group only this turn so the run stays matched (one attempt "
+      "per task) with single-attempt packages. Ignored for flat packages."
+    ),
   )
   parser.add_argument("--taxonomy", type=Path, default=Path("failureTaxonomy.md"))
   parser.add_argument("--analysis-plan", type=Path, default=Path("failureAnalysisFinalPlan.md"))
@@ -515,13 +525,12 @@ def _inventory_row(
 
 
 def _opencua_members_to_extract(bundle: EpisodeBundle) -> list[str]:
-  names = ("traj.jsonl", "result.txt", "instruction.txt")
-  members: list[str] = []
-  for name in names:
-    member = f"{bundle.episode_id}/{name}"
-    if member in bundle.members:
-      members.append(member)
-  return members
+  # Select by basename from the bundle's actual member paths rather than
+  # reconstructing `{episode_id}/{name}`. Multi-attempt packages (e.g. 7B-15)
+  # nest members under a `turn_N/` prefix, so a reconstructed path would never
+  # match and nothing would extract.
+  names = {"traj.jsonl", "result.txt", "instruction.txt"}
+  return [m for m in bundle.members if Path(m).name in names]
 
 
 def _write_normalized_trace(
@@ -780,7 +789,16 @@ def main() -> int:
   with zipfile.ZipFile(package_path) as zf:
     adapter = get_adapter(args.package)
     if uses_opencua_grouping(args.package):
-      bundles = group_opencua_episodes(zf)
+      turns_present = detect_turns(zf)
+      selected_turn = (
+        (args.select_turn if args.select_turn in turns_present else turns_present[0])
+        if turns_present
+        else None
+      )
+      run_meta["turns_present"] = turns_present
+      run_meta["selected_turn"] = selected_turn
+      write_json(args.output_dir / "run_metadata.json", run_meta)
+      bundles = group_opencua_episodes(zf, select_turn=args.select_turn)
       episodes_inventoried = len(bundles)
       inventory = [
         _inventory_row(

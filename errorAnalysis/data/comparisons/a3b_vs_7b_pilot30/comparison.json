@@ -1,0 +1,479 @@
+{
+  "generated_at": "2026-06-26T17:32:59",
+  "provisional": true,
+  "note": "Prevalence is conditional on failure; failure sets differ per model. Denominators (n_failed) and task overlap are reported. All labels are provisional until human gold calibration (Phase D).",
+  "models": [
+    "opencua-a3b",
+    "opencua-7b"
+  ],
+  "per_model": {
+    "opencua-a3b": {
+      "run_dir": "data/babel_outputs/20260626_172919_a3b_pilot_full_v4",
+      "model_id": "opencua-a3b-cot-l2-action-history-3image-",
+      "package": "opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip",
+      "n_episodes": 30,
+      "n_failed": 21,
+      "failure_rate": 0.7,
+      "prevalence_table": [
+        {
+          "leaf": "Action Looping (Repetition)",
+          "count": 2,
+          "n_failures": 21,
+          "prevalence": 0.09523809523809523,
+          "ci_low": 0.026518208796947246,
+          "ci_high": 0.2891458386074067
+        },
+        {
+          "leaf": "Click Region Error",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Cross-Application Context Loss",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Fine-Grained Manipulation Failure",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Goal Hallucination",
+          "count": 4,
+          "n_failures": 21,
+          "prevalence": 0.19047619047619047,
+          "ci_low": 0.07667440615177301,
+          "ci_high": 0.40000986539273287
+        },
+        {
+          "leaf": "Hidden Operation Blindness",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Instruction Ambiguity Failure",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Location Hallucination",
+          "count": 3,
+          "n_failures": 21,
+          "prevalence": 0.14285714285714285,
+          "ci_low": 0.04980921798213492,
+          "ci_high": 0.346364941492295
+        },
+        {
+          "leaf": "Long-Horizon Memory Failure",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Reasoning Drift",
+          "count": 11,
+          "n_failures": 21,
+          "prevalence": 0.5238095238095238,
+          "ci_low": 0.32369217900266756,
+          "ci_high": 0.7165628770323705
+        },
+        {
+          "leaf": "Refusal/Infeasibility Error",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Resolution/Scale Brittleness",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Software Commonsense (Icon Recognition) Failure",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Spatial Reasoning Error",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Text Matching Bias",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        {
+          "leaf": "Visual Confusion (Primitive Reliance)",
+          "count": 0,
+          "n_failures": 21,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        }
+      ],
+      "perception_vs_cognitive": {
+        "n_failures": 21,
+        "perception": {
+          "count": 0,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.15464382326420195
+        },
+        "cognitive": {
+          "count": 20,
+          "prevalence": 0.9523809523809523,
+          "ci_low": 0.7733018341376452,
+          "ci_high": 0.9915442305280766
+        },
+        "other_unresolved": 1
+      },
+      "propagation": {
+        "Action Looping (Repetition)": {
+          "n": 2,
+          "propagated": 0,
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.6576280471103807
+        },
+        "Long-Horizon Memory Failure": {
+          "n": 0,
+          "propagated": 0,
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0
+        }
+      },
+      "cooccurrence": {
+        "Reasoning Drift": {
+          "Goal Hallucination": 5,
+          "Instruction Ambiguity Failure": 2,
+          "Fine-Grained Manipulation Failure": 1
+        },
+        "Goal Hallucination": {
+          "Long-Horizon Memory Failure": 1,
+          "Reasoning Drift": 2
+        },
+        "Action Looping (Repetition)": {
+          "Location Hallucination": 1,
+          "Reasoning Drift": 1
+        },
+        "Unresolved (missing task tag for controlled leaf)": {
+          "Reasoning Drift": 1
+        }
+      },
+      "tier_used_counts": {
+        "judge": 21
+      }
+    },
+    "opencua-7b": {
+      "run_dir": "data/babel_outputs/20260626_172922_7b_pilot_full_v4",
+      "model_id": "opencua-7b-cot-l2-action-history-3image-",
+      "package": "opencua_agent-opencua_7b-cot_l2-action_history-3image-Ubuntu-15steps.zip",
+      "n_episodes": 30,
+      "n_failed": 17,
+      "failure_rate": 0.5666666666666667,
+      "prevalence_table": [
+        {
+          "leaf": "Action Looping (Repetition)",
+          "count": 4,
+          "n_failures": 17,
+          "prevalence": 0.23529411764705882,
+          "ci_low": 0.0955488907167594,
+          "ci_high": 0.47262245889171595
+        },
+        {
+          "leaf": "Click Region Error",
+          "count": 1,
+          "n_failures": 17,
+          "prevalence": 0.058823529411764705,
+          "ci_low": 0.01046013064516424,
+          "ci_high": 0.269825452035628
+        },
+        {
+          "leaf": "Cross-Application Context Loss",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Fine-Grained Manipulation Failure",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Goal Hallucination",
+          "count": 3,
+          "n_failures": 17,
+          "prevalence": 0.17647058823529413,
+          "ci_low": 0.0619101371254899,
+          "ci_high": 0.41029929017375777
+        },
+        {
+          "leaf": "Hidden Operation Blindness",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Instruction Ambiguity Failure",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Location Hallucination",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Long-Horizon Memory Failure",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Reasoning Drift",
+          "count": 7,
+          "n_failures": 17,
+          "prevalence": 0.4117647058823529,
+          "ci_low": 0.21610786039131383,
+          "ci_high": 0.6399492561448447
+        },
+        {
+          "leaf": "Refusal/Infeasibility Error",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Resolution/Scale Brittleness",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Software Commonsense (Icon Recognition) Failure",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Spatial Reasoning Error",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Text Matching Bias",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        },
+        {
+          "leaf": "Visual Confusion (Primitive Reliance)",
+          "count": 0,
+          "n_failures": 17,
+          "prevalence": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.18432366037156456
+        }
+      ],
+      "perception_vs_cognitive": {
+        "n_failures": 17,
+        "perception": {
+          "count": 1,
+          "prevalence": 0.058823529411764705,
+          "ci_low": 0.01046013064516424,
+          "ci_high": 0.269825452035628
+        },
+        "cognitive": {
+          "count": 14,
+          "prevalence": 0.8235294117647058,
+          "ci_low": 0.5897007098262422,
+          "ci_high": 0.9380898628745101
+        },
+        "other_unresolved": 2
+      },
+      "propagation": {
+        "Action Looping (Repetition)": {
+          "n": 4,
+          "propagated": 0,
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.48990002040399916
+        },
+        "Long-Horizon Memory Failure": {
+          "n": 0,
+          "propagated": 0,
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0
+        }
+      },
+      "cooccurrence": {
+        "Action Looping (Repetition)": {
+          "Reasoning Drift": 1,
+          "Goal Hallucination": 1
+        },
+        "Goal Hallucination": {
+          "Reasoning Drift": 2
+        },
+        "Reasoning Drift": {
+          "Hidden Operation Blindness": 1,
+          "Goal Hallucination": 4,
+          "Refusal/Infeasibility Error": 1
+        }
+      },
+      "tier_used_counts": {
+        "judge": 17
+      }
+    }
+  },
+  "pilot_task_overlap": {
+    "per_model_failed_task_ids": {
+      "opencua-a3b": [
+        "06fe7178-4491-4589-810f-2e2bc9502122",
+        "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+        "1273e544-688f-496b-8d89-3e0f40aa0606",
+        "1954cced-e748-45c4-9c26-9855b97fbc5e",
+        "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+        "2ad9387a-65d8-4e33-ad5b-7580065a27ca",
+        "2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3",
+        "2bd59342-0664-4ccb-ba87-79379096cc08",
+        "35253b65-1c19-4304-8aa4-6884b8218fc0",
+        "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+        "3aaa4e37-dc91-482e-99af-132a612d40f3",
+        "42e0a640-4f19-4b28-973d-729602b5a4a7",
+        "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+        "51719eea-10bc-4246-a428-ac7c433dd4b3",
+        "535364ea-05bd-46ea-9937-9f55c68507e8",
+        "77b8ab4d-994f-43ac-8930-8ca087d7c4b4",
+        "a746add2-cab0-4740-ac36-c3769d9bfb46",
+        "d16c99dc-2a1e-46f2-b350-d97c86c85c15",
+        "e1e75309-3ddb-4d09-92ec-de869c928143",
+        "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+        "f9584479-3d0d-4c79-affa-9ad7afdd8850"
+      ],
+      "opencua-7b": [
+        "06fe7178-4491-4589-810f-2e2bc9502122",
+        "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+        "1273e544-688f-496b-8d89-3e0f40aa0606",
+        "1954cced-e748-45c4-9c26-9855b97fbc5e",
+        "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+        "2bd59342-0664-4ccb-ba87-79379096cc08",
+        "35253b65-1c19-4304-8aa4-6884b8218fc0",
+        "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+        "3aaa4e37-dc91-482e-99af-132a612d40f3",
+        "42e0a640-4f19-4b28-973d-729602b5a4a7",
+        "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+        "51719eea-10bc-4246-a428-ac7c433dd4b3",
+        "535364ea-05bd-46ea-9937-9f55c68507e8",
+        "7a5a7856-f1b6-42a4-ade9-1ca81ca0f263",
+        "e1e75309-3ddb-4d09-92ec-de869c928143",
+        "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+        "f9584479-3d0d-4c79-affa-9ad7afdd8850"
+      ]
+    },
+    "intersection": [
+      "06fe7178-4491-4589-810f-2e2bc9502122",
+      "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+      "1273e544-688f-496b-8d89-3e0f40aa0606",
+      "1954cced-e748-45c4-9c26-9855b97fbc5e",
+      "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+      "2bd59342-0664-4ccb-ba87-79379096cc08",
+      "35253b65-1c19-4304-8aa4-6884b8218fc0",
+      "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+      "3aaa4e37-dc91-482e-99af-132a612d40f3",
+      "42e0a640-4f19-4b28-973d-729602b5a4a7",
+      "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+      "51719eea-10bc-4246-a428-ac7c433dd4b3",
+      "535364ea-05bd-46ea-9937-9f55c68507e8",
+      "e1e75309-3ddb-4d09-92ec-de869c928143",
+      "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+      "f9584479-3d0d-4c79-affa-9ad7afdd8850"
+    ],
+    "union": [
+      "06fe7178-4491-4589-810f-2e2bc9502122",
+      "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+      "1273e544-688f-496b-8d89-3e0f40aa0606",
+      "1954cced-e748-45c4-9c26-9855b97fbc5e",
+      "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+      "2ad9387a-65d8-4e33-ad5b-7580065a27ca",
+      "2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3",
+      "2bd59342-0664-4ccb-ba87-79379096cc08",
+      "35253b65-1c19-4304-8aa4-6884b8218fc0",
+      "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+      "3aaa4e37-dc91-482e-99af-132a612d40f3",
+      "42e0a640-4f19-4b28-973d-729602b5a4a7",
+      "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+      "51719eea-10bc-4246-a428-ac7c433dd4b3",
+      "535364ea-05bd-46ea-9937-9f55c68507e8",
+      "77b8ab4d-994f-43ac-8930-8ca087d7c4b4",
+      "7a5a7856-f1b6-42a4-ade9-1ca81ca0f263",
+      "a746add2-cab0-4740-ac36-c3769d9bfb46",
+      "d16c99dc-2a1e-46f2-b350-d97c86c85c15",
+      "e1e75309-3ddb-4d09-92ec-de869c928143",
+      "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+      "f9584479-3d0d-4c79-affa-9ad7afdd8850"
+    ],
+    "n_intersection": 16,
+    "n_union": 22
+  }
+}
