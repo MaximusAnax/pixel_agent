@@ -1,0 +1,56 @@
+name: Weekly research report
+
+# Auto-drafts the weekly progress report before the team meeting so nobody builds
+# it by hand. Produces ops/reports/<ISO-week>.md, opens a discussion issue, and
+# commits the report file back to the repo.
+#
+# Cron is fixed UTC and does NOT follow US daylight saving. The team meeting is
+# Fridays 11:30 AM Eastern; this fires at 15:00 UTC = 11:00 AM EDT (summer) /
+# 10:00 AM EST (winter) — i.e. always at or before the meeting. Edit if your
+# meeting time changes, or trigger manually from the Actions tab.
+
+on:
+  schedule:
+    - cron: "0 15 * * 5"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Window length in days"
+        required: false
+        default: "7"
+
+permissions:
+  contents: write   # commit the report file back
+  issues: write     # open the discussion issue
+
+jobs:
+  weekly-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for diffstat)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate report and open issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python ops/weekly_report.py --days "${{ github.event.inputs.days || '7' }}" --open-issue
+
+      - name: Commit report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ops/reports/*.md
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+          else
+            git commit -m "chore(ops): weekly research report $(date +%F)"
+            git push
+          fi

@@ -7,3 +7,13 @@ config/bridges.env
 errorAnalysis/config/babel.env
 errorAnalysis/data/babel_outputs/
 .env
+
+# Raw meeting recordings are large and may be sensitive — keep them local.
+ops/meetings/**/recording.*
+ops/meetings/**/*.mp3
+ops/meetings/**/*.m4a
+ops/meetings/**/*.mp4
+ops/meetings/**/*.wav
+ops/meetings/**/*.webm
+ops/config/meetings.env
+ops/config/gdoc-service-account.json

@@ -292,6 +292,10 @@ only the local poll died.
 - [x] Install/tap the skill; `hermes config set skills.config.babel.project_dir ...`.
 - [ ] Smoke test (section 7) on the OpenCUA A3B 15-step package.
 - [ ] Use `caffeinate -dims` during long polls so the laptop does not sleep.
+- [ ] (Optional) move Hermes to a VPS for durable cron polling.
+- [ ] Project-state loop (repo root): weekly report Action (`.github/workflows/weekly-report.yml`),
+      `ops/pull_gdoc_notes.py`, and `project-state-sync` under `hermes/skills/`.
+      See [`docs/project_state_automation.md`](../../docs/project_state_automation.md).
 - [ ] (Optional) add a package-specific adapter once a zip layout is confirmed,
       then enable a calibrated judge (GPU run) — see
       [babel_hf_orchestration.md](babel_hf_orchestration.md).

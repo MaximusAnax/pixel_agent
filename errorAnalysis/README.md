@@ -59,6 +59,19 @@ To drive this through the Hermes agent (multi-agent orchestration), follow
 [AGENTS.md](AGENTS.md); the runnable workflow is the
 `hermes/skills/babel-osworld-analysis` skill.
 
+## Project-state automation (repo root)
+
+Cross-stage weekly reports, Google Doc meeting notes, and Hermes live context live
+at the **pixelAgent repo root**, not in this stage directory:
+
+- [`../ops/`](../ops/README.md) — scripts and artifacts
+- [`../docs/meeting_notes_workflow.md`](../docs/meeting_notes_workflow.md)
+- [`../docs/project_state_automation.md`](../docs/project_state_automation.md)
+- [`../hermes/skills/project-state-sync/`](../hermes/skills/project-state-sync/SKILL.md)
+
+Run from the repo root: `python ops/weekly_report.py`, `python ops/pull_gdoc_notes.py`, etc.
+The managed **Live project state** block is in root [`../AGENTS.md`](../AGENTS.md).
+
 ## Layout
 
 ```
