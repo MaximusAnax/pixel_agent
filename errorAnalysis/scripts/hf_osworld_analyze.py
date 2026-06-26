@@ -516,7 +516,7 @@ def _build_judge(args: argparse.Namespace) -> JudgeClient | None:
     return None
 
   if provider == "anthropic":
-    model = args.judge_model or "claude-sonnet-4-20250514"
+    model = args.judge_model or "claude-sonnet-4-6"
     return AnthropicJudge(AnthropicJudgeConfig(api_key=api_key, model=model))
 
   if args.judge_base_url:

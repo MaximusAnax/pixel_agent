@@ -18,7 +18,7 @@ from cua_failure_analysis.trace.schema import AttributionResult, TraceStep
 @dataclass
 class AnthropicJudgeConfig:
   api_key: str
-  model: str = "claude-sonnet-4-20250514"
+  model: str = "claude-sonnet-4-6"
   anchors_path: Path | None = None
   max_tokens: int = 512
 
