@@ -1,0 +1,13 @@
+# Dependencies for cross-stage project ops (pixelAgent/ops at repo root).
+#
+# Core scripts (weekly_report.py, synthesize_state.py) use stdlib + git/gh only.
+# Install extras only for the features you use:
+
+# --- Google Docs meeting notes (pull_gdoc_notes.py) ---
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+
+# --- LLM (format_meeting_notes.py, synthesize_state.py) — certifi for macOS SSL ---
+certifi>=2024.0.0
+# faster-whisper>=1.0.0
+# (also: brew install ffmpeg for non-wav audio)

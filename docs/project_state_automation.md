@@ -22,6 +22,10 @@ Today that is captured by hand (a meeting-notes doc) and re-explained verbally.
 Things get missed, and none of it is automatically available to Hermes, which
 starts each session from a static `AGENTS.md` with no memory of last week.
 
+**Layout:** all cross-stage automation lives at the **pixelAgent repo root**
+(`ops/`, `docs/`, `hermes/skills/project-state-sync/`). Stage subdirs like
+`errorAnalysis/` hold phase-specific code only.
+
 ## Design
 
 Three stages feeding one canonical state, which Hermes auto-ingests:
@@ -40,7 +44,7 @@ Three stages feeding one canonical state, which Hermes auto-ingests:
                  │ synthesize_state.py (LLM or extractive)                   │
                  │   reads: latest report + recent notes/transcripts + prev  │
                  │   writes: ops/state/PROJECT_STATE.md  (full)              │
-                 │           AGENTS.md  Live-project-state block (compact)   │
+                 │           repo-root AGENTS.md  Live-project-state block (compact)   │
                  └───────────────────────────────────────────────────────────┘
                                           │
                  ┌──────────────────── CONSUME ─────────────────────────────┐
@@ -60,10 +64,10 @@ Three stages feeding one canonical state, which Hermes auto-ingests:
 
 ### How Hermes actually ingests it
 
-Per [`hermes_setup.md`](hermes_setup.md), Hermes auto-loads `AGENTS.md` (and
-subdir `AGENTS.md`s) every turn, but does **not** auto-read arbitrary files by
-name. So the synthesizer writes a compact digest into a **managed block** in
-`AGENTS.md`:
+Per root [`AGENTS.md`](../AGENTS.md) and [`errorAnalysis/docs/hermes_setup.md`](../errorAnalysis/docs/hermes_setup.md),
+Hermes auto-loads `AGENTS.md` from the git root (and stage subdirs when working
+there). The synthesizer writes a compact digest into a **managed block** in the
+**repo-root** `AGENTS.md`:
 
 ```text
 <!-- BEGIN:PROJECT_STATE (... do not edit by hand) -->
@@ -90,7 +94,7 @@ You can also run it on demand from the Actions tab (workflow_dispatch).
 ### 2. Transcription (local, per meeting)
 
 ```bash
-cd errorAnalysis
+cd ~/Documents/School/Research/pixelAgent   # repo root
 pip install -r ops/requirements.txt   # faster-whisper; also `brew install ffmpeg`
 python ops/transcribe_meeting.py path/to/recording.m4a --date YYYY-MM-DD
 ```
@@ -110,16 +114,34 @@ transcript, then a human corrects it.)
 ### 4. Synthesis
 
 ```bash
-python ops/synthesize_state.py --meetings 3        # extractive by default
-# with an LLM:
-export OPENAI_API_KEY=...        # or STATE_LLM_API_KEY (+ STATE_LLM_BASE_URL/MODEL)
-python ops/synthesize_state.py --meetings 3
+python ops/synthesize_state.py        # default: fold in the latest meeting only
+python ops/synthesize_state.py --no-llm   # force extractive (no incremental merge)
+# optional: --meetings 3 to re-read several recent meeting folders in one pass
 ```
+
+By default only the **most recent** meeting folder is sent as new input; in LLM mode
+the script merges it into the existing `ops/state/PROJECT_STATE.md` (add/update/drop).
+Use `--meetings N` when you need to re-fold several weeks after a missed run.
 
 Commit `ops/reports`, `ops/meetings`, `ops/state`, and `AGENTS.md`. Raw audio is
 git-ignored.
 
-### 5. (Optional) Fully hands-off
+### 5. Post-meeting automation (GitHub Actions)
+
+`.github/workflows/post-meeting-sync.yml` runs **Fridays at 19:00 UTC** (~2 PM Eastern,
+after the usual meeting): pulls the Google Doc (`--section-only`), formats notes with
+Claude, synthesizes state, and commits. Requires repository secrets:
+
+| Secret | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Format + synthesize |
+| `MEETING_GDOC_ID` | Shared meeting notes Doc |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Full service-account JSON (Doc shared with its email) |
+
+Trigger manually from the Actions tab with an optional meeting date if you skip a week
+or run off-schedule.
+
+### 6. (Optional) Fully hands-off
 
 Have Hermes own the loop via the `project-state-sync` skill on its VPS: a cron
 that (a) runs the report pre-meeting, (b) after you drop a recording, transcribes
@@ -135,11 +157,10 @@ This is stage 1 (sense + remember). The natural progression:
    automatically; close the loop by reporting their status in the next report.
 3. **Decision-aware planning.** Hermes proposes next experiments from
    `PROJECT_STATE.md` (open questions + recent results) for human approval.
-4. **Closed experiment loop.** Approved proposals become Babel runs via the
-   existing `babel-osworld-analysis` skill; results feed the next report
-   automatically.
-5. **Autoresearch.** The loop runs with humans mostly approving/steering rather
-   than driving — Karpathy-style — built on the same memory substrate.
+4. **Closed experiment loop.** Approved proposals become runs via each idea's
+   Hermes skill; results feed the next report. See `docs/multi_idea_stages.md`.
+5. **Autoresearch.** Parent Hermes at repo root proposes; subagents execute per
+   `<idea>/AGENTS.md`. Protocol: `docs/multi_idea_stages.md`.
 
 Each step is additive and keeps a human in the loop until explicitly relaxed,
 consistent with the project's Phase-1 scientific posture (evidence over

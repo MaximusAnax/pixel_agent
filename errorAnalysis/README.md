@@ -59,24 +59,18 @@ To drive this through the Hermes agent (multi-agent orchestration), follow
 [AGENTS.md](AGENTS.md); the runnable workflow is the
 `hermes/skills/babel-osworld-analysis` skill.
 
-## Project-state automation
+## Project-state automation (repo root)
 
-A closed loop that keeps the team and Hermes current with minimal manual work:
-auto-drafts a weekly progress report (merged PRs, code churn, experiment runs),
-transcribes meetings locally, and synthesizes both into a living
-`ops/state/PROJECT_STATE.md` plus a block in `AGENTS.md` that Hermes auto-loads
-every turn.
+Cross-stage weekly reports, Google Doc meeting notes, and Hermes live context live
+at the **pixelAgent repo root**, not in this stage directory:
 
-```bash
-python ops/weekly_report.py --days 7        # ops/reports/<ISO-week>.md (+ optional GH issue)
-python ops/transcribe_meeting.py rec.m4a    # ops/meetings/<date>/transcript.md (local Whisper)
-python ops/synthesize_state.py --meetings 3 # PROJECT_STATE.md + AGENTS.md live-state block
-```
+- [`../ops/`](../ops/README.md) — scripts and artifacts
+- [`../docs/meeting_notes_workflow.md`](../docs/meeting_notes_workflow.md)
+- [`../docs/project_state_automation.md`](../docs/project_state_automation.md)
+- [`../hermes/skills/project-state-sync/`](../hermes/skills/project-state-sync/SKILL.md)
 
-A weekly GitHub Action runs the report automatically. See
-[ops/README.md](ops/README.md) and
-[docs/project_state_automation.md](docs/project_state_automation.md); Hermes
-drives it via the `hermes/skills/project-state-sync` skill.
+Run from the repo root: `python ops/weekly_report.py`, `python ops/pull_gdoc_notes.py`, etc.
+The managed **Live project state** block is in root [`../AGENTS.md`](../AGENTS.md).
 
 ## Layout
 

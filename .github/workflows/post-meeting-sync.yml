@@ -1,0 +1,84 @@
+name: Post-meeting state sync
+
+# Pulls Google Doc notes, formats with Claude, and synthesizes PROJECT_STATE.md +
+# the AGENTS.md live block after the weekly meeting.
+#
+# Schedule: Fridays 19:00 UTC ≈ 2:00 PM EST / 3:00 PM EDT — ~90 min after the
+# usual 11:30 AM Eastern meeting ends. Edit cron if your meeting time changes.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANTHROPIC_API_KEY              — Claude API key
+#   MEETING_GDOC_ID                — Google Doc id or full URL
+#   GOOGLE_SERVICE_ACCOUNT_JSON    — full service-account JSON (Viewer on the Doc)
+#
+# Manual run: Actions → Post-meeting state sync → Run workflow (optional date).
+
+on:
+  schedule:
+    - cron: "0 19 * * 5"
+  workflow_dispatch:
+    inputs:
+      meeting_date:
+        description: "Meeting date YYYY-MM-DD (default: today UTC)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  post-meeting-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r ops/requirements.txt
+
+      - name: Configure Google credentials
+        env:
+          GSA_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p ops/config
+          echo "$GSA_JSON" > ops/config/gdoc-service-account.json
+
+      - name: Pull, format, and synthesize
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MEETING_GDOC_ID: ${{ secrets.MEETING_GDOC_ID }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ] || [ -z "$MEETING_GDOC_ID" ]; then
+            echo "Missing ANTHROPIC_API_KEY or MEETING_GDOC_ID repository secret."
+            exit 1
+          fi
+          MEETING_DATE="${{ github.event.inputs.meeting_date }}"
+          if [ -z "$MEETING_DATE" ]; then
+            MEETING_DATE=$(date -u +%F)
+          fi
+          echo "Meeting date: $MEETING_DATE"
+          python ops/pull_gdoc_notes.py \
+            --date "$MEETING_DATE" \
+            --doc-id "$MEETING_GDOC_ID" \
+            --section-only --force
+          python ops/format_meeting_notes.py --date "$MEETING_DATE"
+          python ops/synthesize_state.py --meetings 1
+
+      - name: Commit updated state
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ops/meetings ops/state AGENTS.md
+          if git diff --cached --quiet; then
+            echo "No state changes to commit."
+          else
+            git commit -m "chore(ops): post-meeting state sync $(date +%F)"
+            git push
+          fi

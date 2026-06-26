@@ -26,9 +26,6 @@ permissions:
 jobs:
   weekly-report:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: errorAnalysis
     steps:
       - name: Checkout (full history for diffstat)
         uses: actions/checkout@v4

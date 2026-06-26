@@ -10,10 +10,10 @@ metadata:
     tags: [Research, ProjectOps, Reporting, Context]
     requires_toolsets: [terminal, file]
     config:
-      - key: babel.project_dir
-        description: Local path to the errorAnalysis project root (where ops/* live)
-        default: "~/Documents/School/Research/pixelAgent/errorAnalysis"
-        prompt: "Local errorAnalysis project directory"
+      - key: project.root
+        description: Local path to the pixelAgent git root (where ops/* and AGENTS.md live)
+        default: "~/Documents/School/Research/pixelAgent"
+        prompt: "pixelAgent repository root"
 ---
 
 # Project State Sync
@@ -39,10 +39,11 @@ meeting artifacts. Flag anything uncertain as provisional.
 GitHub PRs/commits ─┐
 experiment outputs ─┼─▶ ops/weekly_report.py ─▶ ops/reports/<ISO-week>.md
                     │
-meeting recording ──▶ ops/transcribe_meeting.py ─▶ ops/meetings/<date>/transcript.md
-                                                    ops/meetings/<date>/notes.md (human/agent)
+Google Doc notes ───▶ ops/pull_gdoc_notes.py ─▶ ops/meetings/<date>/gdoc_notes.md (PRIMARY)
+Wispr supplement ───▶ ops/pull_wispr_context.py (optional)
+Zoom recording ─────▶ ops/transcribe_meeting.py (optional fallback)
                                                               │
-   report + notes + transcript + prev state ─▶ ops/synthesize_state.py
+   report + gdoc + supplements + prev state ─▶ ops/synthesize_state.py
                                                               │
                           ops/state/PROJECT_STATE.md  +  AGENTS.md  (Live project state block)
                                                               │
@@ -52,7 +53,7 @@ meeting recording ──▶ ops/transcribe_meeting.py ─▶ ops/meetings/<date>
 
 ## Procedure
 
-All commands run from the project directory (`babel.project_dir`).
+All commands run from the **pixelAgent repo root** (`project.root` config value).
 
 ### 1. Generate the weekly report (pre-meeting)
 
@@ -66,33 +67,42 @@ Read the result and report to Andi using the project Output Standard (model/
 package, episodes, labels, adapter gaps where relevant). The `## To discuss` and
 `## Next week's targets` sections are for humans — leave them for the team.
 
-### 2. After a meeting: transcribe (local, audio stays on the machine)
+### 2. After a meeting: pull and format Google Doc notes (primary)
 
 ```bash
-python ops/transcribe_meeting.py path/to/recording.m4a --date YYYY-MM-DD
+python ops/pull_gdoc_notes.py --date YYYY-MM-DD --section-only   # rolling doc
+python ops/format_meeting_notes.py --date YYYY-MM-DD             # Anthropic → notes.md
+python ops/pull_wispr_context.py --date YYYY-MM-DD               # optional Wispr supplement
 ```
 
-This creates `ops/meetings/<date>/transcript.md` and seeds `notes.md` from the
-template. Encourage Andi (or do it yourself if asked) to fill the structured
-headings in `notes.md` — Decisions, Feedback, Ideas, Action items, Open
-questions — since those flow verbatim into the state.
+Requires `ANTHROPIC_API_KEY` in env or `ops/config/meetings.env` for formatting.
+Setup: service account + share the Doc — see `docs/meeting_notes_workflow.md`.
+
+Optional: `transcribe_meeting.py` only if you need a Zoom recording transcript fallback.
 
 ### 3. Synthesize the living state
 
 ```bash
-python ops/synthesize_state.py --meetings 3
+python ops/synthesize_state.py
 ```
 
-- If an OpenAI-compatible endpoint is configured (`STATE_LLM_API_KEY` or
-  `OPENAI_API_KEY`, plus optional `STATE_LLM_BASE_URL` / `STATE_LLM_MODEL`), this
-  deduplicates and rewrites the state with an LLM.
-- Otherwise it runs a deterministic extractive merge (no key needed).
+- Default **`--meetings 1`**: only the latest meeting folder is new input; LLM mode
+  merges into the previous `PROJECT_STATE.md` (add relevant, update/drop stale).
+- If `ANTHROPIC_API_KEY` is configured (or in `ops/config/meetings.env`), this
+  auto-formats raw `gdoc_notes.md` → `notes.md` then synthesizes with Claude.
+  OpenAI is available via `STATE_LLM_PROVIDER=openai`.
+- Otherwise it runs a deterministic extractive merge (no key needed; weaker cumulative
+  memory — prefer LLM mode for incremental updates).
+- Use `--meetings N` to re-read several recent folders in one pass (e.g. after a
+  missed week).
 
 It rewrites `ops/state/PROJECT_STATE.md` and the managed block in `AGENTS.md`
 (between the `BEGIN:PROJECT_STATE` / `END:PROJECT_STATE` markers). Never edit that
 block by hand — it is regenerated.
 
 Use `--dry-run` to preview, `--no-llm` to force extractive mode.
+
+Optional: run locally the same steps as CI (see `.github/workflows/post-meeting-sync.yml`).
 
 ### 4. Commit the updated context
 
@@ -108,8 +118,9 @@ git commit -m "chore(ops): sync project state $(date +%F)"
 - The `AGENTS.md` live-state block is generated. If you edit it manually it will
   be overwritten on the next `synthesize_state.py` run — put durable instructions
   elsewhere in `AGENTS.md`.
-- `synthesize_state.py` reads only the last `--meetings N` meetings (default 3).
-  Bump it if you need to re-fold older context.
+- `synthesize_state.py` reads only the last `--meetings N` meetings (default **1**).
+  LLM mode merges that input into the previous `PROJECT_STATE.md`; bump N only when
+  re-folding several missed weeks.
 - Transcripts can be noisy; treat them as evidence, not ground truth. Structured
   `notes.md` is the higher-signal input.
 - Do not commit raw audio (it is git-ignored and may be sensitive).

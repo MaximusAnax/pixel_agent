@@ -7,7 +7,7 @@ hand. It pulls:
 
   * merged pull requests (via the `gh` CLI, when available),
   * commits and an aggregated file-change diffstat (via `git`),
-  * new experiment runs (any fresh `summary.md` under data/babel_outputs/).
+  * new experiment runs (any fresh `summary.md` under `<stage>/data/babel_outputs/`).
 
 Design notes
 ------------
@@ -34,11 +34,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-# ops/ -> errorAnalysis/ (the repo's research root and Hermes working dir)
+# ops/ lives at the pixelAgent repo root (cross-stage project operations).
 OPS_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = OPS_DIR.parent
+REPO_ROOT = OPS_DIR.parent
 REPORTS_DIR = OPS_DIR / "reports"
-BABEL_OUTPUTS = PROJECT_ROOT / "data" / "babel_outputs"
+
+
+def experiment_summary_globs() -> list[Path]:
+    """Any stage's synced run summaries: <stage>/data/babel_outputs/<run_id>/summary.md."""
+    paths: list[Path] = []
+    for summary in REPO_ROOT.glob("*/data/babel_outputs/*/summary.md"):
+        if "external" in summary.parts:
+            continue
+        paths.append(summary)
+    return sorted(paths)
 
 
 def _run(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
@@ -88,7 +97,7 @@ def collect_merged_prs(since: dt.date) -> tuple[list[dict], str | None]:
             "--json",
             "number,title,author,mergedAt,url,labels,additions,deletions",
         ],
-        cwd=PROJECT_ROOT,
+        cwd=REPO_ROOT,
     )
     if code != 0:
         return [], f"`gh` unavailable or not authenticated ({err or 'see logs'}); PR section skipped."
@@ -104,7 +113,7 @@ def collect_commits(since: dt.date) -> list[str]:
     code, out, _ = _run(
         ["git", "log", f"--since={since.isoformat()}", "--no-merges",
          "--pretty=format:%h\t%an\t%ad\t%s", "--date=short"],
-        cwd=PROJECT_ROOT,
+        cwd=REPO_ROOT,
     )
     if code != 0 or not out:
         return []
@@ -116,7 +125,7 @@ def collect_diffstat(since: dt.date) -> tuple[list[tuple[str, int, int]], int, i
     code, out, _ = _run(
         ["git", "log", f"--since={since.isoformat()}", "--no-merges",
          "--numstat", "--pretty=format:"],
-        cwd=PROJECT_ROOT,
+        cwd=REPO_ROOT,
     )
     files: dict[str, list[int]] = {}
     if code == 0 and out:
@@ -141,12 +150,10 @@ def collect_diffstat(since: dt.date) -> tuple[list[tuple[str, int, int]], int, i
 
 
 def collect_experiment_runs(since: dt.date) -> list[dict]:
-    """Find experiment run summaries created/updated within the window."""
-    if not BABEL_OUTPUTS.exists():
-        return []
+    """Find experiment run summaries created/updated within the window (all stages)."""
     since_ts = dt.datetime.combine(since, dt.time.min).timestamp()
     runs: list[dict] = []
-    for summary in sorted(BABEL_OUTPUTS.glob("*/summary.md")):
+    for summary in experiment_summary_globs():
         try:
             mtime = summary.stat().st_mtime
         except OSError:
@@ -155,9 +162,12 @@ def collect_experiment_runs(since: dt.date) -> list[dict]:
             continue
         head = summary.read_text(errors="replace").strip().splitlines()
         preview = "\n".join(head[:12])
+        stage = summary.relative_to(REPO_ROOT).parts[0]
         runs.append(
             {
                 "run_id": summary.parent.name,
+                "stage": stage,
+                "path": str(summary.relative_to(REPO_ROOT)),
                 "modified": dt.date.fromtimestamp(mtime).isoformat(),
                 "preview": preview,
             }
@@ -225,10 +235,11 @@ def render(since: dt.date, today: dt.date) -> str:
     L.append("## Experiments & runs")
     L.append("")
     if not runs:
-        L.append("_No new `data/babel_outputs/*/summary.md` in this window._")
+        L.append("_No new `*/data/babel_outputs/*/summary.md` in this window._")
     else:
         for run in runs:
-            L.append(f"### `{run['run_id']}` ({run['modified']})")
+            L.append(f"### `{run['stage']}` / `{run['run_id']}` ({run['modified']})")
+            L.append(f"_`{run['path']}`_")
             L.append("")
             L.append("```")
             L.append(run["preview"])
@@ -268,7 +279,7 @@ def maybe_open_issue(body: str, week: str) -> None:
     title = f"Weekly research report — {week}"
     code, out, err = _run(
         ["gh", "issue", "create", "--title", title, "--body", body, "--label", "weekly-report"],
-        cwd=PROJECT_ROOT,
+        cwd=REPO_ROOT,
     )
     if code == 0:
         print(f"Opened issue: {out}", file=sys.stderr)
@@ -276,7 +287,7 @@ def maybe_open_issue(body: str, week: str) -> None:
         # Label may not exist; retry without it.
         code2, out2, err2 = _run(
             ["gh", "issue", "create", "--title", title, "--body", body],
-            cwd=PROJECT_ROOT,
+            cwd=REPO_ROOT,
         )
         if code2 == 0:
             print(f"Opened issue: {out2}", file=sys.stderr)

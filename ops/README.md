@@ -1,7 +1,10 @@
-# ops/ — Automated project-state context
+# ops/ — Cross-stage project operations (repo root)
 
-A closed loop that keeps everyone (humans **and** the Hermes orchestration) in
-sync on the state of the research project, with as little manual work as possible.
+Automation that applies to **every** pixelAgent stage: weekly progress reports,
+meeting notes ingest (Google Docs + optional Wispr), and synthesis into
+`PROJECT_STATE.md` plus the managed block in the **repo-root** `AGENTS.md`.
+
+Run all commands from the **pixelAgent/** git root (not from `errorAnalysis/`).
 
 It does three things:
 
@@ -42,29 +45,34 @@ meeting recording ──▶ transcribe_meeting.py ─▶ meetings/<date>/ ──
 | Path | What it is |
 |---|---|
 | `weekly_report.py` | Stdlib + `git`/`gh`. Builds `reports/<ISO-week>.md`. Runs in GitHub Actions. |
-| `transcribe_meeting.py` | Local Whisper (`faster-whisper`) → `meetings/<date>/transcript.md`. |
+| `pull_gdoc_notes.py` | Google Docs API → `meetings/<date>/gdoc_notes.md` (raw pull). |
+| `format_meeting_notes.py` | Anthropic → structured `meetings/<date>/notes.md`. |
+| `llm_client.py` | Shared Anthropic (default) / OpenAI LLM client. |
+| `pull_wispr_context.py` | Local Wispr Flow SQLite → optional `wispr_supplement.md`. |
+| `transcribe_meeting.py` | Optional Whisper fallback for Zoom recordings. |
 | `synthesize_state.py` | Merges report + meeting notes → `state/PROJECT_STATE.md` + `AGENTS.md` block. Optional LLM. |
 | `meetings/_TEMPLATE_notes.md` | The structured-notes template (Decisions, Feedback, Ideas, Action items, Open questions). |
 | `reports/`, `meetings/`, `state/` | Generated artifacts (committed). Raw audio is git-ignored. |
-| `../hermes/skills/project-state-sync/` | Hermes skill that drives this whole loop. |
-| `../../.github/workflows/weekly-report.yml` | Weekly cron that runs the report and opens an issue. |
+| `../hermes/skills/project-state-sync/` | Hermes skill (repo root, cross-stage). |
+| `../../.github/workflows/weekly-report.yml` | Weekly cron (pre-meeting report). |
+| `../../.github/workflows/post-meeting-sync.yml` | Weekly cron (post-meeting gdoc pull + synthesize). |
 
 ## Quick start
 
 ```bash
-# from errorAnalysis/
-pip install -r ops/requirements.txt           # only needed for transcription
+# from pixelAgent/ (repo root)
+pip install -r ops/requirements.txt
 
 # 1. Pre-meeting report (also runs weekly in CI)
 python ops/weekly_report.py --days 7           # --open-issue to file a GH issue
 
-# 2. After the meeting, transcribe the recording
-python ops/transcribe_meeting.py ~/Downloads/standup-2026-06-22.m4a
+# 2. After the meeting — pull shared Google Doc notes
+python ops/pull_gdoc_notes.py --date 2026-06-27 --section-only
+python ops/format_meeting_notes.py --date 2026-06-27   # Anthropic → notes.md
+python ops/pull_wispr_context.py --date 2026-06-27   # optional (Mac + Wispr)
 
-# 3. Fill in meetings/<date>/notes.md (Decisions / Ideas / Action items / …)
-
-# 4. Synthesize the living state Hermes reads
-python ops/synthesize_state.py --meetings 3    # --dry-run to preview
+# 3. Synthesize the living state Hermes reads (auto-formats if notes.md missing)
+python ops/synthesize_state.py    # default: last 1 meeting → merge into prev state
 
 # 5. Commit transcripts/notes/state (audio is git-ignored)
 git add ops/reports ops/meetings ops/state AGENTS.md && git commit -m "chore(ops): sync state"
@@ -75,13 +83,14 @@ git add ops/reports ops/meetings ops/state AGENTS.md && git commit -m "chore(ops
 | Variable | Used by | Purpose |
 |---|---|---|
 | `GH_TOKEN` / `gh auth` | `weekly_report.py` | List merged PRs, open issues. Auto-set in Actions. |
-| `STATE_LLM_API_KEY` or `OPENAI_API_KEY` | `synthesize_state.py` | Enable LLM synthesis (else extractive). |
-| `STATE_LLM_BASE_URL` | `synthesize_state.py` | OpenAI-compatible endpoint (default `https://api.openai.com/v1`). |
-| `STATE_LLM_MODEL` | `synthesize_state.py` | Model id (default `gpt-4o-mini`). |
+| `ANTHROPIC_API_KEY` | LLM scripts | **Required** for formatting. Uses default model `claude-sonnet-4-6`. |
+| `STATE_LLM_MODEL` | LLM scripts | Optional override only. |
+| `STATE_LLM_PROVIDER` | `llm_client.py` | Force `anthropic` or `openai` (optional). |
+| `OPENAI_API_KEY` | LLM scripts | Only if `STATE_LLM_PROVIDER=openai`. |
+| `STATE_LLM_BASE_URL` | OpenAI provider | OpenAI-compatible endpoint. |
 
-LLM synthesis is optional. Without a key, `synthesize_state.py` runs a
-deterministic extractive merge that is still useful — the difference is
-deduplication/rewriting quality.
+LLM steps are optional. Without `ANTHROPIC_API_KEY`, `synthesize_state.py` runs
+extractive mode only; `format_meeting_notes.py` will exit with an error.
 
 ## Design choices (and how to change them)
 
@@ -96,5 +105,6 @@ deduplication/rewriting quality.
   managed block in `AGENTS.md`. If you also want a human-facing Google Doc, add a
   one-way mirror step from `PROJECT_STATE.md`.
 
-See `../docs/project_state_automation.md` for the full rationale, setup, and
-roadmap toward autoresearch.
+See `docs/meeting_notes_workflow.md` and `docs/project_state_automation.md`.
+When adding a second idea stage or multi-idea Hermes orchestration, read
+`docs/multi_idea_stages.md`.
