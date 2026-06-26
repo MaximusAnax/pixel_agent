@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from typing import TYPE_CHECKING
+
 from cua_failure_analysis.attribution.first_failure import find_first_failure_step
 from cua_failure_analysis.detectors.tier1 import run_tier1_at_step
 from cua_failure_analysis.judge.client import VLMJudge, VLMJudgeConfig
+from cua_failure_analysis.judge.protocol import JudgeClient
 from cua_failure_analysis.taxonomy import TASK_TAG_GATED, FailureLeaf
 from cua_failure_analysis.trace.schema import AttributionResult, TraceStep, load_trace
+
+if TYPE_CHECKING:
+  pass
 
 
 def _gate_controlled_leaf(leaf: FailureLeaf, task_tags: list[str]) -> bool:
@@ -21,7 +27,7 @@ def _gate_controlled_leaf(leaf: FailureLeaf, task_tags: list[str]) -> bool:
 def attribute_run(
   trace_path: Path,
   instruction: str = "",
-  judge: VLMJudge | None = None,
+  judge: JudgeClient | None = None,
 ) -> AttributionResult:
   steps = load_trace(trace_path)
   if not steps:

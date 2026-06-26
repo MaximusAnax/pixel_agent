@@ -37,8 +37,14 @@ from cua_failure_analysis.adapters import (
   group_opencua_episodes,
   uses_opencua_grouping,
 )
+from cua_failure_analysis.adapters.screenshots import extract_screenshot_for_judge
+from cua_failure_analysis.attribution.first_failure import find_first_failure_step
 from cua_failure_analysis.attribution.pipeline import attribute_run
-from cua_failure_analysis.trace.schema import RunManifest, TraceStep
+from cua_failure_analysis.judge.anthropic_client import AnthropicJudge, AnthropicJudgeConfig
+from cua_failure_analysis.judge.client import VLMJudge, VLMJudgeConfig
+from cua_failure_analysis.judge.protocol import JudgeClient
+from cua_failure_analysis.judge.usage import log_judge_usage, summarize_judge_usage
+from cua_failure_analysis.trace.schema import RunManifest, TraceStep, load_trace
 
 
 REASONING_KEYS = (
@@ -91,10 +97,22 @@ def parse_args() -> argparse.Namespace:
     default="auto",
     help="auto: use local/shared zip if present, otherwise hf download; never: fail if absent",
   )
-  parser.add_argument("--judge-base-url", default="")
-  parser.add_argument("--judge-model", default="")
-  parser.add_argument("--judge-api-key", default="EMPTY")
-  # Judge CLI args are reserved for a follow-up PR; Tier-1 attribution runs without GPU.
+  parser.add_argument("--judge-base-url", default=os.environ.get("JUDGE_BASE_URL", ""))
+  parser.add_argument("--judge-model", default=os.environ.get("JUDGE_MODEL", ""))
+  parser.add_argument(
+    "--judge-api-key",
+    default=os.environ.get("ANTHROPIC_API_KEY", os.environ.get("JUDGE_API_KEY", "EMPTY")),
+  )
+  parser.add_argument(
+    "--judge-provider",
+    choices=("anthropic", "openai"),
+    default=os.environ.get("JUDGE_PROVIDER", "anthropic"),
+  )
+  parser.add_argument(
+    "--judge-max-calls",
+    type=int,
+    default=int(os.environ.get("JUDGE_MAX_CALLS", "50")),
+  )
   return parser.parse_args()
 
 
@@ -488,6 +506,99 @@ def _write_normalized_trace(
   return trace_path
 
 
+def _build_judge(args: argparse.Namespace) -> JudgeClient | None:
+  provider = args.judge_provider
+  api_key = (args.judge_api_key or "").strip()
+  if api_key in {"", "EMPTY"}:
+    if provider == "openai" and args.judge_base_url:
+      model = args.judge_model or "opencua-7b"
+      return VLMJudge(VLMJudgeConfig(base_url=args.judge_base_url, api_key=api_key, model=model))
+    return None
+
+  if provider == "anthropic":
+    model = args.judge_model or "claude-sonnet-4-20250514"
+    return AnthropicJudge(AnthropicJudgeConfig(api_key=api_key, model=model))
+
+  if args.judge_base_url:
+    model = args.judge_model or "opencua-7b"
+    return VLMJudge(
+      VLMJudgeConfig(
+        base_url=args.judge_base_url,
+        api_key=api_key,
+        model=model,
+      )
+    )
+  return None
+
+
+def _prepare_trace_for_judge(
+  trace_path: Path,
+  zf: zipfile.ZipFile,
+  bundle: EpisodeBundle,
+  work_dir: Path,
+) -> None:
+  steps = load_trace(trace_path)
+  if not steps:
+    return
+  t_idx = find_first_failure_step(steps)
+  step = steps[t_idx]
+  local_path = extract_screenshot_for_judge(zf, bundle, step, work_dir)
+  if local_path is None:
+    return
+  steps[t_idx] = step.model_copy(update={"screenshot_path": str(local_path)})
+  with trace_path.open("w", encoding="utf-8") as f:
+    for row in steps:
+      f.write(row.model_dump_json() + "\n")
+
+
+def _label_from_attribution(
+  trace_path: Path,
+  instruction: str,
+  *,
+  judge: JudgeClient | None = None,
+  zf: zipfile.ZipFile | None = None,
+  bundle: EpisodeBundle | None = None,
+  work_dir: Path | None = None,
+  judge_calls_remaining: list[int] | None = None,
+  judge_usage_path: Path | None = None,
+  episode_id: str = "",
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+  active_judge = judge
+  if active_judge is not None and zf is not None and bundle is not None and work_dir is not None:
+    if judge_calls_remaining is not None and judge_calls_remaining[0] <= 0:
+      active_judge = None
+    elif judge is not None:
+      _prepare_trace_for_judge(trace_path, zf, bundle, work_dir)
+
+  result = attribute_run(trace_path, instruction=instruction, judge=active_judge)
+
+  usage_row: dict[str, Any] | None = None
+  if result.tier_used == "judge" and isinstance(active_judge, AnthropicJudge):
+    if active_judge.last_usage and judge_usage_path is not None:
+      usage_row = log_judge_usage(
+        judge_usage_path,
+        episode_id=episode_id,
+        model=active_judge.last_usage.model,
+        usage=active_judge.last_usage,
+        primary_mode=result.primary_mode,
+      )
+    if judge_calls_remaining is not None:
+      judge_calls_remaining[0] -= 1
+
+  label = {
+    "status": "failed",
+    "primary_mode": result.primary_mode,
+    "secondary_modes": result.secondary_modes,
+    "confidence": result.confidence,
+    "t_star": result.t_star,
+    "tier_used": result.tier_used,
+    "needs_human_review": True,
+    "evidence": result.evidence_cot_span,
+    "adapter_status": "mapped",
+  }
+  return label, usage_row
+
+
 def _label_success_episode() -> dict[str, Any]:
   return {
     "status": "success",
@@ -498,21 +609,6 @@ def _label_success_episode() -> dict[str, Any]:
     "tier_used": "n/a",
     "needs_human_review": False,
     "evidence": "",
-    "adapter_status": "mapped",
-  }
-
-
-def _label_from_attribution(trace_path: Path, instruction: str) -> dict[str, Any]:
-  result = attribute_run(trace_path, instruction=instruction, judge=None)
-  return {
-    "status": "failed",
-    "primary_mode": result.primary_mode,
-    "secondary_modes": result.secondary_modes,
-    "confidence": result.confidence,
-    "t_star": result.t_star,
-    "tier_used": result.tier_used,
-    "needs_human_review": True,
-    "evidence": result.evidence_cot_span,
     "adapter_status": "mapped",
   }
 
@@ -550,9 +646,11 @@ def write_summary(
   episodes_inventoried: int,
   labels: list[dict[str, Any]],
   adapter_gaps: list[dict[str, Any]],
+  judge_usage_rows: list[dict[str, Any]] | None = None,
 ) -> None:
   counts = Counter(row["primary_mode"] for row in labels if row.get("primary_mode"))
   review_count = sum(1 for row in labels if row.get("needs_human_review"))
+  judge_summary = summarize_judge_usage(judge_usage_rows or [])
   lines = [
     f"# HF OSWorld Failure Analysis: {model_id}",
     "",
@@ -572,15 +670,27 @@ def write_summary(
   else:
     lines.append("- No labels emitted.")
 
+  if judge_summary["judge_calls"]:
+    lines.extend(
+      [
+        "",
+        "## Judge Usage (provisional cost estimate)",
+        "",
+        f"- Judge calls: {judge_summary['judge_calls']}",
+        f"- Input tokens: {judge_summary['input_tokens']}",
+        f"- Output tokens: {judge_summary['output_tokens']}",
+        f"- Estimated USD: ${judge_summary['estimated_cost_usd']:.4f}",
+      ]
+    )
+
   lines.extend(
     [
       "",
       "## Interpretation Guardrail",
       "",
-      "This run is Phase 1 remote plumbing plus best-effort zip normalization. "
-      "Treat `Unresolved` and `needs_human_review=true` as useful adapter signals, "
-      "not as final scientific labels. Once a package layout is confirmed, add a "
-      "specific adapter and rerun with judge calibration.",
+      "This run uses Tier-1 detectors plus an optional frontier judge on unresolved "
+      "failed episodes. Treat all labels and `needs_human_review=true` as provisional "
+      "until human gold-set calibration.",
       "",
       "## Next Actions",
       "",
@@ -600,6 +710,10 @@ def main() -> int:
 
   package_path = ensure_package(args)
   model_id = infer_model_id(args.package)
+  judge = _build_judge(args)
+  judge_usage_path = args.output_dir / "judge_usage.jsonl"
+  judge_usage_rows: list[dict[str, Any]] = []
+  judge_calls_remaining = [args.judge_max_calls] if judge is not None else None
 
   run_meta = {
     "repo_id": args.repo_id,
@@ -612,6 +726,11 @@ def main() -> int:
     "analysis_plan": str(args.analysis_plan),
     "max_episodes": args.max_episodes,
     "hf_home": os.environ.get("HF_HOME", ""),
+    "judge_provider": args.judge_provider if judge is not None else None,
+    "judge_model": args.judge_model or (
+      judge.config.model if isinstance(judge, AnthropicJudge) else ""
+    ),
+    "judge_max_calls": args.judge_max_calls if judge is not None else 0,
   }
   write_json(args.output_dir / "run_metadata.json", run_meta)
 
@@ -702,8 +821,21 @@ def main() -> int:
 
           if result.manifest.success:
             label = _label_success_episode()
+            usage_row = None
           else:
-            label = _label_from_attribution(trace_path, result.manifest.instruction)
+            label, usage_row = _label_from_attribution(
+              trace_path,
+              result.manifest.instruction,
+              judge=judge,
+              zf=zf,
+              bundle=bundle,
+              work_dir=tmp_path,
+              judge_calls_remaining=judge_calls_remaining,
+              judge_usage_path=judge_usage_path,
+              episode_id=bundle.episode_id,
+            )
+          if usage_row:
+            judge_usage_rows.append(usage_row)
 
           labels.append(
             {
@@ -781,6 +913,7 @@ def main() -> int:
     episodes_inventoried,
     labels,
     adapter_gaps,
+    judge_usage_rows=judge_usage_rows,
   )
   return 0
 

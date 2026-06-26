@@ -79,9 +79,12 @@ export PYTHONPATH="${BABEL_PROJECT_DIR}/src:${PYTHONPATH:-}"
   --taxonomy failureTaxonomy.md \
   --analysis-plan failureAnalysisFinalPlan.md \
   ${HF_DOWNLOAD_MODE:+--download-mode "${HF_DOWNLOAD_MODE}"} \
+  ${JUDGE_PROVIDER:+--judge-provider "${JUDGE_PROVIDER}"} \
   ${JUDGE_BASE_URL:+--judge-base-url "${JUDGE_BASE_URL}"} \
   ${JUDGE_MODEL:+--judge-model "${JUDGE_MODEL}"} \
-  ${JUDGE_API_KEY:+--judge-api-key "${JUDGE_API_KEY}"}
+  ${ANTHROPIC_API_KEY:+--judge-api-key "${ANTHROPIC_API_KEY}"} \
+  ${JUDGE_API_KEY:+--judge-api-key "${JUDGE_API_KEY}"} \
+  ${JUDGE_MAX_CALLS:+--judge-max-calls "${JUDGE_MAX_CALLS}"}
 
 echo "Analysis complete: ${OUTPUT_DIR}"
 scripts/babel/stage_outputs_to_home.sh "${RUN_ID}"
