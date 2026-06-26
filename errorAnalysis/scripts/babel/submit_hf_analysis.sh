@@ -43,6 +43,7 @@ rsync -az --delete \
   --exclude '*.pyc' \
   --exclude '.venv' \
   --exclude 'data/babel_outputs' \
+  --exclude 'config/babel.env' \
   --exclude 'external' \
   --exclude 'logs' \
   "${REPO_ROOT}/" "${BABEL_LOGIN}:${BABEL_PROJECT_DIR}/"
