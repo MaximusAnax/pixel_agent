@@ -97,6 +97,14 @@ as cautious whenever the adapter or judge is not yet calibrated.
 
 - Python package: `src/cua_failure_analysis` (installed via `pip install -e ".[dev]"`).
 - CLI entry points: `cua-attribute`, `cua-agreement`, `cua-prevalence`.
+- Two judging approaches coexist: the per-step **attribution** pipeline
+  (`attribution/`, `judge/` — first-failure step + Tier-1 detectors + VLM/Anthropic
+  per-step judge) and the whole-trajectory judge in
+  `src/cua_failure_analysis/trajectory_judge/` (merged from `osworld_traj_analysis/`;
+  one runner, `--backend local|api|both`, entry points `cua-traj-*`). The latter
+  keeps its own snake_case enum taxonomy; do not reconcile it with `FailureLeaf`
+  without asking. That subpackage uses 4-space indentation (as merged); the rest of
+  the package is 2-space.
 - Babel config is git-ignored: copy `config/babel.env.example` → `config/babel.env`.
 - Tests: `pytest`.
 - Cross-stage project ops (weekly report, meeting notes, Hermes live state) live at

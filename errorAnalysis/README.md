@@ -36,6 +36,29 @@ cua-agreement --gold data/labeling/example_gold_labels.jsonl --output data/label
 cua-prevalence --attributions data/attributions.jsonl --output data/prevalence.json
 ```
 
+## Whole-trajectory judge (local vLLM and/or Claude API)
+
+A second, **whole-trajectory** judge (merged from `osworld_traj_analysis/`) lives in
+`src/cua_failure_analysis/trajectory_judge/`. Where the pipeline above attributes a
+single first-failure step, this classifies the *entire* failed trajectory with one
+runner that can use a **local** vLLM judge (Qwen2.5-VL, guided JSON), the **Claude
+API** judge (same prompt/schema, forced tool output), or **both** — directly
+comparable because both emit the same `Classification` schema.
+
+```bash
+cua-traj-parse  --run-root <unzipped_run> --model opencua-7b --out outputs/failures.jsonl
+cua-traj-judge  --failures outputs/failures.jsonl --backend both --limit 40   # local + api
+cua-traj-compare --a outputs/classifications_local.jsonl --b outputs/classifications_api.jsonl --outdir outputs
+cua-traj-viewer  --failures outputs/failures.jsonl \
+    --judge-7b outputs/classifications_local.jsonl \
+    --judge-32b outputs/classifications_api.jsonl --outdir viewer
+```
+
+The API backend needs `ANTHROPIC_API_KEY`; the local backend needs a GPU env with
+vLLM (`pip install -e ".[local-judge]"`, or the cluster env) and is driven by the
+SLURM wrappers in `trajectory_judge/jobs/`. See
+[trajectory_judge/README.md](src/cua_failure_analysis/trajectory_judge/README.md).
+
 ## Babel + Hugging Face OSWorld-Verified
 
 Phase 1 uses Babel as the remote backend for large HF trajectory packages. Do

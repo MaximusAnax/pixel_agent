@@ -9,6 +9,12 @@ errorAnalysis/data/babel_outputs/
 errorAnalysis/data/review_packets/
 .env
 
+# Whole-trajectory judge: generated normalized failures, classifications,
+# report/figures (outputs/), and the built viewer (data.js + downscaled assets).
+# The viewer *template* lives in src/.../trajectory_judge/viewer_assets/ and IS tracked.
+errorAnalysis/outputs/
+errorAnalysis/viewer/
+
 # Raw meeting recordings are large and may be sensitive — keep them local.
 ops/meetings/**/recording.*
 ops/meetings/**/*.mp3
