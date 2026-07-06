@@ -6,6 +6,7 @@ logs/
 config/bridges.env
 errorAnalysis/config/babel.env
 errorAnalysis/data/babel_outputs/
+errorAnalysis/data/review_packets/
 .env
 
 # Raw meeting recordings are large and may be sensitive — keep them local.
