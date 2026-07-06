@@ -9,7 +9,7 @@
 <body>
   <div class="nav">
     <a href="../../index.html">← Index</a>
-    {% if sibling_href %}<a href="../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
+    {% if sibling_href %}<a href="../../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
     {% if prev_link %}<a href="{{ prev_link }}">← Previous</a>{% endif %}
     {% if next_link %}<a href="{{ next_link }}">Next →</a>{% endif %}
   </div>
@@ -25,6 +25,18 @@
     <p class="meta"><strong>Instruction:</strong> {{ instruction }}</p>
     {% endif %}
   </header>
+
+  {% if has_video %}
+  <section class="panel">
+    <h2>Full run video</h2>
+    <video id="run-video" controls preload="metadata">
+      <source src="recording.mp4" type="video/mp4">
+    </video>
+    <p id="run-video-error" class="meta video-error" hidden>
+      Video failed to load. Use <code>serve_review_packet.py</code> (HTTP), not <code>file://</code>.
+    </p>
+  </section>
+  {% endif %}
 
   <section class="panel judge-panel">
     <h2>Judge / pipeline attribution (provisional)</h2>
@@ -99,13 +111,6 @@
     </div>
   </section>
 
-  {% if has_video %}
-  <section class="panel">
-    <h2>Full run video</h2>
-    <video controls preload="metadata" src="recording.mp4"></video>
-  </section>
-  {% endif %}
-
   <section class="panel">
     <h2>Step timeline ({{ steps | length }} steps) — click step # to set root step</h2>
     {% for step in steps %}
@@ -149,6 +154,13 @@
         if (step) document.getElementById("root-step").value = step;
       });
     });
+    const runVideo = document.getElementById("run-video");
+    const runVideoError = document.getElementById("run-video-error");
+    if (runVideo && runVideoError) {
+      runVideo.addEventListener("error", () => {
+        runVideoError.hidden = false;
+      });
+    }
   </script>
   <script src="../../review.js"></script>
 </body>

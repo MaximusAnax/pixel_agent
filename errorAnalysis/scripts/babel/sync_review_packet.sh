@@ -78,4 +78,5 @@ if [[ -f "${LOCAL_DIR}/taxonomy_discovery_labels.csv" ]]; then
 fi
 
 echo "Synced review packet to ${LOCAL_DIR}"
-echo "Open: file://${LOCAL_DIR}/index.html"
+echo "Serve: python scripts/serve_review_packet.py ${PACKET_ID} --annotator abdoul --babel-sync"
+echo "Open:  http://127.0.0.1:8765/index.html"

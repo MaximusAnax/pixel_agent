@@ -267,10 +267,10 @@ def build_review_packet(
       next_link = None
       if idx > 0:
         prev_slug = episode_slug(episodes[idx - 1]["episode_id"])
-        prev_link = f"../{episodes[idx - 1]['model']}/{prev_slug}/episode.html"
+        prev_link = f"../../{episodes[idx - 1]['model']}/{prev_slug}/episode.html"
       if idx + 1 < len(episodes):
         next_slug = episode_slug(episodes[idx + 1]["episode_id"])
-        next_link = f"../{episodes[idx + 1]['model']}/{next_slug}/episode.html"
+        next_link = f"../../{episodes[idx + 1]['model']}/{next_slug}/episode.html"
 
       episode_html = _render_template(
         template_dir,

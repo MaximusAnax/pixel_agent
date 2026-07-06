@@ -166,6 +166,8 @@ python scripts/serve_review_packet.py pilot_taxonomy_paired_20260703 \
 # Open http://127.0.0.1:8765/index.html
 ```
 
+**Videos:** full-run `recording.mp4` playback requires the HTTP server above — do not open packet HTML via `file://` (browsers block or fail on local video files).
+
 **Rules**
 
 - Use **your** annotator ID every time.
@@ -325,6 +327,12 @@ Confirm packet on Babel (`REVIEW_STATE.md`) and rebuild if needed (maintainer se
 ### Partner cannot see my labels
 
 Confirm you used `--babel-sync` and they ran `sync_annotations.sh pull` before serving.
+
+### Video player is black or missing
+
+- Use `serve_review_packet.py` (HTTP), not `file://`.
+- Restart the server after `git pull` — the server must support HTTP Range (`206`) for MP4 playback.
+- Four pilot episodes have no `recording.mp4` in the source zip; the video section is omitted for those only.
 
 ---
 

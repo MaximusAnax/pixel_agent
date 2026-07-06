@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
+import re
 import subprocess
 import sys
 from functools import partial
+from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -27,6 +30,34 @@ from cua_failure_analysis.review.annotations import (  # noqa: E402
 )
 
 SYNC_SCRIPT = ROOT / "scripts" / "babel" / "sync_annotations.sh"
+RANGE_RE = re.compile(r"^bytes=(\d*)-(\d*)$")
+
+
+def parse_byte_range(range_header: str, file_size: int) -> tuple[int, int] | None:
+  """Parse a single ``Range: bytes=`` header into inclusive (start, end)."""
+  match = RANGE_RE.match(range_header.strip())
+  if not match:
+    return None
+  start_s, end_s = match.groups()
+  if start_s:
+    start = int(start_s)
+    end = int(end_s) if end_s else file_size - 1
+  elif end_s:
+    suffix = int(end_s)
+    start = max(file_size - suffix, 0)
+    end = file_size - 1
+  else:
+    return None
+  if start >= file_size or start < 0 or end < start:
+    return None
+  return start, min(end, file_size - 1)
+
+
+def guess_content_type(path: Path) -> str:
+  ctype, _ = mimetypes.guess_type(str(path))
+  if path.suffix.lower() == ".mp4":
+    return "video/mp4"
+  return ctype or "application/octet-stream"
 
 
 class ReviewPacketHandler(SimpleHTTPRequestHandler):
@@ -67,6 +98,53 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
     self.end_headers()
     self.wfile.write(body)
 
+  def _resolve_static_path(self, url_path: str) -> Path | None:
+    rel = unquote(url_path).lstrip("/")
+    if not rel or rel.endswith("/"):
+      rel = f"{rel}index.html" if rel else "index.html"
+    base = Path(self.directory).resolve()
+    candidate = (base / rel).resolve()
+    if not str(candidate).startswith(str(base)) or not candidate.is_file():
+      return None
+    return candidate
+
+  def _send_file_with_range(self, path: Path) -> None:
+    file_size = path.stat().st_size
+    range_header = self.headers.get("Range")
+    byte_range = parse_byte_range(range_header, file_size) if range_header else None
+
+    if byte_range is None and range_header:
+      self.send_error(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+      return
+
+    ctype = guess_content_type(path)
+    if byte_range is None:
+      start, end = 0, file_size - 1
+      status = HTTPStatus.OK
+      content_length = file_size
+    else:
+      start, end = byte_range
+      status = HTTPStatus.PARTIAL_CONTENT
+      content_length = end - start + 1
+
+    self.send_response(status)
+    self.send_header("Content-Type", ctype)
+    self.send_header("Accept-Ranges", "bytes")
+    self.send_header("Content-Length", str(content_length))
+    if status == HTTPStatus.PARTIAL_CONTENT:
+      self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+    self.end_headers()
+
+    with path.open("rb") as fh:
+      fh.seek(start)
+      remaining = content_length
+      while remaining > 0:
+        chunk = fh.read(min(64 * 1024, remaining))
+        if not chunk:
+          break
+        self.wfile.write(chunk)
+        remaining -= len(chunk)
+
   def do_GET(self) -> None:  # noqa: N802
     parsed = urlparse(self.path)
     if parsed.path == "/api/annotations/summary":
@@ -91,6 +169,14 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
           "registered_annotators": list(REGISTERED_ANNOTATORS),
         },
       )
+      return
+
+    static_path = self._resolve_static_path(parsed.path)
+    if static_path is not None:
+      try:
+        self._send_file_with_range(static_path)
+      except OSError:
+        self.send_error(HTTPStatus.NOT_FOUND)
       return
 
     return super().do_GET()
