@@ -59,6 +59,7 @@ Per-user only: `config/babel.env` secrets on laptop; copy API keys to `~/cua-fai
 | `scripts/babel/setup_env.sh` | Python environment setup (shared `.venv` or legacy home) |
 | `scripts/babel/stage_outputs_to_home.sh` | Copy compact outputs from group storage to home mirror |
 | `scripts/babel/sync_outputs.sh` | Pulls compact outputs back locally |
+| `scripts/babel/publish_outputs_to_shared.sh` | Copy legacy/home runs → shared `outputs/` (before packet build) |
 | `scripts/babel/wait_for_run.sh` | Polls until summary.md exists or Slurm job fails |
 | `scripts/hf_osworld_analyze.py` | Remote zip inventory and best-effort analyzer |
 | `hermes/SOUL.md` | Hermes operating contract for Phase 1 |

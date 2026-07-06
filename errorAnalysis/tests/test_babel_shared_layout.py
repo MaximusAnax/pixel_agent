@@ -38,3 +38,9 @@ def test_babel_env_example_declares_shared_vars():
     "BABEL_SHARED_ERROR_ANALYSIS",
   ):
     assert var in text, f"missing {var} in babel.env.example"
+
+
+def test_publish_outputs_script_exists():
+  script = ROOT / "scripts/babel/publish_outputs_to_shared.sh"
+  assert script.is_file()
+  assert script.stat().st_mode & 0o111
