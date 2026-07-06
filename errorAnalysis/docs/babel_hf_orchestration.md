@@ -91,7 +91,8 @@ scripts/babel/init_shared_project.sh
 ```
 
 The first `submit_hf_analysis.sh` run calls `sync_shared_repo.sh pull` and fails fast
-if the shared venv is missing — run `init_shared_project.sh` first.
+if the shared venv is missing — run `init_shared_project.sh` first, or repair with
+`scripts/babel/bootstrap_shared_venv.sh` if the env landed under `errorAnalysis/.venv`.
 Submits use `${BABEL_SHARED_VENV}/bin/python` on the shared clone.
 
 ## Smoke Test

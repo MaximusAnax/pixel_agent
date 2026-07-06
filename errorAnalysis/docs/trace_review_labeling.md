@@ -135,6 +135,16 @@ If a partial clone was left behind, remove it on a compute node before retrying:
 rm -rf /data/group_data/mattlab/pixel_agent/pixelAgent
 ```
 
+**Wrong venv / `ModuleNotFoundError: pydantic` on Babel:** the shared env must live at
+`.../pixel_agent/.venv`, not `errorAnalysis/.venv`. Re-bootstrap from your laptop:
+
+```bash
+source config/babel.env
+scripts/babel/bootstrap_shared_venv.sh
+```
+
+Then retry `build_review_packet.sh`.
+
 ### C. Abdoul only — if the packet is not on Babel yet
 
 ```bash

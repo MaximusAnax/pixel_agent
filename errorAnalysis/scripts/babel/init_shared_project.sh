@@ -84,33 +84,28 @@ bash scripts/babel/setup_env.sh
 
 touch '${BABEL_GROUP_ROOT}/.write_test' && rm '${BABEL_GROUP_ROOT}/.write_test'
 
-cat > '${BABEL_GROUP_ROOT}/BABEL_SETUP.md' <<SETUP
-# Shared mattlab pixel_agent project
-
-Initialized: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-## Paths
-
-- Repo: \`${BABEL_SHARED_REPO}\`
-- errorAnalysis: \`${BABEL_SHARED_ERROR_ANALYSIS}\`
-- Shared outputs: \`${BABEL_SHARED_OUTPUT_ROOT}\`
-- Review packets: \`${BABEL_GROUP_ROOT}/review_packets\`
-- Annotations: \`${BABEL_GROUP_ROOT}/review_annotations\`
-- Python venv: \`${BABEL_SHARED_VENV}\`
-
-## Daily sync (each person, from laptop)
-
-\`\`\`bash
-git push
-scripts/babel/sync_shared_repo.sh pull
-\`\`\`
-
-## Verify write access
-
-\`\`\`bash
-touch ${BABEL_GROUP_ROOT}/.write_test && rm ${BABEL_GROUP_ROOT}/.write_test
-\`\`\`
-SETUP
+printf '%s\n' \
+  '# Shared mattlab pixel_agent project' \
+  "Initialized: $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '' \
+  '## Paths' \
+  '' \
+  "- Repo: ${BABEL_SHARED_REPO}" \
+  "- errorAnalysis: ${BABEL_SHARED_ERROR_ANALYSIS}" \
+  "- Shared outputs: ${BABEL_SHARED_OUTPUT_ROOT}" \
+  "- Review packets: ${BABEL_GROUP_ROOT}/review_packets" \
+  "- Annotations: ${BABEL_GROUP_ROOT}/review_annotations" \
+  "- Python venv: ${BABEL_SHARED_VENV}" \
+  '' \
+  '## Daily sync (each person, from laptop)' \
+  '' \
+  'git push' \
+  'scripts/babel/sync_shared_repo.sh pull' \
+  '' \
+  '## Repair venv' \
+  '' \
+  'scripts/babel/bootstrap_shared_venv.sh' \
+  > '${BABEL_GROUP_ROOT}/BABEL_SETUP.md'
 
 echo "Shared project ready at ${BABEL_GROUP_ROOT}"
 echo "Branch: \$(cd '${BABEL_SHARED_REPO}' && git rev-parse --abbrev-ref HEAD) @ \$(cd '${BABEL_SHARED_REPO}' && git rev-parse --short HEAD)"

@@ -60,8 +60,8 @@ REMOTE_CMD=$(cat <<EOF
 set -euo pipefail
 cd '${BABEL_SHARED_ERROR_ANALYSIS}'
 export PYTHONPATH='${BABEL_SHARED_ERROR_ANALYSIS}/src'
-PY='${BABEL_SHARED_VENV}/bin/python'
-if [[ ! -x "\${PY}" ]]; then PY=python3; fi
+source scripts/babel/resolve_babel_python.sh
+PY="\${BABEL_PYTHON_BIN}"
 
 mkdir -p '${PACKET_DIR}' '${STAGING_DIR}'
 
