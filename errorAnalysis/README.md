@@ -44,6 +44,13 @@ not download OSWorld-Verified zips to the laptop.
 ```bash
 cp config/babel.env.example config/babel.env
 
+# One-time shared Babel project (mattlab):
+source config/babel.env
+scripts/babel/init_shared_project.sh
+
+# Before each job:
+git push && scripts/babel/sync_shared_repo.sh pull
+
 scripts/babel/submit_hf_analysis.sh \
   opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip
 
@@ -51,8 +58,9 @@ scripts/babel/submit_hf_analysis.sh \
 scripts/babel/sync_outputs.sh <run_id>
 ```
 
-See [docs/babel_hf_orchestration.md](docs/babel_hf_orchestration.md) and
-[hermes/SOUL.md](hermes/SOUL.md).
+See [docs/babel_hf_orchestration.md](docs/babel_hf_orchestration.md),
+[docs/trace_review_labeling.md](docs/trace_review_labeling.md) (multi-annotator trace review),
+and [hermes/SOUL.md](hermes/SOUL.md).
 
 To drive this through the Hermes agent (multi-agent orchestration), follow
 [docs/hermes_setup.md](docs/hermes_setup.md). Project context lives in

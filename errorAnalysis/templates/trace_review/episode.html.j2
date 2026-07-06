@@ -47,8 +47,15 @@
     <h2>Your taxonomy discovery label</h2>
     <p class="hint">Select all failure modes that apply, in priority order (1 = primary root cause). Root step may differ from pipeline t*.</p>
 
+    <div class="toolbar annotator-toolbar">
+      <label>Annotator
+        <select id="annotator-select" class="annotator-select"></select>
+      </label>
+      <span id="annotator-banner" class="annotator-banner"></span>
+      <span id="partner-label-badge" class="partner-badge"></span>
+    </div>
+
     <div class="form-grid">
-      <label>Reviewer<input type="text" id="reviewer" placeholder="Your name"></label>
       <label>Root failure step<input type="number" id="root-step" min="1" placeholder="e.g. 3"></label>
       <label>Your confidence (0–1)<input type="number" id="human-confidence" min="0" max="1" step="0.05" placeholder="0.85"></label>
     </div>
@@ -131,7 +138,9 @@
       page: "episode",
       packetId: {{ packet_id | tojson }},
       labelKey: {{ label_key | tojson }},
-      storageKey: "taxonomy_discovery_{{ packet_id | replace('-', '_') }}",
+      storageKeyBase: "taxonomy_discovery_{{ packet_id | replace('-', '_') }}",
+      registeredAnnotators: ["abdoul", "raghav"],
+      annotator: {{ default_annotator | tojson }},
       apiBase: {{ api_base | tojson }}
     };
     document.querySelectorAll(".set-root-step").forEach((btn) => {

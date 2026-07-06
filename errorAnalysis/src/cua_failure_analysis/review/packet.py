@@ -121,12 +121,10 @@ def _copy_static_assets(template_dir: Path, output_dir: Path) -> None:
       shutil.copy2(src, output_dir / name)
 
 
-def _empty_human_labels(packet_id: str) -> dict[str, Any]:
-  return {
-    "packet_id": packet_id,
-    "labels": {},
-    "schema_version": 1,
-  }
+def _empty_annotations(packet_id: str) -> dict[str, Any]:
+  from cua_failure_analysis.review.annotations import empty_annotations
+
+  return empty_annotations(packet_id)
 
 
 def build_episode_assets(
@@ -192,10 +190,10 @@ def build_review_packet(
   taxonomy_leaves = sorted({leaf.value for leaf in ALL_LEAVES})
   _copy_static_assets(template_dir, output_dir)
 
-  labels_path = output_dir / "human_labels.json"
+  labels_path = output_dir / "annotations.json"
   if not labels_path.exists():
     labels_path.write_text(
-      json.dumps(_empty_human_labels(manifest.get("packet_id", "")), indent=2),
+      json.dumps(_empty_annotations(manifest.get("packet_id", "")), indent=2),
       encoding="utf-8",
     )
 
@@ -304,6 +302,7 @@ def build_review_packet(
         label_key=label_key,
         taxonomy_leaves=taxonomy_leaves,
         api_base="",
+        default_annotator="abdoul",
       )
       html_path.write_text(episode_html, encoding="utf-8")
 
@@ -329,6 +328,8 @@ def build_review_packet(
       task_groups=task_groups,
       n_episodes=len(episode_pages),
       n_tasks=len(task_groups) or len({ep.get("task_id") for ep in episodes}),
+      api_base="",
+      default_annotator="abdoul",
     )
     (output_dir / "index.html").write_text(index_html, encoding="utf-8")
 

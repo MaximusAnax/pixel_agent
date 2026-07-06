@@ -108,7 +108,7 @@ def test_build_review_packet(sample_zip: Path, tmp_path: Path):
   )
   assert (out / "review.js").exists()
   assert (out / "review.css").exists()
-  assert (out / "human_labels.json").exists()
+  assert (out / "annotations.json").exists()
   assert "test_packet" in index
   assert "Judge reasoning" in episode
   assert "Reasoning Drift" in episode and "Goal Hallucination" in episode

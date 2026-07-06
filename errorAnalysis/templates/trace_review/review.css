@@ -93,4 +93,7 @@ th { background: #243044; font-size: 0.8rem; text-transform: uppercase; letter-s
 tr:hover td { background: #1f2a3d; }
 .links a { margin-right: 0.5rem; }
 .human-status.has-label { color: var(--ok); font-weight: 600; }
-.provisional { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+.annotator-select { background: #0d1117; border: 1px solid #2a3548; color: var(--text); border-radius: 4px; padding: 0.35rem 0.5rem; }
+.annotator-banner { font-size: 0.85rem; color: var(--ok); font-weight: 600; }
+.partner-badge { font-size: 0.85rem; color: var(--muted); margin-left: 0.5rem; }
+.annotator-toolbar { margin-bottom: 0.75rem; }

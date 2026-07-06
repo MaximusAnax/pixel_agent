@@ -1,13 +1,39 @@
-/* Taxonomy discovery in-page labeling (localStorage + optional server save). */
+/* Taxonomy discovery in-page labeling (multi-annotator, localStorage + server save). */
 (function () {
   const cfg = window.REVIEW_CONFIG || {};
-  const storageKey = cfg.storageKey || "taxonomy_discovery_labels";
-  const labelKey = cfg.labelKey || "";
+  const registered = cfg.registeredAnnotators || ["abdoul", "raghav"];
+  const annotatorKey = "taxonomy_review_annotator";
+  const packetId = cfg.packetId || "";
   const apiBase = cfg.apiBase || "";
+
+  function currentAnnotator() {
+    const fromCfg = cfg.annotator;
+    if (fromCfg && registered.includes(fromCfg)) return fromCfg;
+    const stored = localStorage.getItem(annotatorKey);
+    if (stored && registered.includes(stored)) return stored;
+    return registered[0];
+  }
+
+  function setCurrentAnnotator(id) {
+    if (!registered.includes(id)) return;
+    localStorage.setItem(annotatorKey, id);
+    cfg.annotator = id;
+  }
+
+  function storageKey() {
+    const ann = currentAnnotator();
+    const base = cfg.storageKeyBase || `taxonomy_discovery_${packetId}`.replace(/-/g, "_");
+    return `${base}_${ann}`;
+  }
+
+  function partnerAnnotator() {
+    const me = currentAnnotator();
+    return registered.find((id) => id !== me) || "";
+  }
 
   function loadAll() {
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = localStorage.getItem(storageKey());
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -15,18 +41,18 @@
   }
 
   function saveAll(data) {
-    localStorage.setItem(storageKey, JSON.stringify(data));
+    localStorage.setItem(storageKey(), JSON.stringify(data));
   }
 
   function getEntry() {
     const all = loadAll();
-    return all[labelKey] || {};
+    return all[cfg.labelKey] || {};
   }
 
   function setEntry(entry) {
     const all = loadAll();
     entry.updated_at = new Date().toISOString();
-    all[labelKey] = entry;
+    all[cfg.labelKey] = entry;
     saveAll(all);
     return entry;
   }
@@ -64,7 +90,6 @@
   function readForm() {
     const modesEl = document.getElementById("human-modes-list");
     return {
-      reviewer: document.getElementById("reviewer")?.value?.trim() || "",
       root_step: parseInt(document.getElementById("root-step")?.value, 10) || null,
       modes_ordered: modesEl ? readModes(modesEl) : [],
       reasoning: document.getElementById("human-reasoning")?.value?.trim() || "",
@@ -85,7 +110,6 @@
       const el = document.getElementById(id);
       if (el) el.value = val ?? "";
     };
-    set("reviewer", entry.reviewer);
     set("root-step", entry.root_step);
     set("human-reasoning", entry.reasoning);
     set("human-confidence", entry.confidence);
@@ -108,15 +132,49 @@
     el.className = ok ? "save-ok" : "save-err";
   }
 
+  async function fetchServerLabels(annotator) {
+    if (!apiBase) return null;
+    try {
+      const res = await fetch(`${apiBase}/api/labels?annotator=${encodeURIComponent(annotator)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.labels || {};
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchSummary() {
+    if (!apiBase) return null;
+    try {
+      const res = await fetch(`${apiBase}/api/annotations/summary`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.summary || {};
+    } catch {
+      return null;
+    }
+  }
+
+  async function hydrateFromServer() {
+    const labels = await fetchServerLabels(currentAnnotator());
+    if (!labels) return;
+    saveAll(labels);
+    if (cfg.page === "episode" && cfg.labelKey) {
+      fillForm(labels[cfg.labelKey] || {});
+    }
+  }
+
   async function persistServer(entry) {
     if (!apiBase) return false;
+    const annotator = currentAnnotator();
     const all = loadAll();
-    all[labelKey] = entry;
+    all[cfg.labelKey] = entry;
     try {
-      const res = await fetch(apiBase + "/api/labels", {
+      const res = await fetch(`${apiBase}/api/labels`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ labels: all }),
+        body: JSON.stringify({ annotator, labels: all }),
       });
       return res.ok;
     } catch {
@@ -128,19 +186,26 @@
     const entry = readForm();
     setEntry(entry);
     const ok = await persistServer(entry);
-    showStatus(ok ? "Saved (browser + file)" : "Saved in browser (use Export or run serve script)", true);
+    showStatus(
+      ok
+        ? `Saved as ${currentAnnotator()} (browser + file)`
+        : "Saved in browser (run serve script with --annotator)",
+      true
+    );
   }
 
   function exportLabels() {
     const payload = {
-      packet_id: cfg.packetId || "",
+      schema_version: 2,
+      packet_id: packetId,
+      annotator: currentAnnotator(),
       exported_at: new Date().toISOString(),
       labels: loadAll(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "human_labels.json";
+    a.download = `annotations_${currentAnnotator()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -151,8 +216,8 @@
       try {
         const data = JSON.parse(reader.result);
         const labels = data.labels || data;
-        localStorage.setItem(storageKey, JSON.stringify(labels));
-        fillForm(labels[labelKey] || {});
+        saveAll(labels);
+        fillForm(labels[cfg.labelKey] || {});
         showStatus("Imported labels", true);
       } catch {
         showStatus("Import failed", false);
@@ -161,8 +226,68 @@
     reader.readAsText(file);
   }
 
+  function updateAnnotatorBanner() {
+    const el = document.getElementById("annotator-banner");
+    if (el) {
+      el.textContent = `Labeling as: ${currentAnnotator()}`;
+      el.dataset.annotator = currentAnnotator();
+    }
+    const partner = partnerAnnotator();
+    const partnerEl = document.getElementById("partner-label-badge");
+    if (partnerEl && partner) {
+      partnerEl.textContent = `Partner (${partner}): loading…`;
+    }
+  }
+
+  async function showPartnerLabelOnEpisode() {
+    const partner = partnerAnnotator();
+    const badge = document.getElementById("partner-label-badge");
+    if (!partner || !badge || !cfg.labelKey) return;
+    const summary = await fetchSummary();
+    const mode = summary?.[partner]?.[cfg.labelKey];
+    badge.textContent = mode
+      ? `Partner (${partner}): ${mode}`
+      : `Partner (${partner}): —`;
+  }
+
+  function applySummaryToIndex(summary) {
+    document.querySelectorAll("[data-label-key][data-annotator]").forEach((cell) => {
+      const key = cell.dataset.labelKey;
+      const annotatorId = cell.dataset.annotator;
+      const mode = summary?.[annotatorId]?.[key];
+      cell.textContent = mode || "—";
+      cell.classList.toggle("has-label", !!mode);
+    });
+  }
+
+  function initAnnotatorPicker() {
+    const select = document.getElementById("annotator-select");
+    if (!select) return;
+    select.innerHTML = "";
+    registered.forEach((id) => {
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = id;
+      select.appendChild(opt);
+    });
+    select.value = currentAnnotator();
+    updateAnnotatorBanner();
+    select.addEventListener("change", async () => {
+      setCurrentAnnotator(select.value);
+      updateAnnotatorBanner();
+      await hydrateFromServer();
+      if (cfg.page === "index") {
+        const summary = await fetchSummary();
+        if (summary) applySummaryToIndex(summary);
+      }
+    });
+  }
+
   function initEpisodePage() {
-    fillForm(getEntry());
+    initAnnotatorPicker();
+    hydrateFromServer().then(() => fillForm(getEntry()));
+    showPartnerLabelOnEpisode();
+
     const modesEl = document.getElementById("human-modes-list");
     const addSelect = document.getElementById("add-mode-select");
     const addBtn = document.getElementById("add-mode-btn");
@@ -199,31 +324,27 @@
       if (e.target.files[0]) importLabels(e.target.files[0]);
     });
 
-    // Auto-save draft every 30s
     setInterval(() => {
       if (document.getElementById("human-reasoning")) setEntry(readForm());
     }, 30000);
   }
 
-  function initIndexPage() {
+  async function initIndexPage() {
+    initAnnotatorPicker();
     document.getElementById("btn-export-all")?.addEventListener("click", exportLabels);
     document.getElementById("import-file")?.addEventListener("change", (e) => {
       if (e.target.files[0]) importLabels(e.target.files[0]);
     });
-    const all = loadAll();
-    document.querySelectorAll("[data-label-key]").forEach((row) => {
-      const key = row.dataset.labelKey;
-      const entry = all[key];
-      const badge = row.querySelector(".human-status");
-      if (badge) {
-        if (entry?.modes_ordered?.length) {
-          badge.textContent = entry.modes_ordered[0];
-          badge.classList.add("has-label");
-        } else {
-          badge.textContent = "—";
-        }
-      }
-    });
+
+    await hydrateFromServer();
+    const summary = await fetchSummary();
+    if (summary) {
+      applySummaryToIndex(summary);
+    } else {
+      const all = loadAll();
+      const fallback = { [currentAnnotator()]: all };
+      applySummaryToIndex(fallback);
+    }
   }
 
   if (document.readyState === "loading") {
