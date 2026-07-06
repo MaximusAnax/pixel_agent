@@ -142,7 +142,10 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
         chunk = fh.read(min(64 * 1024, remaining))
         if not chunk:
           break
-        self.wfile.write(chunk)
+        try:
+          self.wfile.write(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+          return
         remaining -= len(chunk)
 
   def do_GET(self) -> None:  # noqa: N802
@@ -175,6 +178,8 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
     if static_path is not None:
       try:
         self._send_file_with_range(static_path)
+      except (BrokenPipeError, ConnectionResetError):
+        return
       except OSError:
         self.send_error(HTTPStatus.NOT_FOUND)
       return

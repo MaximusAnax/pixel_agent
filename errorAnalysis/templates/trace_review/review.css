@@ -76,7 +76,6 @@ h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; colo
 #save-status { font-size: 0.85rem; }
 .save-ok { color: var(--ok); }
 .save-err { color: var(--tstar); }
-video { width: 100%; max-width: 960px; border-radius: 6px; background: #000; }
 .step { border: 1px solid #2a3548; border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
 .step.t-star { border-color: var(--tstar); box-shadow: 0 0 0 1px var(--tstar); }
 .step-head { background: #243044; padding: 0.5rem 0.85rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }

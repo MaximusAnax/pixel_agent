@@ -44,7 +44,7 @@ flowchart LR
   browser -->|save with --babel-sync| ann
 ```
 
-1. **Pull** the HTML packet once (~368MB) to your laptop.
+1. **Pull** the HTML packet once to your laptop (screenshots + HTML only; no run videos).
 2. **Each session:** pull shared annotations → serve locally → label in browser → auto-push saves to Babel.
 3. **After a batch:** pull annotations → run agreement / comparison reports.
 4. **Later:** discuss disagreements → propose taxonomy revisions (requires Abdoul approval before editing `failureTaxonomy.md`).
@@ -98,7 +98,7 @@ ssh "$BABEL_LOGIN"   # should reach login.babel.cs.cmu.edu
 
 You do **not** need GitHub SSH on Babel for labeling. You do **not** run `init_shared_project.sh`.
 
-### 4. Pull the review packet (one time, ~368MB)
+### 4. Pull the review packet (one time)
 
 ```bash
 source config/babel.env
@@ -166,8 +166,6 @@ python scripts/serve_review_packet.py pilot_taxonomy_paired_20260703 \
 # Open http://127.0.0.1:8765/index.html
 ```
 
-**Videos:** full-run `recording.mp4` playback requires the HTTP server above — do not open packet HTML via `file://` (browsers block or fail on local video files).
-
 **Rules**
 
 - Use **your** annotator ID every time.
@@ -204,7 +202,7 @@ Use the report and CSV to find disagreements, confusing pairs, and taxonomy gaps
 | Code, scripts, this doc | **GitHub** + Babel shared clone | `git pull` locally |
 | `config/babel.env` | **Your laptop** | Never commit |
 | Analysis outputs | `.../pixel_agent/outputs/<run_id>/` | `publish_outputs_to_shared.sh` (legacy); `sync_outputs.sh` (pull to laptop) |
-| HTML packet (~368MB) | `.../pixel_agent/review_packets/<packet_id>/` | `sync_review_packet.sh` |
+| HTML packet | `.../pixel_agent/review_packets/<packet_id>/` | `sync_review_packet.sh` |
 | Human labels | `.../pixel_agent/review_annotations/<packet_id>/` | `sync_annotations.sh pull\|push` |
 | Active packet | Babel `REVIEW_STATE.md` | Written at packet build |
 
@@ -328,11 +326,15 @@ Confirm packet on Babel (`REVIEW_STATE.md`) and rebuild if needed (maintainer se
 
 Confirm you used `--babel-sync` and they ran `sync_annotations.sh pull` before serving.
 
-### Video player is black or missing
+### Template changed but packet already synced locally
 
-- Use `serve_review_packet.py` (HTTP), not `file://`.
-- Restart the server after `git pull` — the server must support HTTP Range (`206`) for MP4 playback.
-- Four pilot episodes have no `recording.mp4` in the source zip; the video section is omitted for those only.
+Re-render HTML from the existing on-disk screenshots (no Babel rebuild):
+
+```bash
+python scripts/refresh_review_packet_html.py pilot_taxonomy_paired_20260703
+```
+
+Restart `serve_review_packet.py` after refreshing.
 
 ---
 

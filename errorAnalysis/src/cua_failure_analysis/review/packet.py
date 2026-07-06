@@ -68,7 +68,7 @@ def parse_traj_steps(traj_path: Path) -> list[ParsedStep]:
 
 
 def _members_for_review(bundle_members: list[str]) -> list[str]:
-  names = {"traj.jsonl", "result.txt", "instruction.txt", "runtime.log", "recording.mp4"}
+  names = {"traj.jsonl", "result.txt", "instruction.txt", "runtime.log"}
   picked: list[str] = []
   for member in bundle_members:
     base = Path(member).name
@@ -163,11 +163,169 @@ def build_episode_assets(
     "result_raw": result_path.read_text(encoding="utf-8", errors="replace").strip()
     if result_path.exists()
     else "",
-    "has_video": (episode_dir / "recording.mp4").exists(),
     "steps": steps,
     "screenshot_by_step": screenshot_by_step,
     "select_turn": select_turn,
   }
+
+
+def _assets_from_episode_dir(episode_dir: Path, episode_id: str) -> dict[str, Any]:
+  """Load traj + screenshots already on disk (no zip extraction)."""
+  traj_path = episode_dir / "traj.jsonl"
+  if not traj_path.exists():
+    raise FileNotFoundError(f"No traj.jsonl in {episode_dir}")
+
+  result_path = episode_dir / "result.txt"
+  success = _parse_result_txt(result_path) if result_path.exists() else None
+  steps = parse_traj_steps(traj_path)
+
+  screenshot_by_step: dict[int, str] = {}
+  for path in episode_dir.iterdir():
+    if not path.is_file():
+      continue
+    match = STEP_SCREENSHOT_RE.match(path.name)
+    if match:
+      screenshot_by_step[int(match.group(1))] = path.name
+
+  for step in steps:
+    if step.screenshot_file:
+      screenshot_by_step.setdefault(step.step_num, Path(step.screenshot_file).name)
+
+  return {
+    "episode_id": episode_id,
+    "success": success,
+    "result_raw": result_path.read_text(encoding="utf-8", errors="replace").strip()
+    if result_path.exists()
+    else "",
+    "steps": steps,
+    "screenshot_by_step": screenshot_by_step,
+    "select_turn": None,
+  }
+
+
+def refresh_review_packet_html(
+  packet_dir: Path,
+  *,
+  template_dir: Path,
+  stratified_tasks: Path | None = None,
+) -> Path:
+  """Re-render index + episode HTML from on-disk assets (template updates, no zips)."""
+  manifest_path = packet_dir / "packet_manifest.json"
+  if not manifest_path.exists():
+    manifest_path = packet_dir / "manifest.json"
+  if not manifest_path.exists():
+    raise FileNotFoundError(f"No manifest in {packet_dir}")
+
+  manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+  episodes: list[dict[str, Any]] = manifest.get("episodes", [])
+  taxonomy_leaves = sorted({leaf.value for leaf in ALL_LEAVES})
+  _copy_static_assets(template_dir, packet_dir)
+
+  episode_pages: list[dict[str, Any]] = []
+  for idx, ep in enumerate(episodes):
+    model = ep["model"]
+    episode_id = ep["episode_id"]
+    slug = episode_slug(episode_id)
+    episode_dir = packet_dir / model / slug
+    assets = _assets_from_episode_dir(episode_dir, episode_id)
+
+    task_id = ep.get("task_id") or episode_id.split("/", 1)[-1]
+    instruction = ep.get("instruction") or _load_instruction(stratified_tasks, task_id)
+    judge_modes = judge_modes_ordered(ep)
+    sibling_href = ep.get("sibling_href") or ""
+    sibling_model = "7b" if model == "a3b" else "a3b" if sibling_href else ""
+    label_key = label_storage_key(model, episode_id)
+
+    step_rows = []
+    t_star = ep.get("t_star")
+    for step in assets["steps"]:
+      shot = assets["screenshot_by_step"].get(step.step_num)
+      step_rows.append(
+        {
+          "step_num": step.step_num,
+          "action": step.action,
+          "thought": step.thought,
+          "action_section": step.action_section,
+          "code": step.code,
+          "reward": step.reward,
+          "done": step.done,
+          "screenshot": shot,
+          "is_t_star": t_star is not None and step.step_num == int(t_star),
+        }
+      )
+
+    prev_link = next_link = None
+    if idx > 0:
+      prev_slug = episode_slug(episodes[idx - 1]["episode_id"])
+      prev_link = f"../../{episodes[idx - 1]['model']}/{prev_slug}/episode.html"
+    if idx + 1 < len(episodes):
+      next_slug = episode_slug(episodes[idx + 1]["episode_id"])
+      next_link = f"../../{episodes[idx + 1]['model']}/{next_slug}/episode.html"
+
+    html_path = episode_dir / "episode.html"
+    html_path.write_text(
+      _render_template(
+        template_dir,
+        "episode.html.j2",
+        packet_id=manifest.get("packet_id", ""),
+        model=model,
+        episode_id=episode_id,
+        domain=ep.get("domain", ""),
+        task_id=task_id,
+        instruction=instruction,
+        success=assets["success"],
+        result_raw=assets["result_raw"],
+        provisional_primary=ep.get("provisional_primary", ""),
+        judge_modes_ordered=judge_modes,
+        secondary_modes=ep.get("secondary_modes") or [],
+        propagated=ep.get("propagated", False),
+        t_star=t_star,
+        evidence=ep.get("evidence", ""),
+        confidence=ep.get("confidence"),
+        tier_used=ep.get("tier_used"),
+        steps=step_rows,
+        prev_link=prev_link,
+        next_link=next_link,
+        index_href="../../index.html",
+        sibling_href=sibling_href,
+        sibling_model=sibling_model,
+        label_key=label_key,
+        taxonomy_leaves=taxonomy_leaves,
+        api_base="",
+        default_annotator="abdoul",
+      ),
+      encoding="utf-8",
+    )
+
+    episode_pages.append(
+      {
+        "model": model,
+        "domain": ep.get("domain", ""),
+        "task_id": task_id,
+        "episode_id": episode_id,
+        "provisional_primary": ep.get("provisional_primary", ""),
+        "t_star": t_star,
+        "confusing": ep.get("confusing", False),
+        "href": f"{model}/{slug}/episode.html",
+      }
+    )
+
+  task_groups = manifest.get("task_groups") or []
+  (packet_dir / "index.html").write_text(
+    _render_template(
+      template_dir,
+      "index.html.j2",
+      packet_id=manifest.get("packet_id", ""),
+      episodes=episode_pages,
+      task_groups=task_groups,
+      n_episodes=len(episode_pages),
+      n_tasks=len(task_groups) or len({ep.get("task_id") for ep in episodes}),
+      api_base="",
+      default_annotator="abdoul",
+    ),
+    encoding="utf-8",
+  )
+  return packet_dir
 
 
 def build_review_packet(
@@ -283,8 +441,6 @@ def build_review_packet(
         instruction=instruction,
         success=assets["success"],
         result_raw=assets["result_raw"],
-        has_video=assets["has_video"],
-        video_href="recording.mp4",
         provisional_primary=ep.get("provisional_primary", ""),
         judge_modes_ordered=judge_modes,
         secondary_modes=ep.get("secondary_modes") or [],

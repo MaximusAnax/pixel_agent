@@ -117,8 +117,6 @@ def test_build_review_packet(sample_zip: Path, tmp_path: Path):
   assert "human-reasoning" in episode
   assert "pipeline t*" in episode
   assert "judge says X" in episode
-  assert "Full run video" in episode
-  assert (out / "a3b" / EPISODE_SLUG / "recording.mp4").exists()
 
 
 def test_episode_nav_links_resolve(sample_zip: Path, tmp_path: Path):
