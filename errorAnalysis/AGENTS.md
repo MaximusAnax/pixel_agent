@@ -30,11 +30,23 @@ that help Abdoul learn the system.
 - Never download OSWorld-Verified trajectory zips to the laptop.
 - Never mirror the full Hugging Face dataset (it is ~480GB).
 - Never use `/home/<user>` on Babel for large zips, extracted traces, or HF caches.
-- Never treat best-effort adapter labels or in-progress discovery labels as final
-  scientific labels.
+- Never treat best-effort adapter labels, provisional judge labels, or in-progress
+  discovery labels as final scientific labels.
 - Never overwrite previous analysis outputs unless Abdoul explicitly asks.
-- Never modify `failureTaxonomy.md` without asking Abdoul.
+  Version judge outputs (`judge_context_version`); never clobber prior labels.
+- **Grounding freeze:** After Phase 0 sign-off, do **not** edit paths listed in
+  `docs/GROUNDING_MANIFEST.md` (including `failureTaxonomy.md`,
+  `failureStudyProtocol.md`, `failureAnalysisFinalPlan.md`, this file, `hermes/SOUL.md`,
+  the babel skill, and root `AGENTS.md`) without a new approved plan and Abdoul OK.
+- Never modify `failureTaxonomy.md` without asking Abdoul (even before freeze).
 - Do not launch large/expensive GPU jobs without Abdoul's approval of the reason.
+- **UI:** Do not implement production Jinja/packet review UI until Abdoul approves
+  static HTML mockups (`docs/mockups/`).
+- **Human Agent:** Hybrid executor (deterministic + frontier VLM grounding). Screenshots
+  feed annotator cross-reference **and** multimodal judge. Provisional `osworld_v1`
+  rejudge waits until Human Agent artifacts are ready.
+- **Human reference is non-binding:** full human sequence for context; do not overfit
+  labels to matching the human path.
 
 ## Babel ground truth (mattlab shared layout)
 
@@ -90,15 +102,22 @@ Outputs land on Babel at
 
 ## Taxonomy discovery trace review (abdoul + raghav)
 
-Manual review of paired pilot traces **before** revising `failureTaxonomy.md`.
-Judge labels are frozen in `packet_manifest.json`; humans write to shared
-`annotations.json` (schema v2, annotator namespaces).
+Manual review of paired pilot traces **before** revising `failureTaxonomy.md`
+(and only with Abdoul approval / new plan after grounding freeze).
+**Provisional judge** labels are frozen in `packet_manifest.json` / versioned
+outputs — reference only. Humans write gold-in-progress to shared `annotations.json`
+(schema v2, annotator namespaces).
+
+**Current milestone:** annotation-ready packet (OSWorld context + Human Agent
+screenshots + mockup-approved dual-trace UI + provisional `osworld_v1`), then
+discovery labeling. Judge calibration and prevalence are **follow-on**.
 
 1. Pull packet locally: `scripts/babel/sync_review_packet.sh <packet_id>`.
 2. Pull labels: `scripts/babel/sync_annotations.sh pull <packet_id>`.
 3. Serve: `python scripts/serve_review_packet.py <packet_id> --annotator abdoul|raghav --babel-sync`.
 4. After a batch: `scripts/report_discovery_agreement.py` and
-   `scripts/export_discovery_comparison.py`.
+   `scripts/export_discovery_comparison.py` (diagnostics; not the success criterion
+   for annotation-ready infrastructure).
 
 Full workflow: `docs/trace_review_labeling.md`.
 
@@ -120,6 +139,9 @@ representative reasoning evidence; the next smallest useful action.
 Separate (1) raw evidence, (2) attribution (first-failure step + taxonomy label),
 and (3) interpretation. In Phase 1 stay mostly in layers 1–2; mark interpretation
 as cautious whenever the adapter or judge is not yet calibrated.
+
+**Provisional judge** (`judge_context_version`) ≠ **human gold** (`annotations.json`).
+Report judge distributions as provisional until Phase D calibration.
 
 ## Conventions
 

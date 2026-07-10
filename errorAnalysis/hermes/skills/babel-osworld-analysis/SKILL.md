@@ -120,3 +120,26 @@ A run is healthy when `data/babel_outputs/<run_id>/summary.md` exists locally an
 reports episodes inventoried, episodes normalized, labels emitted, and adapter
 gaps. If `episode_manifests.json` shows 0 normalized steps everywhere, the package
 needs a specific adapter — surface `adapter_gaps.json` as the next action.
+
+## Annotation-ready follow-ons (post–Phase 0)
+
+After grounding freeze (`docs/GROUNDING_MANIFEST.md`), do **not** edit frozen
+grounding docs. Operational work for annotation-ready infrastructure:
+
+1. **Vendor OSWorld metadata** — pin SHAs in `config/osworld_sources.yaml`; run
+   `scripts/vendor_osworld_metadata.py` for `pilot_task_ids`; generate per-func
+   eval summaries (task-specific only).
+2. **UI mockups first** — static HTML under `docs/mockups/`; Abdoul approval before
+   Jinja/`packet.py` production UI.
+3. **Human Agent (hybrid)** — `scripts/audit_human_actions.py` then
+   `scripts/run_oracle_pilot.py` on Babel; cache grounding; ship screenshots to
+   review packet **and** multimodal judge. `oracle_status`: pending|ready|partial|failed.
+4. **Provisional rejudge** — `scripts/rejudge_pilot.py` with
+   `judge_context_version: osworld_v1` **only after** Human Agent screenshots are
+   ready. Run `estimate_judge_cost.py` (include human image tokens) + Abdoul
+   approval. Never overwrite prior judge labels.
+5. Rebuild review packet; discovery labeling by `abdoul`/`raghav` treats judge as
+   provisional reference only.
+
+Human reference is **non-binding** — full sequence for context; do not require
+agent↔human step alignment.

@@ -1,9 +1,13 @@
 # CUA Failure Analysis — Final Plan
 
-**Version:** 1.0 (final)  
-**Deliverable:** Publishable, human-validated failure taxonomy with quantitative prevalence on a stratified OSWorld subset.
+**Version:** 1.1 (Phase 0 grounding freeze)  
+**Ultimate deliverable:** Publishable, human-validated failure taxonomy with quantitative prevalence on a stratified OSWorld subset.
 
 This document is the **single entry point** for the project. Detailed specs live in the linked files below.
+
+**Current milestone (2026-07-10):** Build **annotation-ready infrastructure** for pilot taxonomy discovery (OSWorld task/eval context, Human Agent screenshots for annotators + multimodal judge, mockup-approved review UI, provisional rejudge `osworld_v1`). This is **not** judge calibration, prevalence CIs, or paper figures — those follow after human gold labels.
+
+**Grounding freeze:** After Phase 0 sign-off, this file and the other paths listed in [docs/GROUNDING_MANIFEST.md](docs/GROUNDING_MANIFEST.md) must not be edited without a new approved plan.
 
 ---
 
@@ -14,6 +18,7 @@ This document is the **single entry point** for the project. Detailed specs live
 | [failureTaxonomy.md](failureTaxonomy.md) | 16-leaf ontology, examples, **decision rules**, multi-label policy |
 | [failureStudyProtocol.md](failureStudyProtocol.md) | Phases A–E methodology, attribution pipeline, compute runbooks |
 | [failureAnalysisPlan.md](failureAnalysisPlan.md) | Experiment design: models, tracks, metrics, infrastructure |
+| [docs/GROUNDING_MANIFEST.md](docs/GROUNDING_MANIFEST.md) | Frozen grounding paths after Phase 0 |
 
 ---
 
@@ -65,10 +70,35 @@ Detail: [failureStudyProtocol.md](failureStudyProtocol.md)
 1. Run agent on OSWorld → log per-step trace (screenshot, action, coords, CoT, a11y)
 2. On failure → identify **first failure step** `t*`
 3. Apply **decision tree** + Tier-1 programmatic detectors
-4. Unresolved → **VLM judge** (screenshot at `t*` + CoT; never trajectory-only)
-5. Human gold set (150–200 steps, 2 annotators) → calibrate judge
+4. Unresolved → **VLM judge** with full context bundle (never trajectory-only):
+   - Canonical OSWorld task instruction + evaluator bundle (per-func summary)
+   - Model observation at `t*`; executed trajectory action vs CoT `model_code` / stated intent
+   - Full Human Agent reference sequence (text + observation screenshots) — **non-binding**
+5. Human gold set (150–200 steps, 2 annotators) → calibrate judge (**after** discovery labeling)
+
+### Provisional judge vs human gold
+
+| Role | Artifact | Status |
+|---|---|---|
+| **Provisional judge** | Versioned labels (`judge_context_version`, e.g. `osworld_v1`) in packet / run outputs | Reference during discovery; **not** scientific gold |
+| **Human gold** | `annotations.json` from annotators `abdoul` / `raghav` | Gold-in-progress → adjudicated gold for calibration |
+| **Calibrated judge** | Follow-on rejudge after gold (e.g. `osworld_v2_gold_calibrated`) | Used for scaled prevalence |
+
+Provisional multimodal rejudge (`osworld_v1`) runs **after** Human Agent screenshots are ready and **before** the discovery labeling batch. Never overwrite prior judge outputs — version them.
 
 **Judge output:** `{primary_mode, secondary_modes[], propagated, t_star, tier_used, confidence}`
+
+---
+
+## Pre-gold vs post-gold milestones
+
+| Stage | End-state |
+|---|---|
+| **Annotation-ready (current)** | Pilot review packet with OSWorld context, dual-trace UI (mockup-approved), Human Agent screenshots for annotators + judge, provisional `osworld_v1` labels |
+| **Discovery labeling** | abdoul + raghav produce human labels on the pilot packet |
+| **Phase D validation** | Gold set κ; judge calibrated vs gold; prevalence CIs for publication |
+
+Detail: [failureStudyProtocol.md](failureStudyProtocol.md), implementation plan post–Phase 0.
 
 ---
 
@@ -163,14 +193,11 @@ Detail: [failureAnalysisPlan.md](failureAnalysisPlan.md)
 
 ## Immediate next steps (ordered)
 
-1. ~~**Bridges:** SSH login, `my_quotas`~~ ✅ (`cis260099p`, allocation active)
-2. ~~**GPU session:** `interact -A cis260099p -p GPU-shared --gres=gpu:1`~~ ✅ Node **v016**, job 41513793
-3. **vLLM smoke test** ← **current** (run on `v016` before `exit`)
-4. **Advisor:** Confirm OSWorld VM strategy (KVM vs AWS/local) + API routing to vLLM
-5. **AgentNetBench** pilot on Bridges
-6. **Pre-register** 100-task stratified list with task tags
-7. **Babel:** Submit account request (non-blocking)
-8. **Human labeling:** Recruit second annotator after 30-task pilot traces exist
+1. ~~Phase 0 grounding doc revision + freeze~~ (this revision)
+2. **Abdoul sign-off** on [docs/GROUNDING_MANIFEST.md](docs/GROUNDING_MANIFEST.md)
+3. **Annotation-ready infrastructure** (post–Phase 0 plan): vendor OSWorld metadata, UI mockups → approval, Human Agent screenshots, provisional `osworld_v1` rejudge, packet rebuild
+4. **Discovery labeling** on pilot packet (`abdoul` + `raghav`)
+5. Judge calibration vs human gold → prevalence / Phase D (follow-on)
 
 ---
 
@@ -179,9 +206,10 @@ Detail: [failureAnalysisPlan.md](failureAnalysisPlan.md)
 | Weeks | Milestone |
 |---|---|
 | 1–2 | Taxonomy rubric finalized; Bridges vLLM smoke test; AgentNetBench pilot |
-| 2–3 | Trace logger + Tier-1 detectors; 30-task OSWorld pilot |
-| 3–5 | Core 100×3×3 runs; hybrid attribution pipeline |
-| 5–8 | Human gold labels; judge calibration; prevalence analysis |
+| 2–3 | Trace logger + Tier-1 detectors; 30-task OSWorld pilot (HF traces) |
+| **Now** | Annotation-ready packet + Human Agent + provisional multimodal rejudge |
+| Next | Human discovery labels on pilot; agreement diagnostics |
+| 5–8 | Human gold set; judge calibration; prevalence analysis (Phase D) |
 | 4–8 (parallel) | Controlled tracks |
 
 ---
@@ -191,3 +219,4 @@ Detail: [failureAnalysisPlan.md](failureAnalysisPlan.md)
 | Version | Change |
 |---|---|
 | 1.0 | Final plan: 16 leaves, decision rules, Bridges-primary compute, agreed 100×3×3 scope |
+| 1.1 | Phase 0 freeze: annotation-ready milestone; provisional vs gold; multimodal human ref; grounding manifest |

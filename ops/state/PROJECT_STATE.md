@@ -1,12 +1,12 @@
 # Project state (living document)
 
-> Auto-synthesized on 2026-07-06 by `ops/synthesize_state.py` (extractive mode). The compact digest also lives in `AGENTS.md` so Hermes loads it every turn. Edit upstream sources (meeting notes in `ops/meetings/`, weekly reports in `ops/reports/`), not this file — it is regenerated.
+> Auto-synthesized on 2026-07-10 by `ops/synthesize_state.py` (extractive mode). The compact digest also lives in `AGENTS.md` so Hermes loads it every turn. Edit upstream sources (meeting notes in `ops/meetings/`, weekly reports in `ops/reports/`), not this file — it is regenerated.
 
 ## Current snapshot
 
-- **As of:** 2026-07-06
-- **Most recent meeting:** 2026-06-24
-- **Meetings folded in:** 2026-06-24
+- **As of:** 2026-07-10
+- **Most recent meeting:** 2026-07-10
+- **Meetings folded in:** 2026-06-24, 2026-07-10
 
 ## Recent progress (from the latest weekly report)
 
@@ -20,6 +20,12 @@ From **2026-W26.md** (Executive summary):
 
 ## Decisions (cumulative)
 
+- **Current milestone = annotation-ready infrastructure** — OSWorld task/eval context, Human Agent screenshots for annotators + multimodal judge, mockup-approved dual-trace UI, provisional rejudge `osworld_v1` — not judge calibration or publication prevalence  _( 2026-07-10 )_
+- **Provisional judge vs human gold** — versioned judge labels (`judge_context_version`) are reference only; `annotations.json` from abdoul/raghav is gold-in-progress  _( 2026-07-10 )_
+- **Human reference is non-binding** — full human sequence (text + screenshots) for context; do not overfit; no forced step alignment to agent path  _( 2026-07-10 )_
+- **Rejudge waits for Human Agent** — multimodal `osworld_v1` only after `oracle_status` ready/partial  _( 2026-07-10 )_
+- **Grounding freeze** — after Abdoul sign-off, files in `errorAnalysis/docs/GROUNDING_MANIFEST.md` must not be edited without a new approved plan  _( 2026-07-10 )_
+- **UI mockup before production** — static HTML mockups approved before Jinja/packet implementation  _( 2026-07-10 )_
 - **Run everything on Babel/Bridges** — OSWorld VMs and inference stay on cluster, not local/AWS  _( 2026-06-24 )_
 - **vLLM version standard on Bridges**: use **vLLM 0.11.0**, Python 3.11 conda env, `module load cuda/12.6.1`  _( 2026-06-24 )_
 - **Cost threshold for frontier-model error analysis**: if estimated cost ≤ $25, proceed without checking with Matt; if more, check in first  _( 2026-06-24 )_
@@ -57,6 +63,9 @@ From **2026-W26.md** (Executive summary):
 
 ## Action items
 
+- [ ] @Abdoul — Sign off Phase 0 / `GROUNDING_MANIFEST.md`  _( 2026-07-10 )_
+- [ ] @Abdoul — After sign-off, start post–Phase 0 plan (vendor metadata → mockups → Human Agent → `osworld_v1`)  _( 2026-07-10 )_
+- [ ] @Abdoul / @raghav — Discovery labeling on annotation-ready pilot packet (after infrastructure)  _( 2026-07-10 )_
 - [ ] @Abdoul — Aim for first full run of OpenCUA on Babel  _( 2026-06-24 )_
 - [ ] @Abdoul — Run failure analysis on OSWorld using pre-made prompt; use HuggingFace pre-generated trajectories first  _( 2026-06-24 )_
 - [ ] @Abdoul — After collecting trajectories, have an agent compute token-cost estimate for frontier-model error analysis (proceed if ≤ $25; check with Matt if more)  _( 2026-06-24 )_
@@ -73,6 +82,7 @@ From **2026-W26.md** (Executive summary):
 
 ## Open questions
 
+- None blocking Phase 0 freeze; taxonomy leaf additions deferred unless Abdoul requests  _( 2026-07-10 )_
 - What is the lab-standard conda env name, CUDA module, and vLLM version/wheel for Bridges?  _( 2026-06-24 )_
 - Should OSWorld VMs and inference always stay on Babel/Bridges? *(Decided: yes)*  _( 2026-06-24 )_
 - Do CUAs perform worse when given screenshot context? If so, why?  _( 2026-06-24 )_

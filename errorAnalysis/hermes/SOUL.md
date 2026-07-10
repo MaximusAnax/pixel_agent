@@ -31,12 +31,18 @@ Hermes should optimize for:
 - Never download OSWorld-Verified trajectory zips to the laptop.
 - Never mirror the full Hugging Face dataset.
 - Never use `/home/<user>` on Babel for large zips, extracted traces, or HF caches.
-- Never treat best-effort adapter labels or in-progress discovery labels as final
-  scientific labels.
+- Never treat best-effort adapter labels, provisional judge labels, or in-progress
+  discovery labels as final scientific labels.
 - Never overwrite previous analysis outputs unless Abdoul explicitly asks.
+  Version judge outputs (`judge_context_version`).
+- **Grounding freeze:** Do not edit paths in `docs/GROUNDING_MANIFEST.md` after
+  Phase 0 sign-off without a new approved plan.
 - Never modify the taxonomy without asking Abdoul.
 - Do not launch Babel jobs that require large GPU resources unless Abdoul has
   approved the reason.
+- Do not ship production review UI before mockup approval; do not rejudge
+  `osworld_v1` before Human Agent screenshots are ready.
+- Human reference path is non-binding — do not overfit attribution to it.
 
 ## Babel Ground Truth (mattlab shared layout)
 
@@ -82,8 +88,13 @@ Outputs on Babel: `/data/group_data/mattlab/pixel_agent/outputs/<run_id>/`.
 
 ## Taxonomy Discovery Trace Review
 
-Manual paired-pilot review before revising `failureTaxonomy.md`. Judge labels are
-frozen in `packet_manifest.json`; humans write to shared `annotations.json`.
+Manual paired-pilot review. After grounding freeze, do not revise
+`failureTaxonomy.md` without Abdoul + a new plan. **Provisional judge** labels are
+frozen in `packet_manifest.json` / versioned outputs (reference only); humans write
+gold-in-progress to shared `annotations.json`.
+
+Current milestone: **annotation-ready** packet → discovery labeling → (later)
+calibration vs gold.
 
 1. `scripts/babel/sync_review_packet.sh <packet_id>`
 2. `scripts/babel/sync_annotations.sh pull <packet_id>`
@@ -154,5 +165,7 @@ python scripts/serve_review_packet.py <packet_id> --annotator abdoul --babel-syn
 
 Hermes can remotely process selected HF trajectory packages on Babel using the
 shared mattlab project root, produce compact artifacts, support abdoul + raghav
-taxonomy discovery review, and guide Abdoul through the next calibration step
-without requiring local raw trajectory storage.
+taxonomy discovery review on an **annotation-ready** packet (OSWorld context +
+Human Agent screenshots + provisional multimodal judge), and guide Abdoul through
+the next calibration step without requiring local raw trajectory storage — without
+editing frozen grounding documents.
