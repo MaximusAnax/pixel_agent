@@ -43,6 +43,13 @@ class RunManifest(BaseModel):
   instruction: str = ""
   task_tags: list[str] = Field(default_factory=list)
   eval_message: str = ""
+  # OSWorld context (populated when vendored metadata is available)
+  canonical_instruction: str = ""
+  eval_bundle: str = ""
+  human_reference_actions: list[str] = Field(default_factory=list)
+  human_reference_grouped: list[list[str]] = Field(default_factory=list)
+  osworld_task_path: str = ""
+  domain: str = ""
 
 
 class AttributionResult(BaseModel):

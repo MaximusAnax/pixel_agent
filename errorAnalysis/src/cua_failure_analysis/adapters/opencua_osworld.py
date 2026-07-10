@@ -8,6 +8,10 @@ import re
 from pathlib import Path
 
 from cua_failure_analysis.adapters.base import AdapterResult, EpisodeBundle
+from cua_failure_analysis.osworld.eval_bundle import format_eval_bundle
+from cua_failure_analysis.osworld.grounding import compare_proposed_vs_executed
+from cua_failure_analysis.osworld.human_ref import load_human_reference
+from cua_failure_analysis.osworld.metadata import load_sources, task_lookup
 from cua_failure_analysis.trace.schema import RunManifest, TraceStep
 
 STEP_HEADER_RE = re.compile(r"^#\s*Step\s+(\d+)\s*:", re.M | re.I)
@@ -115,6 +119,37 @@ def _extract_coords(action_raw: str) -> list[float] | None:
   return None
 
 
+def _extract_model_code(response: str) -> str:
+  match = CODE_BLOCK_RE.search(response or "")
+  return match.group(1).strip() if match else ""
+
+
+def _load_osworld_context(task_id: str, domain: str | None) -> dict:
+  """Best-effort load of vendored task/human metadata; empty dict if unavailable."""
+  try:
+    sources = load_sources()
+    task = task_lookup(task_id, domain=domain, sources=sources)
+  except (FileNotFoundError, OSError, ValueError, KeyError):
+    return {}
+  human_actions: list[str] = []
+  human_grouped: list[list[str]] = []
+  try:
+    ref = load_human_reference(task_id, domain=task.get("_domain") or domain, sources=sources)
+    human_actions = list(ref.single_action)
+    human_grouped = list(ref.grouped_action)
+  except (FileNotFoundError, OSError, ValueError, KeyError):
+    pass
+  return {
+    "task": task,
+    "sources": sources,
+    "canonical_instruction": str(task.get("instruction") or ""),
+    "osworld_task_path": str(task.get("_osworld_task_path") or ""),
+    "domain": str(task.get("_domain") or domain or ""),
+    "human_reference_actions": human_actions,
+    "human_reference_grouped": human_grouped,
+  }
+
+
 def _build_screenshot_index(bundle: EpisodeBundle) -> dict[int, str]:
   index: dict[int, str] = {}
   for member in bundle.image_members:
@@ -187,13 +222,34 @@ def normalize_opencua_episode(
   instruction = ""
   steps: list[TraceStep] = []
 
+  osw_ctx = _load_osworld_context(bundle.task_id, bundle.domain)
+  sources = osw_ctx.get("sources")
+  screen_w = int(getattr(sources, "screen_width", 1920) or 1920)
+  screen_h = int(getattr(sources, "screen_height", 1080) or 1080)
+  tolerance = float(getattr(sources, "grounding_mismatch_tolerance", 0.05) or 0.05)
+  canonical = str(osw_ctx.get("canonical_instruction") or "")
+
+  eval_bundle = ""
+  if osw_ctx.get("task") is not None:
+    result_raw: float | None = None
+    if result_path and result_path.exists():
+      try:
+        result_raw = float(result_path.read_text(encoding="utf-8").strip())
+      except ValueError:
+        result_raw = None
+    eval_bundle = format_eval_bundle(
+      osw_ctx["task"],
+      result_txt=result_raw,
+      outcome=("pass" if success else "fail") if success is not None else None,
+    )
+
   for idx, record in enumerate(records):
     response = str(record.get("response") or "")
     action_raw = str(record.get("action") or "").strip()
     step_num = _step_number(record, response, idx + 1)
     thought = _parse_thought(response)
     if not instruction:
-      instruction = _extract_instruction(response, instruction_path)
+      instruction = canonical or _extract_instruction(response, instruction_path)
 
     screenshot_member = screenshot_index.get(step_num) or str(record.get("screenshot_file") or "")
     if screenshot_member and not screenshot_member.startswith(bundle.episode_id):
@@ -213,8 +269,19 @@ def normalize_opencua_episode(
       eval_signals["done"] = done
     if is_terminal and success is False:
       eval_signals["failed"] = True
+    if is_terminal and eval_bundle:
+      eval_signals["message"] = eval_bundle
 
     action_match = ACTION_SECTION_RE.search(response)
+    stated_intent = action_match.group(1).strip()[:500] if action_match else ""
+    model_code = _extract_model_code(response)
+    grounding = compare_proposed_vs_executed(
+      model_code,
+      action_raw,
+      screen_width=screen_w,
+      screen_height=screen_h,
+      tolerance=tolerance,
+    )
     steps.append(
       TraceStep(
         task_id=bundle.task_id,
@@ -224,7 +291,13 @@ def normalize_opencua_episode(
         action={
           "type": _parse_action_type(action_raw),
           "raw_code": action_raw,
-          "action_section": action_match.group(1).strip()[:500] if action_match else "",
+          "model_code": model_code,
+          "stated_intent": stated_intent,
+          "action_section": stated_intent,  # backward-compatible alias
+          "coords_executed": grounding["coords_executed"],
+          "coords_model_normalized": grounding["coords_model_normalized"],
+          "coords_model_pixels_est": grounding["coords_model_pixels_est"],
+          "grounding_mismatch": grounding["grounding_mismatch"],
         },
         coords=_extract_coords(action_raw),
         cot=thought or response[:2000],
@@ -237,15 +310,28 @@ def normalize_opencua_episode(
       )
     )
 
+  # Prefer canonical OSWorld instruction when available.
+  display_instruction = canonical or instruction
+  if success:
+    eval_message = eval_bundle or ""
+  else:
+    eval_message = eval_bundle or "run_failed"
+
   manifest = RunManifest(
     task_id=bundle.task_id,
     seed=0,
     model_id=model_id,
     success=bool(success) if success is not None else False,
     total_steps=len(steps),
-    instruction=instruction,
+    instruction=display_instruction,
     task_tags=_load_task_tags(bundle.task_id, stratified_path),
-    eval_message="" if success else "run_failed",
+    eval_message=eval_message,
+    canonical_instruction=canonical,
+    eval_bundle=eval_bundle,
+    human_reference_actions=list(osw_ctx.get("human_reference_actions") or []),
+    human_reference_grouped=list(osw_ctx.get("human_reference_grouped") or []),
+    osworld_task_path=str(osw_ctx.get("osworld_task_path") or ""),
+    domain=str(osw_ctx.get("domain") or bundle.domain or ""),
   )
   return AdapterResult(manifest=manifest, steps=steps)
 

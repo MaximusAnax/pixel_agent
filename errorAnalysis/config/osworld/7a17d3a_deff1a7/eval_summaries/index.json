@@ -1,0 +1,26 @@
+{
+  "pin": "7a17d3a_deff1a7",
+  "func_count": 20,
+  "funcs": [
+    "check_brightness_decrease_and_structure_sim",
+    "check_config_status",
+    "check_file_exists_and_structure_sim",
+    "check_font_size",
+    "check_image_size",
+    "check_include_exclude",
+    "check_saturation_increase_and_structure_sim",
+    "check_structure_sim",
+    "check_structure_sim_resized",
+    "check_triangle_position",
+    "compare_csv",
+    "compare_pdfs",
+    "compare_table",
+    "exact_match",
+    "infeasible",
+    "is_cookie_deleted",
+    "is_expected_bookmarks",
+    "is_expected_tabs",
+    "is_shortcut_on_desktop",
+    "match_in_list"
+  ]
+}

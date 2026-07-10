@@ -1,0 +1,198 @@
+{
+  "pin": "7a17d3a_deff1a7",
+  "phase": "pilot",
+  "fetched_at": "2026-07-10T21:48:30.947237+00:00",
+  "osworld": {
+    "repo": "xlang-ai/OSWorld",
+    "commit": "7a17d3abc86d524420ea4ec96752f84d245fea74"
+  },
+  "osworld_human": {
+    "repo": "WukLab/osworld-human",
+    "commit": "deff1a7cd8940f6040a895593097fc3c5511f36b"
+  },
+  "task_count": 30,
+  "error_count": 0,
+  "tasks": [
+    {
+      "task_id": "bb5e4c0d-f964-439c-97b6-bdb9747de3f4",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/bb5e4c0d-f964-439c-97b6-bdb9747de3f4.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/bb5e4c0d-f964-439c-97b6-bdb9747de3f4.json"
+    },
+    {
+      "task_id": "7b6c7e24-c58a-49fc-a5bb-d57b80e5b4c3",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/7b6c7e24-c58a-49fc-a5bb-d57b80e5b4c3.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/7b6c7e24-c58a-49fc-a5bb-d57b80e5b4c3.json"
+    },
+    {
+      "task_id": "06fe7178-4491-4589-810f-2e2bc9502122",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/06fe7178-4491-4589-810f-2e2bc9502122.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/06fe7178-4491-4589-810f-2e2bc9502122.json"
+    },
+    {
+      "task_id": "e1e75309-3ddb-4d09-92ec-de869c928143",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/e1e75309-3ddb-4d09-92ec-de869c928143.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/e1e75309-3ddb-4d09-92ec-de869c928143.json"
+    },
+    {
+      "task_id": "35253b65-1c19-4304-8aa4-6884b8218fc0",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/35253b65-1c19-4304-8aa4-6884b8218fc0.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/35253b65-1c19-4304-8aa4-6884b8218fc0.json"
+    },
+    {
+      "task_id": "2ad9387a-65d8-4e33-ad5b-7580065a27ca",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/2ad9387a-65d8-4e33-ad5b-7580065a27ca.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/2ad9387a-65d8-4e33-ad5b-7580065a27ca.json"
+    },
+    {
+      "task_id": "7a5a7856-f1b6-42a4-ade9-1ca81ca0f263",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/7a5a7856-f1b6-42a4-ade9-1ca81ca0f263.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/7a5a7856-f1b6-42a4-ade9-1ca81ca0f263.json"
+    },
+    {
+      "task_id": "2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/2ae9ba84-3a0d-4d4c-8338-3a1478dc5fe3.json"
+    },
+    {
+      "task_id": "480bcfea-d68f-4aaa-a0a9-2589ef319381",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/480bcfea-d68f-4aaa-a0a9-2589ef319381.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/480bcfea-d68f-4aaa-a0a9-2589ef319381.json"
+    },
+    {
+      "task_id": "af630914-714e-4a24-a7bb-f9af687d3b91",
+      "domain": "chrome",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/chrome/af630914-714e-4a24-a7bb-f9af687d3b91.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/chrome/af630914-714e-4a24-a7bb-f9af687d3b91.json"
+    },
+    {
+      "task_id": "7a4deb26-d57d-4ea9-9a73-630f66a7b568",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/7a4deb26-d57d-4ea9-9a73-630f66a7b568.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/7a4deb26-d57d-4ea9-9a73-630f66a7b568.json"
+    },
+    {
+      "task_id": "554785e9-4523-4e7a-b8e1-8016f565f56a",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/554785e9-4523-4e7a-b8e1-8016f565f56a.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/554785e9-4523-4e7a-b8e1-8016f565f56a.json"
+    },
+    {
+      "task_id": "77b8ab4d-994f-43ac-8930-8ca087d7c4b4",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/77b8ab4d-994f-43ac-8930-8ca087d7c4b4.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/77b8ab4d-994f-43ac-8930-8ca087d7c4b4.json"
+    },
+    {
+      "task_id": "f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce.json"
+    },
+    {
+      "task_id": "d52d6308-ec58-42b7-a2c9-de80e4837b2b",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/d52d6308-ec58-42b7-a2c9-de80e4837b2b.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/d52d6308-ec58-42b7-a2c9-de80e4837b2b.json"
+    },
+    {
+      "task_id": "2a729ded-3296-423d-aec4-7dd55ed5fbb3",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/2a729ded-3296-423d-aec4-7dd55ed5fbb3.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/2a729ded-3296-423d-aec4-7dd55ed5fbb3.json"
+    },
+    {
+      "task_id": "b148e375-fe0b-4bec-90e7-38632b0d73c2",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/b148e375-fe0b-4bec-90e7-38632b0d73c2.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/b148e375-fe0b-4bec-90e7-38632b0d73c2.json"
+    },
+    {
+      "task_id": "a746add2-cab0-4740-ac36-c3769d9bfb46",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/a746add2-cab0-4740-ac36-c3769d9bfb46.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/a746add2-cab0-4740-ac36-c3769d9bfb46.json"
+    },
+    {
+      "task_id": "7b7617bd-57cc-468e-9c91-40c4ec2bcb3d",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/7b7617bd-57cc-468e-9c91-40c4ec2bcb3d.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/7b7617bd-57cc-468e-9c91-40c4ec2bcb3d.json"
+    },
+    {
+      "task_id": "d16c99dc-2a1e-46f2-b350-d97c86c85c15",
+      "domain": "gimp",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/gimp/d16c99dc-2a1e-46f2-b350-d97c86c85c15.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/gimp/d16c99dc-2a1e-46f2-b350-d97c86c85c15.json"
+    },
+    {
+      "task_id": "357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/357ef137-7eeb-4c80-a3bb-0951f26a8aff.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/357ef137-7eeb-4c80-a3bb-0951f26a8aff.json"
+    },
+    {
+      "task_id": "42e0a640-4f19-4b28-973d-729602b5a4a7",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/42e0a640-4f19-4b28-973d-729602b5a4a7.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/42e0a640-4f19-4b28-973d-729602b5a4a7.json"
+    },
+    {
+      "task_id": "51719eea-10bc-4246-a428-ac7c433dd4b3",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/51719eea-10bc-4246-a428-ac7c433dd4b3.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/51719eea-10bc-4246-a428-ac7c433dd4b3.json"
+    },
+    {
+      "task_id": "1954cced-e748-45c4-9c26-9855b97fbc5e",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/1954cced-e748-45c4-9c26-9855b97fbc5e.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/1954cced-e748-45c4-9c26-9855b97fbc5e.json"
+    },
+    {
+      "task_id": "2bd59342-0664-4ccb-ba87-79379096cc08",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/2bd59342-0664-4ccb-ba87-79379096cc08.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/2bd59342-0664-4ccb-ba87-79379096cc08.json"
+    },
+    {
+      "task_id": "3aaa4e37-dc91-482e-99af-132a612d40f3",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/3aaa4e37-dc91-482e-99af-132a612d40f3.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/3aaa4e37-dc91-482e-99af-132a612d40f3.json"
+    },
+    {
+      "task_id": "1273e544-688f-496b-8d89-3e0f40aa0606",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/1273e544-688f-496b-8d89-3e0f40aa0606.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/1273e544-688f-496b-8d89-3e0f40aa0606.json"
+    },
+    {
+      "task_id": "12382c62-0cd1-4bf2-bdc8-1d20bf9b2371",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/12382c62-0cd1-4bf2-bdc8-1d20bf9b2371.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/12382c62-0cd1-4bf2-bdc8-1d20bf9b2371.json"
+    },
+    {
+      "task_id": "f9584479-3d0d-4c79-affa-9ad7afdd8850",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/f9584479-3d0d-4c79-affa-9ad7afdd8850.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/f9584479-3d0d-4c79-affa-9ad7afdd8850.json"
+    },
+    {
+      "task_id": "535364ea-05bd-46ea-9937-9f55c68507e8",
+      "domain": "libreoffice_calc",
+      "task_path": "config/osworld/7a17d3a_deff1a7/tasks/libreoffice_calc/535364ea-05bd-46ea-9937-9f55c68507e8.json",
+      "human_path": "config/osworld/7a17d3a_deff1a7/human/libreoffice_calc/535364ea-05bd-46ea-9937-9f55c68507e8.json"
+    }
+  ],
+  "errors": []
+}

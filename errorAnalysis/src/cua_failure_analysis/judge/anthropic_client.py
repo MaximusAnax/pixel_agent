@@ -6,11 +6,16 @@ import base64
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from anthropic import Anthropic
 
 from cua_failure_analysis.judge.client import VLMJudge
-from cua_failure_analysis.judge.prompts import build_system_prompt, build_user_prompt
+from cua_failure_analysis.judge.prompts import (
+  build_system_prompt,
+  build_user_prompt,
+  format_human_reference_text,
+)
 from cua_failure_analysis.judge.usage import JudgeUsage
 from cua_failure_analysis.trace.schema import AttributionResult, TraceStep
 
@@ -58,20 +63,44 @@ class AnthropicJudge:
     instruction: str,
     previous_steps: list[TraceStep],
     eval_message: str = "",
+    *,
+    canonical_instruction: str = "",
+    eval_bundle: str = "",
+    human_reference_steps: list[dict[str, Any]] | None = None,
   ) -> AttributionResult:
     prev_summary = "\n".join(
       f"step {s.step}: {s.action.get('type', 'action')} cot={s.cot[:120]}..."
       for s in previous_steps
     )
+    action = step.action or {}
     user_text = build_user_prompt(
       instruction=instruction,
       cot=step.cot,
-      action_json=json.dumps(step.action),
+      action_json=json.dumps(action),
       eval_message=eval_message,
       previous_summary=prev_summary or "(none)",
+      canonical_instruction=canonical_instruction or instruction,
+      eval_bundle=eval_bundle or eval_message,
+      executed_action=str(action.get("raw_code") or ""),
+      model_code=str(action.get("model_code") or ""),
+      stated_intent=str(action.get("stated_intent") or action.get("action_section") or ""),
+      grounding_mismatch=action.get("grounding_mismatch"),
+      human_reference_text=format_human_reference_text(human_reference_steps),
     )
 
     content: list[dict] = []
+    # Full human sequence images first (non-binding reference), then model obs at t*.
+    for row in human_reference_steps or []:
+      image = self._read_image_b64(row.get("image_path"))
+      if not image:
+        continue
+      b64, media_type = image
+      content.append(
+        {
+          "type": "image",
+          "source": {"type": "base64", "media_type": media_type, "data": b64},
+        }
+      )
     image = self._read_image_b64(step.screenshot_path)
     if image:
       b64, media_type = image

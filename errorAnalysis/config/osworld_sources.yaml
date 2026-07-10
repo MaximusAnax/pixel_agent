@@ -1,0 +1,24 @@
+# Pinned external sources for OSWorld task/eval metadata and OSWorld-Human refs.
+# Bump SHAs only with an explicit plan; vendor cache lives under config/osworld/<pin>/.
+
+pin: 7a17d3a_deff1a7
+
+osworld:
+  repo: xlang-ai/OSWorld
+  commit: 7a17d3abc86d524420ea4ec96752f84d245fea74
+  task_path_template: evaluation_examples/examples/{domain}/{task_id}.json
+  metrics_dir: desktop_env/evaluators/metrics
+  getters_init: desktop_env/evaluators/getters/__init__.py
+
+osworld_human:
+  repo: WukLab/osworld-human
+  commit: deff1a7cd8940f6040a895593097fc3c5511f36b
+  task_path_template: "{domain}/{task_id}.json"
+
+# Default screen size for OpenCUA pixel ↔ normalized coord conversion.
+default_screen:
+  width: 1920
+  height: 1080
+
+# Grounding mismatch: fraction of screen diagonal (executed vs model-proposed).
+grounding_mismatch_tolerance: 0.05
