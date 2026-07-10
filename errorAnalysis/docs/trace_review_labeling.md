@@ -175,6 +175,54 @@ python scripts/serve_review_packet.py pilot_taxonomy_paired_20260703 \
 
 ---
 
+## Push labels to Babel
+
+Human labels must reach Babel so your partner can pull them. Local file:
+`data/review_packets/<packet_id>/annotations.json`. Shared source of truth:
+`.../pixel_agent/review_annotations/<packet_id>/annotations.json`.
+
+### During labeling (automatic)
+
+Always start the server with **`--babel-sync`**. Each **Save** in the browser:
+
+1. Writes to your local `annotations.json` (under your annotator key only).
+2. Runs `scripts/babel/sync_annotations.sh push <packet_id>` in the background.
+
+If the server was started **without** `--babel-sync`, nothing is pushed until you run push manually.
+
+### End of session or batch (confirm)
+
+After you finish labeling for the day (or a batch), run push once to confirm:
+
+```bash
+source config/babel.env
+scripts/babel/sync_annotations.sh push pilot_taxonomy_paired_20260703
+```
+
+Success looks like:
+
+```text
+Pushed annotations to Babel group path for pilot_taxonomy_paired_20260703
+```
+
+### Partner workflow
+
+Before their next session, your partner runs:
+
+```bash
+scripts/babel/sync_annotations.sh pull pilot_taxonomy_paired_20260703
+```
+
+Then they should see your labels on the index (read-only under your annotator column).
+
+### If push fails
+
+- Check `ssh $BABEL_LOGIN` works from your laptop.
+- Ensure `config/babel.env` has the correct `BABEL_USER` and shared `BABEL_GROUP_ROOT`.
+- Retry `sync_annotations.sh push`; the script keeps a timestamped `.bak` on Babel before overwriting.
+
+---
+
 ## After both label a batch
 
 ```bash
