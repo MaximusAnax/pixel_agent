@@ -81,7 +81,12 @@ def build_action(verb: str, rest: str, ground_pt):
     if verb == "TYPING":
         text = first_quoted(rest)
         text = text if text is not None else rest
-        return f"import pyautogui; pyautogui.typewrite({text!r}, interval=0.04)", None
+        # Typing a URL in the omnibox triggers inline autocomplete (e.g.
+        # ".../search" -> ".../searchEngines"), which Enter would then accept.
+        # Press Delete to strip the selected autocomplete so the literal URL stands.
+        is_url = bool(re.match(r"^[a-z][a-z0-9+.-]*://", text) or text.startswith("chrome:"))
+        tail = "; pyautogui.press('delete')" if is_url else ""
+        return f"import pyautogui; pyautogui.typewrite({text!r}, interval=0.04){tail}", None
     if verb == "PRESS":
         key = norm_key(first_quoted(rest) or rest)
         return f"import pyautogui; pyautogui.press({key!r})", None
