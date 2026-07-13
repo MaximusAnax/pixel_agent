@@ -22,6 +22,23 @@ import requests
 VERB_RE = re.compile(r"^`([A-Z_]+)`\s*(.*)$")
 CLICK_VERBS = {"CLICK", "DOUBLE_CLICK", "RIGHT_CLICK", "MOVE", "HOVER", "DRAG", "LEFT_CLICK"}
 
+# Disambiguate terse, well-known-ambiguous UI terms for the grounder. This is
+# interpretation of the human instruction with UI knowledge (e.g. "address bar"
+# means the top omnibox, not the New-Tab-Page search box), NOT supplying
+# coordinates. Verified: the plain term lands on the center NTP box; adding "at
+# the top of the window" reliably hits the omnibox.
+REFINE = [
+    (re.compile(r"\b(address|url)\s*bar\b", re.I),
+     "the browser address bar at the top of the window (the omnibox to the right of the reload button), not the search box in the middle of the page"),
+]
+
+
+def refine_target(desc: str) -> str:
+    for pat, rep in REFINE:
+        if pat.search(desc):
+            return rep
+    return desc
+
 
 def parse_step(s: str):
     m = VERB_RE.match(s.strip())
@@ -120,8 +137,10 @@ def main() -> int:
 
         gd = None
         pt = None
+        grounded_desc = rest
         if verb in CLICK_VERBS:
-            gd = ground(args.ug_url, before, rest)
+            grounded_desc = refine_target(rest)
+            gd = ground(args.ug_url, before, grounded_desc)
             pt = (gd["x"], gd["y"])
         cmd, coords = build_action(verb, rest, pt)
         print(f"[replay] step {i}: `{verb}` {rest!r} -> coords={coords} cmd={cmd!r}", flush=True)
@@ -134,6 +153,7 @@ def main() -> int:
         trace.append({
             "task_id": task["id"], "seed": 0, "step": i,
             "human_step": step, "verb": verb, "target": rest,
+            "grounded_desc": grounded_desc,
             "action": {"type": verb.lower(), "command": cmd},
             "coords": list(coords) if coords else None,
             "ground_raw": gd.get("raw") if gd else None,
