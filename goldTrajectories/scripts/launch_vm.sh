@@ -52,6 +52,15 @@ apptainer exec "$SIF" cat "$OVMF_VARS_IN" > "$VARS"
 log "Creating disposable overlay -> $OVERLAY (backing: $BASE_QCOW2)"
 apptainer exec "$SIF" qemu-img create -f qcow2 -b "$BASE_QCOW2" -F qcow2 "$OVERLAY" >/dev/null
 
+# Optional live view: set VNC_DISPLAY=N to serve QEMU's display over VNC on
+# 127.0.0.1:$((5900+N)) instead of running headless. Reach it via an SSH tunnel
+# to this compute node (see scripts/view_vm.sbatch). Default: headless.
+if [[ -n "${VNC_DISPLAY:-}" ]]; then
+  DISPLAY_OPTS="-vnc 127.0.0.1:${VNC_DISPLAY}"
+else
+  DISPLAY_OPTS="-display none"
+fi
+
 HOSTFWD="hostfwd=tcp:127.0.0.1:${SRV_PORT}-:5000"
 HOSTFWD+=",hostfwd=tcp:127.0.0.1:${CDP_PORT}-:9222"
 HOSTFWD+=",hostfwd=tcp:127.0.0.1:${VNC_PORT}-:8006"
@@ -73,6 +82,6 @@ exec apptainer exec --bind "$WORK" --bind "$(dirname "$BASE_QCOW2")" "$SIF" \
     -device virtio-net-pci,netdev=n0 \
     -object rng-random,id=rng0,filename=/dev/urandom \
     -device virtio-rng-pci,rng=rng0 \
-    -vga std -display none \
+    -vga std $DISPLAY_OPTS \
     -serial file:"$SERIAL_LOG" \
     -monitor none
