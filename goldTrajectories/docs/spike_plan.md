@@ -80,6 +80,26 @@ _Living section — updated as the spike runs._
 - [x] Apptainer pull of `happysixd/osworld-docker` → 78 MB SIF.
 - [x] OSWorld driver code cloned; boot recipe + HTTP API extracted.
 - [x] `/dev/kvm` + KVM-accel QEMU confirmed available under Apptainer on a node.
-- [ ] Ubuntu.qcow2 downloaded + unzipped (~12.3 GB zip).
-- [ ] Phase A: VM boots under SLIRP and serves `/screenshot`.
-- [ ] Phase B: one task reset + evaluate returns a verdict.
+- [x] Ubuntu.qcow2 downloaded (`hf_transfer`) + unzipped (12.3 GB zip → 23 GB image).
+- [x] **Phase A PASSED** (SLURM job 9257552, node babel-v9-16): VM boots under
+      SLIRP, guest server ready in ~206 s, `/screenshot` + `/execute` round-trip
+      succeeds, evaluator-ready. VM torn down cleanly.
+- [x] **Display fixed** (job 9257610): first screenshots were pure black because
+      the guest server answers `/screenshot` *before* GNOME paints. A short
+      **settle after ready** (not DPMS — its timeout is 600 s) yields a full
+      1.6 MB rendered desktop (Chrome/VS Code/LibreOffice/GIMP dock, GNOME top bar).
+- [ ] Phase B: one task reset + evaluate returns a verdict (needs the desktop_env
+      eval deps; `import desktop_env.evaluators.metrics` pulls torch/easyocr/librosa).
+
+### Gotchas that cost a cycle (don't repeat)
+
+1. **Do not `--bind /dev/kvm`.** Apptainer already mounts host `/dev`
+   (`mount dev = yes`), where `/dev/kvm` is world-rw and works. Re-binding the
+   device node breaks it: `Could not access KVM kernel module: Permission denied`.
+   (Host open succeeds; only the explicit re-bind fails.)
+2. **SLURM spools the batch script**, so `BASH_SOURCE` can't locate sibling
+   scripts. Pass `--export=ALL,STAGE_DIR=/abs/path/to/goldTrajectories` at submit.
+3. **Wait ~30-45 s after the server is ready before screenshotting** — server
+   readiness ≠ desktop painted.
+4. This job's shell runs inside an interactive **8 GB** allocation; the VM needs
+   ≥12 GB, so run it as its own `sbatch` (16 GB), never in-allocation.
