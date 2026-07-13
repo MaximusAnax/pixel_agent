@@ -2,7 +2,7 @@
 #SBATCH --job-name=gtraj-spike-a
 #SBATCH --partition=cpu
 #SBATCH --time=00:30:00
-#SBATCH --mem=12G
+#SBATCH --mem=16G
 #SBATCH --cpus-per-task=6
 #SBATCH --output=%x-%j.out
 # Phase-A environment feasibility spike: boot the OSWorld VM under Apptainer+QEMU/KVM
@@ -10,7 +10,10 @@
 set -Eeuo pipefail
 
 ASSET_DIR="${ASSET_DIR:-/data/group_data/mattlab/raghavg3/osworld_env}"
-STAGE_DIR="${STAGE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# NOTE: SLURM copies this script to a spool dir, so BASH_SOURCE cannot locate the
+# stage. Pass STAGE_DIR at submit time:
+#   sbatch --export=ALL,STAGE_DIR=/abs/path/to/goldTrajectories scripts/spike_phase_a.sbatch
+STAGE_DIR="${STAGE_DIR:?set STAGE_DIR=/abs/path/to/goldTrajectories at submit (see header)}"
 export ASSET_DIR
 export SIF="${SIF:-$ASSET_DIR/osworld-docker.sif}"
 export BASE_QCOW2="${BASE_QCOW2:-$ASSET_DIR/vm_data/Ubuntu.qcow2}"
