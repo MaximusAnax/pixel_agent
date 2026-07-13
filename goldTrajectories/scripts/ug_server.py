@@ -35,10 +35,10 @@ app = Flask(__name__)
 STATE = {}
 
 
-def load(model_path: str, max_pixels: int):
-    print(f"[ug] loading {model_path} (max_pixels={max_pixels}) ...", flush=True)
+def load(model_path: str, max_pixels: int, device_map: str = "cuda"):
+    print(f"[ug] loading {model_path} (max_pixels={max_pixels}, device_map={device_map}) ...", flush=True)
     model = Qwen2VLForConditionalGeneration.from_pretrained(
-        model_path, torch_dtype=torch.bfloat16, device_map="cuda", attn_implementation="eager",
+        model_path, torch_dtype=torch.bfloat16, device_map=device_map, attn_implementation="eager",
     )
     processor = AutoProcessor.from_pretrained(model_path, min_pixels=256 * 28 * 28, max_pixels=max_pixels)
     model.eval()
@@ -88,6 +88,8 @@ if __name__ == "__main__":
     ap.add_argument("--port", type=int, default=8500)
     # Default ~native 1080p (1920x1080) so small targets aren't lost to downscaling.
     ap.add_argument("--max-pixels", type=int, default=1920 * 1080)
+    # "cuda" for a single GPU (7B); "auto" to shard a 72B across multiple GPUs.
+    ap.add_argument("--device-map", default="cuda")
     args = ap.parse_args()
-    load(args.model, args.max_pixels)
+    load(args.model, args.max_pixels, args.device_map)
     app.run(host=args.host, port=args.port, threaded=False)
