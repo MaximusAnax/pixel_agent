@@ -20,7 +20,7 @@ from pathlib import Path
 import requests
 
 VERB_RE = re.compile(r"^`([A-Z_]+)`\s*(.*)$")
-CLICK_VERBS = {"CLICK", "DOUBLE_CLICK", "RIGHT_CLICK", "MOVE", "HOVER", "DRAG", "LEFT_CLICK"}
+CLICK_VERBS = {"CLICK", "DOUBLE_CLICK", "RIGHT_CLICK", "MOVE", "MOVE_TO", "HOVER", "DRAG", "LEFT_CLICK"}
 
 # The browser address bar is a notoriously ambiguous grounding target (the New-Tab
 # page has a big center search box, plus the GNOME top-bar app menu sits "at the
@@ -73,8 +73,8 @@ def build_action(verb: str, rest: str, ground_pt):
     if verb in CLICK_VERBS:
         x, y = ground_pt
         fn = {"CLICK": "click", "LEFT_CLICK": "click", "DOUBLE_CLICK": "doubleClick",
-              "RIGHT_CLICK": "rightClick", "MOVE": "moveTo", "HOVER": "moveTo",
-              "DRAG": "click"}.get(verb, "click")
+              "RIGHT_CLICK": "rightClick", "MOVE": "moveTo", "MOVE_TO": "moveTo",
+              "HOVER": "moveTo", "DRAG": "click"}.get(verb, "click")
         cmd = (f"import pyautogui, time; pyautogui.moveTo({x}, {y}, duration=0.6); "
                f"time.sleep(0.3); pyautogui.{fn}(" + ("" if fn == "moveTo" else f"{x}, {y}") + ")")
         return cmd, (x, y)
