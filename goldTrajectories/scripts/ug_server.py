@@ -86,7 +86,8 @@ if __name__ == "__main__":
     ap.add_argument("--model", default="/data/group_data/mattlab/raghavg3/osworld_env/models/UGround-V1-7B")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8500)
-    ap.add_argument("--max-pixels", type=int, default=1350 * 28 * 28)
+    # Default ~native 1080p (1920x1080) so small targets aren't lost to downscaling.
+    ap.add_argument("--max-pixels", type=int, default=1920 * 1080)
     args = ap.parse_args()
     load(args.model, args.max_pixels)
     app.run(host=args.host, port=args.port, threaded=False)
