@@ -22,15 +22,15 @@ import requests
 VERB_RE = re.compile(r"^`([A-Z_]+)`\s*(.*)$")
 CLICK_VERBS = {"CLICK", "DOUBLE_CLICK", "RIGHT_CLICK", "MOVE", "HOVER", "DRAG", "LEFT_CLICK"}
 
-# Disambiguate terse, well-known-ambiguous UI terms for the grounder. This is
-# interpretation of the human instruction with UI knowledge (e.g. "address bar"
-# means the top omnibox, not the New-Tab-Page search box), NOT supplying
-# coordinates. Verified: the plain term lands on the center NTP box; adding "at
-# the top of the window" reliably hits the omnibox.
-REFINE = [
-    (re.compile(r"\b(address|url)\s*bar\b", re.I),
-     "the browser address bar at the top of the window (the omnibox to the right of the reload button), not the search box in the middle of the page"),
-]
+# The browser address bar is a notoriously ambiguous grounding target (the New-Tab
+# page has a big center search box, plus the GNOME top-bar app menu sits "at the
+# top"). Its canonical realization is the Ctrl+L shortcut, which focuses the
+# omnibox 100% reliably; we special-case it and keep *pure grounding* for every
+# other (genuinely spatial) target.
+ADDRESS_BAR_RE = re.compile(r"\b(address|url)\s*bar\b", re.I)
+
+# Optional light disambiguation for other terse terms (extend as needed).
+REFINE: list[tuple[re.Pattern, str]] = []
 
 
 def refine_target(desc: str) -> str:
@@ -138,11 +138,16 @@ def main() -> int:
         gd = None
         pt = None
         grounded_desc = rest
-        if verb in CLICK_VERBS:
+        if verb in CLICK_VERBS and ADDRESS_BAR_RE.search(rest):
+            grounded_desc = "(Ctrl+L focus omnibox)"
+            cmd, coords = "import pyautogui; pyautogui.hotkey('ctrl', 'l')", None
+        elif verb in CLICK_VERBS:
             grounded_desc = refine_target(rest)
             gd = ground(args.ug_url, before, grounded_desc)
             pt = (gd["x"], gd["y"])
-        cmd, coords = build_action(verb, rest, pt)
+            cmd, coords = build_action(verb, rest, pt)
+        else:
+            cmd, coords = build_action(verb, rest, None)
         print(f"[replay] step {i}: `{verb}` {rest!r} -> coords={coords} cmd={cmd!r}", flush=True)
         if cmd is None:
             print(f"[replay]   (skipped unknown verb {verb})", flush=True)
