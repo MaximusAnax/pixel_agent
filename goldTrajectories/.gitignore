@@ -1,0 +1,18 @@
+# Local env config (copy from *.example)
+config/*.env
+
+# Run artifacts and large data — keep only committed summaries
+data/**/*.png
+data/**/*.qcow2
+data/**/*.zip
+data/**/*.sif
+data/**/traces/
+data/**/run/
+
+# Anything accidentally placed here that is large
+*.qcow2
+*.sif
+*.zip
+
+__pycache__/
+*.pyc
