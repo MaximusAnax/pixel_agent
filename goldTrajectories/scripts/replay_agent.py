@@ -75,8 +75,11 @@ def build_action(verb: str, rest: str, ground_pt):
         fn = {"CLICK": "click", "LEFT_CLICK": "click", "DOUBLE_CLICK": "doubleClick",
               "RIGHT_CLICK": "rightClick", "MOVE": "moveTo", "MOVE_TO": "moveTo",
               "HOVER": "moveTo", "DRAG": "click"}.get(verb, "click")
-        cmd = (f"import pyautogui, time; pyautogui.moveTo({x}, {y}, duration=0.6); "
-               f"time.sleep(0.3); pyautogui.{fn}(" + ("" if fn == "moveTo" else f"{x}, {y}") + ")")
+        if fn == "moveTo":
+            cmd = f"import pyautogui; pyautogui.moveTo({x}, {y}, duration=0.6)"
+        else:
+            cmd = (f"import pyautogui, time; pyautogui.moveTo({x}, {y}, duration=0.6); "
+                   f"time.sleep(0.3); pyautogui.{fn}({x}, {y})")
         return cmd, (x, y)
     if verb == "TYPING":
         text = first_quoted(rest)
@@ -139,6 +142,11 @@ def main() -> int:
     print("[replay] resetting task (running setup config) ...", flush=True)
     obs = env.reset(task_config=task)
     time.sleep(args.settle)  # let apps finish painting
+    # Dismiss any startup modal not present in the human demo (e.g. GIMP's
+    # "Convert to RGB working space?" color-profile prompt) that would otherwise
+    # block the guided actions. Escape is a safe, generic dismiss.
+    env.step("import pyautogui; pyautogui.press('escape')", pause=1.0)
+    time.sleep(1.0)
     obs = env._get_obs()
 
     trace = []
