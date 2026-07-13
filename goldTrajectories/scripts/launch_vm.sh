@@ -58,7 +58,10 @@ HOSTFWD+=",hostfwd=tcp:127.0.0.1:${VNC_PORT}-:8006"
 HOSTFWD+=",hostfwd=tcp:127.0.0.1:${VLC_PORT}-:8080"
 
 log "Booting VM on $(hostname): srv=$SRV_PORT cdp=$CDP_PORT vnc=$VNC_PORT (serial -> $SERIAL_LOG)"
-exec apptainer exec --bind /dev/kvm --bind "$WORK" --bind "$(dirname "$BASE_QCOW2")" "$SIF" \
+# NOTE: do NOT `--bind /dev/kvm`. Apptainer already bind-mounts host /dev
+# (mount dev = yes), where /dev/kvm is world-rw and works; explicitly re-binding
+# the device node breaks access ("Could not access KVM kernel module").
+exec apptainer exec --bind "$WORK" --bind "$(dirname "$BASE_QCOW2")" "$SIF" \
   qemu-system-x86_64 \
     -machine q35,accel=kvm,smm=off,graphics=off,vmport=off,dump-guest-core=off,hpet=off \
     -cpu host -smp "$CPU_CORES" -m "$RAM_SIZE" \
