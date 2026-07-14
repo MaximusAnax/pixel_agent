@@ -45,6 +45,13 @@ only evaluator-verified runs count as gold.
 - Prefer a 48 GB GPU (`--gres=gpu:L40S:1`) for the grounding model; the VM itself
   is CPU+KVM only (`--partition cpu`), so the two can run as separate jobs that
   talk over HTTP.
+- **NFS hang guardrail:** files left open by cancelled SLURM jobs (e.g. aborted
+  HF downloads under a `local_dir/.cache`) become NFS zombies — any `rm -rf`,
+  `du`, or recursive `ls` into them puts the shell in uninterruptible D-state
+  and kills the session. Always wrap probes of `$osworld_env` paths in
+  `timeout N …`; never resume a download into a dir a cancelled job wrote to
+  (download to a fresh dir instead); if deletion hangs, `mv` the dir aside and
+  retry deleting a day later, in a background process, once handles clear.
 
 ## Default flow
 
