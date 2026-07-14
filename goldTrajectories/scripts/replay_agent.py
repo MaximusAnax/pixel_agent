@@ -87,6 +87,20 @@ def parse_hotkey(combo: str) -> list[str]:
     return [norm_key(p) for p in parts]
 
 
+def fresh_screenshot(env, obs):
+    """Screenshot from obs, re-fetching from the VM on transient None."""
+    shot = obs.get("screenshot") if obs else None
+    for _ in range(3):
+        if shot:
+            return shot
+        time.sleep(2.0)
+        try:
+            shot = env.controller.get_screenshot()
+        except Exception:
+            shot = None
+    return shot
+
+
 def ground(ug_url: str, png: bytes, description: str) -> dict:
     r = requests.post(ug_url + "/ground",
                       json={"image": base64.b64encode(png).decode(), "description": description},
@@ -181,7 +195,24 @@ def main() -> int:
     trace = []
     for i, step in enumerate(steps):
         verb, rest = parse_step(step)
-        before = obs["screenshot"]
+        # OSWorld-Human marks infeasible tasks with a bare `FAIL` step; FAIL/DONE
+        # are OSWorld special actions (evaluate() scores infeasible tasks by
+        # last_action == "FAIL"), so pass them through instead of skipping.
+        if verb in ("FAIL", "DONE"):
+            print(f"[replay] step {i}: special action {verb}", flush=True)
+            obs, _, _, _ = env.step(verb, pause=1.0)
+            trace.append({
+                "task_id": task["id"], "seed": 0, "step": i,
+                "human_step": step, "verb": verb, "target": rest,
+                "grounded_desc": "", "action": {"type": verb.lower(), "command": verb},
+                "coords": None, "ground_raw": None, "cot": step,
+                "screenshot_path": None,
+            })
+            continue
+        before = fresh_screenshot(env, obs)
+        if before is None:
+            print(f"[replay] step {i}: VM returned no screenshot after retries; aborting replay", flush=True)
+            break
         (shots / f"step{i:02d}_before.png").write_bytes(before)
 
         gd = None
@@ -203,7 +234,9 @@ def main() -> int:
             continue
 
         obs, _, _, _ = env.step(cmd, pause=args.step_pause)
-        (shots / f"step{i:02d}_after.png").write_bytes(obs["screenshot"])
+        after = fresh_screenshot(env, obs)
+        if after is not None:
+            (shots / f"step{i:02d}_after.png").write_bytes(after)
         trace.append({
             "task_id": task["id"], "seed": 0, "step": i,
             "human_step": step, "verb": verb, "target": rest,
@@ -222,7 +255,9 @@ def main() -> int:
         print(f"[replay] evaluate() raised: {e!r}", flush=True)
         score = -1.0
     success = score >= 0.999
-    (shots / "final.png").write_bytes(env.controller.get_screenshot())
+    final_shot = env.controller.get_screenshot()
+    if final_shot is not None:
+        (shots / "final.png").write_bytes(final_shot)
 
     (out / "trace.jsonl").write_text("\n".join(json.dumps(r) for r in trace) + "\n")
     (out / "manifest.json").write_text(json.dumps({
