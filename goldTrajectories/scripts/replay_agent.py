@@ -54,10 +54,37 @@ def first_quoted(s: str):
 
 KEYMAP = {"del": "delete", "esc": "escape", "return": "enter", "ctrl": "ctrl"}
 
+NAMED_KEYS = {
+    "ctrl", "alt", "shift", "cmd", "win", "super", "enter", "return", "tab",
+    "esc", "escape", "space", "backspace", "delete", "del", "home", "end",
+    "pageup", "pagedown", "up", "down", "left", "right", "insert", "menu",
+    "printscreen", "capslock",
+} | {f"f{i}" for i in range(1, 25)}
+
 
 def norm_key(k: str) -> str:
     k = k.strip().lower()
     return KEYMAP.get(k, k)
+
+
+def parse_hotkey(combo: str) -> list[str]:
+    """Extract key names from OSWorld-Human hotkey text, which may carry a
+    trailing description: 'ctrl-alt-t to open terminal' -> ['ctrl','alt','t'].
+    Handles 'ctrl+shift+n', 'ctrl-alt-t', and space-separated 'ctrl shift n'."""
+    toks = combo.strip().split()
+    if toks and len(toks[0]) > 1 and re.search(r"[+-]", toks[0]):
+        parts = [p for p in re.split(r"[+-]+", toks[0]) if p]
+    else:
+        parts = []
+        for t in toks:
+            if t in ("+", "-"):
+                continue
+            k = norm_key(t)
+            if k in NAMED_KEYS or len(k) == 1:
+                parts.append(k)
+            else:
+                break  # first non-key word starts the prose description
+    return [norm_key(p) for p in parts]
 
 
 def ground(ug_url: str, png: bytes, description: str) -> dict:
@@ -102,7 +129,9 @@ def build_action(verb: str, rest: str, ground_pt):
         return f"import pyautogui; pyautogui.press({key!r})", None
     if verb in ("HOTKEY", "KEY"):
         combo = first_quoted(rest) or rest
-        keys = [norm_key(k) for k in re.split(r"[+\s]+", combo) if k.strip()]
+        keys = parse_hotkey(combo)
+        if not keys:
+            return None, None
         return f"import pyautogui; pyautogui.hotkey(*{keys!r})", None
     if verb == "SCROLL":
         amt = -300 if "down" in rest.lower() else 300

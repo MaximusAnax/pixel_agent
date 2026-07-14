@@ -39,14 +39,16 @@ curl -sf "$UG_URL/health" | grep -q true || { echo "grounding server not healthy
 
 run_one() {
   local uuid="$1" TASK_FILE="$2" OUT="$GOLD_ROOT/$uuid"
-  [ -f "$OUT/manifest.json" ] && { echo "skip $uuid (already done)"; return; }
+  # Skip only verified-gold results; failed runs retry on the next batch.
+  [ -f "$OUT/manifest.json" ] && grep -q '"success": true' "$OUT/manifest.json" \
+    && { echo "skip $uuid (already gold)"; return; }
   export WORK="$ASSET_DIR/run/batch/${SLURM_ARRAY_JOB_ID}_${SHARD}/$uuid"
   mkdir -p "$WORK" "$OUT"
   bash "$STAGE_DIR/scripts/launch_vm.sh" > "$WORK/launch.log" 2>&1 &
   local VM_PID=$! ok=0
   for _ in $(seq 1 72); do curl -sf -o /dev/null "http://127.0.0.1:$SRV_PORT/screenshot" && { ok=1; break; }; sleep 5; done
   if [ "$ok" = 1 ]; then
-    timeout 420 xvfb-run -a "$ASSET_DIR/venv-osworld/bin/python" "$STAGE_DIR/scripts/replay_agent.py" \
+    timeout "${REPLAY_TIMEOUT:-420}" xvfb-run -a "$ASSET_DIR/venv-osworld/bin/python" "$STAGE_DIR/scripts/replay_agent.py" \
       --task-file "$TASK_FILE" --ug-url "$UG_URL" --vm-host 127.0.0.1 --vm-port "$SRV_PORT" \
       --stage-dir "$STAGE_DIR" --outdir "$OUT" --settle 18 --step-pause 2.0 \
       > "$OUT/replay.log" 2>&1 || echo "replay error/timeout: $uuid"

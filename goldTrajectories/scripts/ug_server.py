@@ -15,6 +15,7 @@ import argparse
 import base64
 import io
 import re
+import threading
 
 import torch
 from flask import Flask, jsonify, request
@@ -33,12 +34,28 @@ Answer:"""
 
 app = Flask(__name__)
 STATE = {}
+GEN_LOCK = threading.Lock()
 
 
 def load(model_path: str, max_pixels: int, device_map: str = "cuda"):
     print(f"[ug] loading {model_path} (max_pixels={max_pixels}, device_map={device_map}) ...", flush=True)
+    kwargs = {}
+    if device_map == "auto":
+        # Cap per-GPU weight placement to leave activation headroom; without this,
+        # auto packs GPU 0 to the brim and 1080p screenshots OOM at inference.
+        # GPU 0 needs extra: it hosts the vision tower + embeddings.
+        max_memory = {}
+        for i in range(torch.cuda.device_count()):
+            total_gib = torch.cuda.get_device_properties(i).total_memory / 2**30
+            headroom = 10 if i == 0 else 6
+            max_memory[i] = f"{max(1, int(total_gib - headroom))}GiB"
+        kwargs["max_memory"] = max_memory
+        print(f"[ug] max_memory caps: {max_memory}", flush=True)
+    # sdpa, not eager: eager materializes the full vision-tower attention matrix
+    # (~10k patch tokens for a 1080p screenshot -> 6+ GiB softmax alloc -> OOM).
     model = Qwen2VLForConditionalGeneration.from_pretrained(
-        model_path, torch_dtype=torch.bfloat16, device_map=device_map, attn_implementation="eager",
+        model_path, torch_dtype=torch.bfloat16, device_map=device_map, attn_implementation="sdpa",
+        **kwargs,
     )
     processor = AutoProcessor.from_pretrained(model_path, min_pixels=256 * 28 * 28, max_pixels=max_pixels)
     model.eval()
@@ -67,7 +84,9 @@ def ground():
     image_inputs, video_inputs = process_vision_info(messages)
     inputs = processor(text=[text], images=image_inputs, videos=video_inputs,
                        padding=True, return_tensors="pt").to("cuda")
-    with torch.no_grad():
+    # Serialize generation: concurrent batch shards otherwise stack activation
+    # memory on GPU 0 and OOM. Requests queue here instead.
+    with GEN_LOCK, torch.no_grad():
         gen = STATE["model"].generate(**inputs, max_new_tokens=32, do_sample=False)
     out = processor.batch_decode(gen[:, inputs.input_ids.shape[1]:],
                                  skip_special_tokens=True)[0].strip()

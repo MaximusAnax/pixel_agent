@@ -49,10 +49,29 @@ Prefer tasks with: stable UIs (GIMP/LibreOffice/GNOME over drift-prone browser
 settings), few steps, and targets that are either keyboard-addressable (hotkeys)
 or large/well-separated. Menu-navigation and small-cell tasks want 72B grounding.
 
+## 72B smoke test (2026-07-14, 6 tasks, 2 shards)
+
+UGround-V1-72B served on 4x L40S (transformers `device_map=auto`, `ug_server.py`);
+batch via `run_batch.sbatch` against a shared remote server. **4/6 gold**
+(evaluator score 1.0): GIMP add-layer (regression), **GIMP Vignette a746add2 —
+the menu task 7B failed**, VS Code create-file, GNOME text-scaling. Two content
+failures: GIMP undo-prefs `7b7617bd` (dense Preferences dialog) and VLC cone
+`215dfd39` (grounded screen-center fallback → likely UI drift vs. the human demo).
+
+Infra lessons baked into the scripts:
+1. `device_map=auto` packs GPU 0 full → cap per-GPU `max_memory` with headroom
+   (extra on GPU 0: vision tower + embeddings live there).
+2. **`attn_implementation="sdpa"`, never eager**: eager materializes the full
+   vision-attention matrix (~10k patch tokens at 1080p → 6+ GiB softmax → OOM).
+3. Generation is serialized behind a lock; concurrent shards queue (~22–27 s per
+   1080p grounding call).
+4. OSWorld-Human hotkey text carries prose ("ctrl-alt-t to open terminal") —
+   `parse_hotkey` extracts the combo.
+5. Failed manifests no longer block retries (skip only `success: true`).
+
 ## Next steps
 
-- Serve **UGround-V1-72B** for menu/toolbar-precise grounding; re-run the GIMP
-  Vignette/menu tasks.
-- Add per-task UI-drift overrides for known-drifted tasks.
+- Add per-task UI-drift overrides for known-drifted tasks (e.g. `215dfd39`).
 - Scale to the pilot set, writing gold traces in the errorAnalysis trace schema,
-  keeping only evaluator-verified passes.
+  keeping only evaluator-verified passes. Needs Raghav's go for the full
+  369-task sweep (~4 L40S for the server + cpu-partition shard array).
