@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import re
 import sys
 import time
@@ -168,7 +169,13 @@ def main() -> int:
 
     sys.path.insert(0, str(Path(args.stage_dir) / "src"))
     from osworld_manual_provider import install
-    install(host=args.vm_host, server_port=args.vm_port)
+    # Pass ALL per-shard forwarded ports, not just the control server: Chrome
+    # task setup (DevTools CDP) and VLC evaluators dial their own host ports,
+    # and without these every shard but 0 gets connection-refused there.
+    install(host=args.vm_host, server_port=args.vm_port,
+            chromium_port=int(os.environ.get("CDP_PORT", "9222")),
+            vnc_port=int(os.environ.get("VNC_PORT", "8006")),
+            vlc_port=int(os.environ.get("VLC_PORT", "8080")))
     from desktop_env.desktop_env import DesktopEnv
 
     task = json.loads(Path(args.task_file).read_text())
