@@ -69,9 +69,34 @@ Infra lessons baked into the scripts:
    `parse_hotkey` extracts the combo.
 5. Failed manifests no longer block retries (skip only `success: true`).
 
+## Full 369-task sweep (2026-07-14/15)
+
+**60 gold / 285 failed / 24 orphaned (16%).** Per-domain gold rate: gimp 50%,
+os 46%, vs_code 35%, vlc 35%, writer 22%, chrome 13%, thunderbird 13%,
+impress 11%, multi_apps 3%, calc 2%. 26 golds are infeasible tasks correctly
+declared via the FAIL special action; 34 are UI-executed replays. Remaining
+orphans are chronic multi_apps timeouts (>1200 s replays).
+
+Sweep-scale bugs found and fixed (all committed):
+1. **Per-shard host-port wiring** (`b8cb945`): run_batch forwards guest
+   9222/8006/8080 to per-shard host ports, but replay_agent only passed the
+   control port — Chrome DevTools setup crashed on every shard except 0.
+   Post-fix, chrome orphans converted (2 -> 6 gold). VLC retries with fixed
+   ports still failed 8/8, so VLC failures are content, not ports.
+2. **FAIL/DONE pass-through** (`7c5daae`): 27 OSWorld-Human tasks are marked
+   infeasible with a bare FAIL step; forwarding it to env.step scores them.
+3. Transient VM screenshot Nones now retry instead of crashing the replay.
+4. Bad Babel nodes: q5-20/q5-24 corrupt multi-GPU inference (token salad);
+   u9-24 breaks the venv's torch via oneMKL. Both excluded; always probe a
+   fresh grounding server with a real 1080p screenshot before use.
+
+Viewer: `scripts/build_gold_viewer.py` renders every trace with the grounded
+pixel cross-haired on the before-shot -> `osworld_env/gold_viewer/`.
+
 ## Next steps
 
-- Add per-task UI-drift overrides for known-drifted tasks (e.g. `215dfd39`).
-- Scale to the pilot set, writing gold traces in the errorAnalysis trace schema,
-  keeping only evaluator-verified passes. Needs Raghav's go for the full
-  369-task sweep (~4 L40S for the server + cpu-partition shard array).
+- Audit the 285 failed manifests in the viewer; classify drift vs.
+  grounding-precision vs. evaluator strictness before any further re-runs.
+- Per-task UI-drift overrides for known-drifted tasks (e.g. `bb5e4c0d`).
+- calc/impress need a finer-grained grounding strategy (cell coordinates
+  beat referring expressions); consider a11y-assisted or grid-snapped clicks.
