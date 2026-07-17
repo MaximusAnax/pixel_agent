@@ -7,6 +7,9 @@
   --warn: #d4a35b;
   --tstar: #c45b5b;
   --ok: #5bd4a3;
+  --m-a3b: #d4a35b;
+  --m-7b: #b07ad6;
+  --m-human: #5b9fd4;
 }
 * { box-sizing: border-box; }
 body {
@@ -135,6 +138,90 @@ tr:hover td { background: #1f2a3d; }
   color: var(--muted);
 }
 .links a { white-space: nowrap; }
+
+/* episode page (styling adapted from the osworld_traj_analysis viewer) */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--card);
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  margin: -0.25rem 0 1rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.navbar a { margin-right: 0; white-space: nowrap; }
+.nav-spacer { flex: 1; }
+.sib-link { text-decoration: none; }
+.sib-link:hover { text-decoration: underline; }
+.model-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9px;
+  color: #0f1419;
+  vertical-align: middle;
+}
+.m-a3b { background: var(--m-a3b); }
+.m-7b { background: var(--m-7b); }
+.m-human { background: var(--m-human); }
+.ep-header { border-left: 3px solid var(--muted); }
+.ep-titlebar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.pill {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid #2a3548;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pill-pass { color: var(--ok); border-color: var(--ok); }
+.pill-fail { color: var(--tstar); border-color: var(--tstar); font-weight: 700; }
+.mono-id { font-size: 0.75rem; color: var(--muted); background: transparent; padding: 0; }
+.instr-big { font-size: 1.05rem; line-height: 1.5; margin: 0.65rem 0 0.15rem; }
+.kv { display: flex; gap: 0.75rem; font-size: 0.9rem; margin: 0.2rem 0; }
+.kv .k { color: var(--muted); min-width: 8.5rem; flex-shrink: 0; }
+.reasoning-details { margin-top: 0.5rem; }
+.reasoning-details summary { cursor: pointer; color: var(--accent); font-size: 0.85rem; }
+.reasoning-details .evidence,
+.reasoning-details .thought {
+  margin-top: 0.4rem;
+  border-left: 2px solid #2a3548;
+  padding-left: 0.7rem;
+}
+.step { background: var(--card); border-color: #2a3548; }
+.step:hover { border-color: #3a4a63; }
+.step.t-star:hover { border-color: var(--tstar); }
+.step-detail { min-width: 0; }
+.action {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  background: #0d1117;
+  border: 1px solid #2a3548;
+  border-radius: 5px;
+  padding: 0.4rem 0.55rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 0.5rem;
+}
+.codeblock { margin: 0 0 0.5rem; white-space: pre-wrap; word-break: break-word; }
+.noimg {
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 2rem 0.5rem;
+  text-align: center;
+  border: 1px dashed #2a3548;
+  border-radius: 5px;
+}
+.stepmeta { font-size: 0.75rem; margin: 0.25rem 0 0; }
+.human-panel .form-grid label,
+.field label { text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.75rem; }
 
 /* screenshot lightbox (adapted from the osworld_traj_analysis viewer) */
 .step-body img.zoomable { cursor: zoom-in; }

@@ -7,41 +7,44 @@
   <link rel="stylesheet" href="../../review.css">
 </head>
 <body>
-  <div class="nav">
+  <div class="nav navbar">
     <a href="../../index.html">← Index</a>
     {% if siblings %}
-    {% for sib in siblings %}<a href="../../{{ sib.href }}">↔ Same task ({{ sib.model | upper }})</a>{% endfor %}
+    {% for sib in siblings %}<a class="sib-link" href="../../{{ sib.href }}"><span class="model-tag m-{{ sib.model }}">{{ sib.model | upper }}</span> same task</a>{% endfor %}
     {% elif sibling_href %}<a href="../../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
-    {% if prev_link %}<a href="{{ prev_link }}">← Previous</a>{% endif %}
-    {% if next_link %}<a href="{{ next_link }}">Next →</a>{% endif %}
+    <span class="nav-spacer"></span>
+    {% if prev_link %}<a id="nav-prev" href="{{ prev_link }}">← Previous</a>{% endif %}
+    {% if next_link %}<a id="nav-next" href="{{ next_link }}">Next →</a>{% endif %}
   </div>
 
-  <header>
-    <h1>{{ model | upper }} · {{ episode_id }}</h1>
-    <p class="meta">
-      Task <code>{{ task_id }}</code> · OSWorld:
-      {% if success %}pass{% elif success is none %}unknown{% else %}<strong>fail</strong>{% endif %}
-      {% if result_raw %} · raw={{ result_raw }}{% endif %}
-    </p>
+  <header class="panel ep-header">
+    <div class="ep-titlebar">
+      <span class="model-tag m-{{ model }}">{{ model | upper }}{% if model == 'human' %} replay{% endif %}</span>
+      {% if success %}<span class="pill pill-pass">pass</span>
+      {% elif success is none %}<span class="pill">unknown</span>
+      {% else %}<span class="pill pill-fail">FAIL</span>{% endif %}
+      <span class="pill">{{ steps | length }} steps</span>
+      <span class="pill">{{ domain }}</span>
+      <code class="mono-id" title="{{ episode_id }}">{{ task_id }}</code>
+    </div>
     {% if instruction %}
-    <p class="meta"><strong>Instruction:</strong> {{ instruction }}</p>
+    <p class="instr-big">{{ instruction }}</p>
     {% endif %}
+    {% if result_raw %}<p class="meta">evaluator: {{ result_raw }}</p>{% endif %}
   </header>
 
   <section class="panel judge-panel">
     <h2>Judge / pipeline attribution (provisional)</h2>
-    <div class="label-row">
-      <span><strong>Modes (priority order):</strong> {{ judge_modes_ordered | join(' → ') or '—' }}</span>
-      <span><strong>t*:</strong> {{ t_star if t_star is not none else '—' }}</span>
-      <span><strong>Propagated:</strong> {{ propagated }}</span>
-      {% if tier_used %}<span><strong>Tier:</strong> {{ tier_used }}</span>{% endif %}
-      {% if confidence is not none %}<span><strong>Confidence:</strong> {{ confidence }}</span>{% endif %}
-    </div>
+    <div class="kv"><span class="k">modes (priority)</span><span>{{ judge_modes_ordered | join(' → ') or '—' }}</span></div>
+    <div class="kv"><span class="k">t*</span><span>{{ t_star if t_star is not none else '—' }}</span></div>
+    <div class="kv"><span class="k">propagated</span><span>{{ propagated }}</span></div>
+    {% if tier_used %}<div class="kv"><span class="k">tier</span><span>{{ tier_used }}</span></div>{% endif %}
+    {% if confidence is not none %}<div class="kv"><span class="k">confidence</span><span>{{ confidence }}</span></div>{% endif %}
     {% if evidence %}
-    <div class="block">
-      <strong>Judge reasoning</strong>
+    <details class="reasoning-details">
+      <summary>Judge reasoning</summary>
       <div class="evidence">{{ evidence }}</div>
-    </div>
+    </details>
     {% endif %}
   </section>
 
@@ -110,18 +113,27 @@
         {% if step.is_t_star %}<span class="t-star-badge">pipeline t*</span>{% endif %}
       </div>
       <div class="step-body">
-        <div>
+        <div class="shot">
           {% if step.screenshot %}
-          <img src="{{ step.screenshot }}" alt="Step {{ step.step_num }}">
+          <img src="{{ step.screenshot }}" alt="Step {{ step.step_num }}" loading="lazy">
           {% else %}
-          <p class="meta">No screenshot</p>
+          <div class="noimg">no screenshot</div>
           {% endif %}
         </div>
-        <div>
-          {% if step.thought %}<div class="thought">{{ step.thought }}</div>{% endif %}
-          {% if step.action %}<p><strong>Action:</strong> <code>{{ step.action }}</code></p>{% endif %}
-          {% if step.code %}<pre>{{ step.code }}</pre>{% endif %}
-          <p class="meta">reward={{ step.reward }} · done={{ step.done }}</p>
+        <div class="step-detail">
+          {% if step.action %}<div class="action">{{ step.action }}</div>{% endif %}
+          {% if step.code %}<pre class="codeblock">{{ step.code }}</pre>{% endif %}
+          {% if step.thought %}
+          {% if step.thought | length > 280 %}
+          <details class="reasoning-details">
+            <summary>reasoning</summary>
+            <div class="thought">{{ step.thought }}</div>
+          </details>
+          {% else %}
+          <div class="thought">{{ step.thought }}</div>
+          {% endif %}
+          {% endif %}
+          <p class="meta stepmeta">reward={{ step.reward }} · done={{ step.done }}</p>
         </div>
       </div>
     </article>
@@ -152,6 +164,18 @@
         if (step) document.getElementById("root-step").value = step;
       });
     });
+
+    (function () {
+      "use strict";
+      // ←/→ jump to prev/next episode when the lightbox is closed.
+      document.addEventListener("keydown", (e) => {
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+        const lb = document.getElementById("lightbox");
+        if (lb && lb.style.display === "flex") return;
+        if (e.key === "ArrowLeft") document.getElementById("nav-prev")?.click();
+        if (e.key === "ArrowRight") document.getElementById("nav-next")?.click();
+      });
+    })();
 
     (function () {
       "use strict";
