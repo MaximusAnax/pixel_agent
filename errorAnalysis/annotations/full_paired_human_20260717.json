@@ -6,7 +6,161 @@
       "labels": {}
     },
     "raghav": {
-      "labels": {}
+      "labels": {
+        "a3b/chrome__06fe7178-4491-4589-810f-2e2bc9502122": {
+          "root_step": 3,
+          "modes_ordered": [
+            "Click Region Error"
+          ],
+          "reasoning": "The models thinking is correct and wants to open the TripAdvisor menu, however, it ends up selecting the History button",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T18:28:05.614Z"
+        },
+        "a3b/chrome__030eeff7-b492-4218-b312-701ec99ee0cc": {
+          "root_step": 4,
+          "modes_ordered": [],
+          "reasoning": "The model navigates to the correct settings page but does not know where to go from there. This comes from knowledge error which leads to incorrect reasoning.",
+          "confidence": 1,
+          "is_propagated": true,
+          "propagated_from_step": 4,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "Lack of software knowledge",
+          "notes": "",
+          "updated_at": "2026-07-17T16:55:05.340Z"
+        },
+        "a3b/chrome__3720f614-37fd-4d04-8a6b-76f54f8c222d": {
+          "root_step": 7,
+          "modes_ordered": [],
+          "reasoning": "The model starts to loop the action of scrolling multiple times despite there being no effect on the screen. The model lacks the knowledge to search for the language instead of scrolling.",
+          "confidence": 1,
+          "is_propagated": true,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "Lack of knowledge",
+          "notes": "",
+          "updated_at": "2026-07-17T18:20:55.471Z"
+        },
+        "a3b/gimp__2e6f678f-472d-4c55-99cc-8e7c5c402a71": {
+          "root_step": 1,
+          "modes_ordered": [],
+          "reasoning": "The model does not know the task is impossible. It starts editing the images one by one.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T18:27:19.592Z"
+        },
+        "a3b/libreoffice_impress__5cfb9197-e72b-454b-900e-c06b0c802b40": {
+          "root_step": 2,
+          "modes_ordered": [],
+          "reasoning": "Instead of selecting the text, the agent drags the entire table to the left",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:46:49.370Z"
+        },
+        "a3b/libreoffice_calc__2bd59342-0664-4ccb-ba87-79379096cc08": {
+          "root_step": 1,
+          "modes_ordered": [],
+          "reasoning": "This task cannot be accomplished, but the model fails to understand this.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:47:53.004Z"
+        },
+        "a3b/libreoffice_writer__0e47de2a-32e0-456c-a366-8c607ef7a9d2": {
+          "root_step": 5,
+          "modes_ordered": [],
+          "reasoning": "The model keeps performing the same action expecting the task to complete successfully. It lacks prior action knowledge and software knowledge.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:51:58.384Z"
+        },
+        "a3b/os__b3d4a89c-53f2-4d6b-8b6a-541fb5d205fa": {
+          "root_step": 1,
+          "modes_ordered": [],
+          "reasoning": "The model is able to locate the bluetooth menu but fails to understand that bluetooth is not available on the machine.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:53:30.543Z"
+        },
+        "a3b/thunderbird__a1af9f1c-50d5-4bc3-a51e-4d9b425ff638": {
+          "root_step": 1,
+          "modes_ordered": [
+            "Refusal/Infeasibility Error",
+            "Action Looping (Repetition)"
+          ],
+          "reasoning": "The model cannot identify this task as impossible. It starts performing the same actions again and again.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:55:08.538Z"
+        },
+        "a3b/vlc__5ac2891a-eacd-4954-b339-98abba077adb": {
+          "root_step": 1,
+          "modes_ordered": [
+            "Refusal/Infeasibility Error",
+            "Action Looping (Repetition)"
+          ],
+          "reasoning": "The model does not understand that this task is not feasible. After step 5, the model keeps repeating the same action again and again.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:56:25.293Z"
+        },
+        "a3b/vs_code__7aeae0e2-70ee-4705-821d-1bba5d5b2ddd": {
+          "root_step": 1,
+          "modes_ordered": [
+            "Refusal/Infeasibility Error"
+          ],
+          "reasoning": "The model fails to identify that the task is not feasible.",
+          "confidence": 1,
+          "is_propagated": false,
+          "propagated_from_step": null,
+          "evaluator_mismatch": false,
+          "taxonomy_issue": "",
+          "candidate_new_leaf": "",
+          "notes": "",
+          "updated_at": "2026-07-17T19:57:29.726Z"
+        }
+      }
     }
   }
 }
