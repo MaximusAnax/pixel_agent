@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from cua_failure_analysis.review.selection import (
+  load_offline_judge,
   select_paired_all_episodes,
   select_paired_pilot_episodes,
   select_review_episodes,
@@ -48,6 +49,15 @@ def main() -> None:
     help="Which turn_N to use from a multi-attempt 7B zip (default: lowest present)",
   )
   p.add_argument(
+    "--offline-judge",
+    action="append",
+    default=[],
+    metavar="NAME=PATH",
+    help="Attach offline whole-trajectory judge labels (trajectory_judge "
+    "classifications JSONL); repeatable, same NAME merges multiple files "
+    "(paired-all mode)",
+  )
+  p.add_argument(
     "--tasks-file",
     type=Path,
     default=ROOT / "config" / "stratified_tasks.json",
@@ -68,11 +78,18 @@ def main() -> None:
     if not (args.zip_a3b and args.zip_7b):
       p.error("paired-all mode requires --zip-a3b and --zip-7b")
     select_turns = {"7b": args.select_turn_7b} if args.select_turn_7b else None
+    offline_judges: dict[str, dict] = {}
+    for spec in args.offline_judge:
+      name, _, path = spec.partition("=")
+      if not (name and path):
+        p.error(f"--offline-judge expects NAME=PATH, got {spec!r}")
+      offline_judges.setdefault(name, {}).update(load_offline_judge(Path(path)))
     episodes, task_groups = select_paired_all_episodes(
       {"a3b": args.zip_a3b, "7b": args.zip_7b},
       run_dirs=args.run_dirs,
       gold_root=args.gold_root,
       select_turns=select_turns,
+      offline_judges=offline_judges or None,
     )
   elif args.mode == "paired-pilot":
     if len(args.run_dirs) != 2:

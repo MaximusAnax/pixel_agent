@@ -243,6 +243,51 @@ def select_paired_pilot_episodes(
   return episodes, task_groups
 
 
+# Offline whole-trajectory judge outputs (trajectory_judge / osworld_traj_analysis)
+# use their own agent-model naming in `uid`/`model`; map onto packet model slugs.
+_OFFLINE_MODEL_SLUGS = {
+  "opencua-3b": "a3b",
+  "opencua-a3b": "a3b",
+  "opencua_a3b": "a3b",
+  "opencua-7b": "7b",
+  "opencua_7b": "7b",
+}
+_OFFLINE_JUDGE_FIELDS = (
+  "analysis",
+  "category",
+  "primary_failure_mode",
+  "failing_step",
+  "secondary_failure_modes",
+  "confidence",
+)
+
+
+def load_offline_judge(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
+  """``(model_slug, task_id) -> trimmed classification`` from a trajectory_judge
+  classifications JSONL (``parse_ok`` rows only; unmapped agent models skipped)."""
+  out: dict[tuple[str, str], dict[str, Any]] = {}
+  for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+    line = line.strip()
+    if not line:
+      continue
+    try:
+      row = json.loads(line)
+    except json.JSONDecodeError:
+      continue
+    if not row.get("parse_ok"):
+      continue
+    model = str(row.get("model") or str(row.get("uid") or "").split("/", 1)[0])
+    slug = _OFFLINE_MODEL_SLUGS.get(model)
+    task_id = row.get("task_id") or str(row.get("uid") or "").rsplit("/", 1)[-1]
+    if slug is None or not task_id:
+      continue
+    cls = row.get("classification") or {}
+    trimmed = {k: cls.get(k) for k in _OFFLINE_JUDGE_FIELDS}
+    trimmed["num_steps"] = row.get("num_steps")
+    out[(slug, task_id)] = trimmed
+  return out
+
+
 def select_paired_all_episodes(
   zip_paths: dict[str, Path],
   *,
@@ -250,6 +295,7 @@ def select_paired_all_episodes(
   gold_root: Path | None = None,
   select_turns: dict[str, str] | None = None,
   model_order: tuple[str, ...] = ("a3b", "7b"),
+  offline_judges: dict[str, dict[tuple[str, str], dict[str, Any]]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
   """Select EVERY task present in the zips (paired by ``task_id``), not just pilot.
 
@@ -257,6 +303,8 @@ def select_paired_all_episodes(
   When ``gold_root`` is given, tasks with an OSWorld-Human guided replay under
   ``gold_root/<task_id>/`` get a third ``human`` trace (built from the replay
   directory, not a zip — see ``build_review_packet``).
+  ``offline_judges`` maps a judge name to a ``load_offline_judge`` result; matching
+  classifications are attached to model episodes as ``episode["offline_judges"]``.
   """
   import zipfile
 
@@ -264,6 +312,7 @@ def select_paired_all_episodes(
 
   select_turns = select_turns or {}
   run_dirs = run_dirs or []
+  offline_judges = offline_judges or {}
 
   slug_to_run = {_model_slug(d): d for d in run_dirs}
   labels = {m: load_all_labels(slug_to_run[m]) if m in slug_to_run else {} for m in model_order}
@@ -340,6 +389,11 @@ def select_paired_all_episodes(
         entry["instruction"] = gold_manifest.get("instruction", "")
       if entry["success"] is None:
         entry["success"] = success_by_model[model].get(task_id)
+      entry["offline_judges"] = {
+        name: judge[(model, task_id)]
+        for name, judge in offline_judges.items()
+        if (model, task_id) in judge
+      }
       episodes.append(entry)
       group_models[model] = {
         "href": hrefs[model],
@@ -347,6 +401,10 @@ def select_paired_all_episodes(
         "success": entry["success"],
         "provisional_primary": entry["provisional_primary"],
         "t_star": entry["t_star"],
+        "offline": {
+          name: cls.get("primary_failure_mode") or ""
+          for name, cls in entry["offline_judges"].items()
+        },
       }
 
     if has_human:
@@ -379,12 +437,17 @@ def select_paired_all_episodes(
         "t_star": None,
       }
 
+    judges_disagree = any(
+      len({p for p in gm.get("offline", {}).values() if p}) > 1
+      for gm in group_models.values()
+    )
     task_groups.append(
       {
         "task_id": task_id,
         "domain": domain,
         "missing_models": [m for m in model_order if m not in present] + ([] if has_human else ["human"]),
         "models": group_models,
+        "judges_disagree": judges_disagree,
       }
     )
 

@@ -18,6 +18,7 @@ from cua_failure_analysis.review.packet import (
 )
 from cua_failure_analysis.review.selection import (
   is_confusing_episode,
+  load_offline_judge,
   select_from_pool,
   select_paired_all_episodes,
   select_paired_pilot_episodes,
@@ -276,6 +277,74 @@ def test_build_review_packet_with_human(sample_zip: Path, tmp_path: Path):
   refresh_review_packet_html(out, template_dir=TEMPLATE_DIR)
   refreshed = (human_dir / "episode.html").read_text(encoding="utf-8")
   assert "settings button" in refreshed
+
+
+def _write_offline_judge(path: Path, mode: str) -> Path:
+  row = {
+    "uid": "opencua-3b/chrome/030eeff7-b492-4218-b312-701ec99ee0cc",
+    "model": "opencua-3b",
+    "domain": "chrome",
+    "task_id": "030eeff7-b492-4218-b312-701ec99ee0cc",
+    "num_steps": 17,
+    "parse_ok": True,
+    "classification": {
+      "analysis": "offline judge analysis text",
+      "category": "perception_grounding",
+      "primary_failure_mode": mode,
+      "failing_step": 16,
+      "secondary_failure_modes": [],
+      "confidence": 0.9,
+    },
+  }
+  skipped = {**row, "model": "claude-sonnet-4.5", "uid": "claude-sonnet-4.5/chrome/x"}
+  unparsed = {**row, "parse_ok": False}
+  path.write_text(
+    "\n".join(json.dumps(r) for r in (row, skipped, unparsed)) + "\n", encoding="utf-8"
+  )
+  return path
+
+
+def test_offline_judges_attach_and_render(sample_zip: Path, tmp_path: Path):
+  pytest.importorskip("jinja2")
+  j7 = load_offline_judge(_write_offline_judge(tmp_path / "j7.jsonl", "click_region_error"))
+  j32 = load_offline_judge(_write_offline_judge(tmp_path / "j32.jsonl", "reasoning_drift"))
+  assert list(j7) == [("a3b", "030eeff7-b492-4218-b312-701ec99ee0cc")]
+
+  episodes, groups = select_paired_all_episodes(
+    {"a3b": sample_zip, "7b": sample_zip},
+    offline_judges={"qwen7b": j7, "qwen32b": j32},
+  )
+  a3b = next(ep for ep in episodes if ep["model"] == "a3b")
+  assert a3b["offline_judges"]["qwen7b"]["primary_failure_mode"] == "click_region_error"
+  assert a3b["offline_judges"]["qwen32b"]["primary_failure_mode"] == "reasoning_drift"
+  b7 = next(ep for ep in episodes if ep["model"] == "7b")
+  assert b7["offline_judges"] == {}
+  assert groups[0]["judges_disagree"] is True
+  assert groups[0]["models"]["a3b"]["offline"] == {
+    "qwen7b": "click_region_error",
+    "qwen32b": "reasoning_drift",
+  }
+
+  manifest_path = tmp_path / "manifest.json"
+  write_manifest(
+    manifest_path, episodes, packet_id="oj_test", task_groups=groups,
+    selection_mode="paired-all",
+  )
+  out = build_review_packet(
+    manifest_path,
+    zip_paths={"a3b": sample_zip, "7b": sample_zip},
+    output_dir=tmp_path / "packet",
+    template_dir=TEMPLATE_DIR,
+  )
+  a3b_html = (out / "a3b" / EPISODE_SLUG / "episode.html").read_text(encoding="utf-8")
+  assert "Offline whole-trajectory judges" in a3b_html
+  assert "click_region_error" in a3b_html and "reasoning_drift" in a3b_html
+  assert "offline judge analysis text" in a3b_html
+  b7_html = (out / "7b" / EPISODE_SLUG / "episode.html").read_text(encoding="utf-8")
+  assert "Offline whole-trajectory judges" not in b7_html
+  index = (out / "index.html").read_text(encoding="utf-8")
+  assert 'data-judges-disagree="1"' in index
+  assert "qwen7b: click_region_error" in index
 
 
 def test_build_discovery_row_merges_human():

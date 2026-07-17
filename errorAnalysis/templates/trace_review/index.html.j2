@@ -36,6 +36,7 @@
     <button type="button" class="qf" data-f="human-pass">Human ✓</button>
     <button type="button" class="qf" data-f="unlabeled">unlabeled</button>
     <button type="button" class="qf" data-f="labeled">labeled</button>
+    <button type="button" class="qf" data-f="judges-disagree" title="offline judges give different primary modes">judges differ</button>
     <span class="hint" id="f-count"></span>
   </section>
 
@@ -64,12 +65,17 @@
           data-a3b="{{ 'pass' if a3b.success is sameas true else 'fail' if a3b.success is sameas false else 'unknown' }}"
           data-7b="{{ 'pass' if b7.success is sameas true else 'fail' if b7.success is sameas false else 'unknown' }}"
           data-human="{{ 'pass' if human.success is sameas true else 'fail' if human.success is sameas false else 'unknown' }}"
+          data-judges-disagree="{{ '1' if group.judges_disagree else '0' }}"
           data-search="{{ (group.task_id ~ ' ' ~ instr) | lower }}">
         <td>{{ group.domain }}</td>
         <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
         <td class="instr-col"><span class="instr-clamp" title="{{ instr }}">{{ instr }}</span></td>
-        <td>{{ a3b.provisional_primary or '—' }} {% if a3b.t_star is not none %}@ {{ a3b.t_star }}{% endif %}</td>
-        <td>{{ b7.provisional_primary or '—' }} {% if b7.t_star is not none %}@ {{ b7.t_star }}{% endif %}</td>
+        <td>{{ a3b.provisional_primary or '—' }} {% if a3b.t_star is not none %}@ {{ a3b.t_star }}{% endif %}
+          {% if a3b.offline %}<div class="oj-line">{% for jn, jp in a3b.offline.items() %}<span title="{{ jn }} (offline judge)">{{ jn }}: {{ jp or '—' }}</span>{% endfor %}</div>{% endif %}
+        </td>
+        <td>{{ b7.provisional_primary or '—' }} {% if b7.t_star is not none %}@ {{ b7.t_star }}{% endif %}
+          {% if b7.offline %}<div class="oj-line">{% for jn, jp in b7.offline.items() %}<span title="{{ jn }} (offline judge)">{{ jn }}: {{ jp or '—' }}</span>{% endfor %}</div>{% endif %}
+        </td>
         <td>
           <span class="human-status" data-annotator="abdoul" data-label-key="a3b/{{ a3b.episode_id | replace('/', '__') if a3b.episode_id else '' }}">—</span>
         </td>
@@ -127,6 +133,7 @@
           if (ok && active.has("human-pass") && row.dataset.human !== "pass") ok = false;
           if (ok && active.has("unlabeled") && row.querySelector(".human-status.has-label")) ok = false;
           if (ok && active.has("labeled") && !row.querySelector(".human-status.has-label")) ok = false;
+          if (ok && active.has("judges-disagree") && row.dataset.judgesDisagree !== "1") ok = false;
           row.style.display = ok ? "" : "none";
           if (ok) shown += 1;
         }

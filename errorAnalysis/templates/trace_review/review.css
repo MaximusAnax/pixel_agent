@@ -223,6 +223,26 @@ tr:hover td { background: #1f2a3d; }
 .human-panel .form-grid label,
 .field label { text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.75rem; }
 
+/* offline judge comparison cards (adapted from the osworld_traj_analysis viewer) */
+.offline-panel { border-left: 3px solid var(--m-7b); }
+.judges { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
+.judge-card { background: #0d1117; border: 1px solid #2a3548; border-radius: 8px; padding: 0.7rem 0.85rem; }
+.judge-card h3 { margin: 0 0 0.5rem; font-size: 0.85rem; }
+.judge-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9px;
+  color: #0f1419;
+}
+.jt-1 { background: var(--warn); }
+.jt-2 { background: var(--m-7b); }
+.jt-3 { background: var(--ok); }
+.oj-line { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
+.oj-line span { margin-right: 0.6rem; white-space: nowrap; }
+
 /* screenshot lightbox (adapted from the osworld_traj_analysis viewer) */
 .step-body img.zoomable { cursor: zoom-in; }
 #lightbox {

@@ -48,6 +48,34 @@
     {% endif %}
   </section>
 
+  {% if offline_judges %}
+  <section class="panel offline-panel">
+    <h2>Offline whole-trajectory judges</h2>
+    <p class="hint">Local VLM judges (trajectory_judge, snake_case taxonomy) run on the 50-step
+      HF trajectories of this task — failing-step indices refer to that run, not the trace below.</p>
+    <div class="judges">
+      {% for name, judge in offline_judges.items() %}
+      <div class="judge-card">
+        <h3><span class="judge-tag jt-{{ loop.index }}">{{ name }}</span></h3>
+        <div class="kv"><span class="k">category</span><span>{{ judge.category or '?' }}</span></div>
+        <div class="kv"><span class="k">primary mode</span><span><strong>{{ judge.primary_failure_mode or '?' }}</strong></span></div>
+        <div class="kv"><span class="k">failing step</span><span>{{ judge.failing_step if judge.failing_step is not none else '?' }}{% if judge.num_steps %} / {{ judge.num_steps }}{% endif %}</span></div>
+        <div class="kv"><span class="k">confidence</span><span>{{ judge.confidence if judge.confidence is not none else '?' }}</span></div>
+        {% if judge.secondary_failure_modes %}
+        <div class="kv"><span class="k">secondary</span><span>{{ judge.secondary_failure_modes | join(', ') }}</span></div>
+        {% endif %}
+        {% if judge.analysis %}
+        <details class="reasoning-details">
+          <summary>analysis</summary>
+          <div class="evidence">{{ judge.analysis }}</div>
+        </details>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   <section class="panel human-panel">
     <h2>Your taxonomy discovery label</h2>
     <p class="hint">Select all failure modes that apply, in priority order (1 = primary root cause). Root step may differ from pipeline t*.</p>
