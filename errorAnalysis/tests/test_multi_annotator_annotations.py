@@ -11,6 +11,7 @@ from cua_failure_analysis.review.annotations import (
   ANNOTATIONS_FILENAME,
   empty_annotations,
   get_annotator_labels,
+  merge_annotations,
   load_annotations,
   migrate_v1_to_v2,
   save_annotator_labels,
@@ -162,3 +163,23 @@ def test_agreement_report_on_synthetic(tmp_path: Path, sample_episode: dict):
   judge_abdoul = mod.pairwise_report(records, left_key="judge_label", right_key="abdoul")
   assert judge_abdoul["n"] == 2
   assert judge_abdoul["observed_agreement"] == 1.0
+
+
+def test_merge_annotations_newest_wins():
+  a = empty_annotations("p")
+  b = empty_annotations("p")
+  a["annotators"]["raghav"]["labels"] = {
+    "a3b/x": {"modes_ordered": ["Old"], "updated_at": "2026-07-16T10:00:00+00:00"},
+    "a3b/only-a": {"modes_ordered": ["KeepA"], "updated_at": "2026-07-16T09:00:00+00:00"},
+  }
+  b["annotators"]["raghav"]["labels"] = {
+    "a3b/x": {"modes_ordered": ["New"], "updated_at": "2026-07-17T10:00:00+00:00"},
+  }
+  b["annotators"]["abdoul"]["labels"] = {
+    "7b/only-b": {"modes_ordered": ["KeepB"], "updated_at": "2026-07-17T08:00:00+00:00"},
+  }
+  merged = merge_annotations(a, b)
+  raghav = merged["annotators"]["raghav"]["labels"]
+  assert raghav["a3b/x"]["modes_ordered"] == ["New"]
+  assert raghav["a3b/only-a"]["modes_ordered"] == ["KeepA"]
+  assert merged["annotators"]["abdoul"]["labels"]["7b/only-b"]["modes_ordered"] == ["KeepB"]

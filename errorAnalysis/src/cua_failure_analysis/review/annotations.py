@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -92,9 +94,31 @@ def load_annotations(
   return normalize_annotations(data, packet_id=pid)
 
 
+@contextlib.contextmanager
+def annotations_lock(path: Path):
+  """Best-effort exclusive lock so two annotators saving into the same shared
+  annotations.json (e.g. from different Babel nodes) cannot interleave the
+  read-modify-write and clobber each other's namespace."""
+  lock_path = path.parent / f".{path.name}.lock"
+  try:
+    import fcntl
+
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("w") as fh:
+      try:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        yield
+      finally:
+        fcntl.flock(fh, fcntl.LOCK_UN)
+  except (ImportError, OSError):
+    yield
+
+
 def save_annotations(path: Path, data: dict[str, Any]) -> None:
   path.parent.mkdir(parents=True, exist_ok=True)
-  path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+  tmp = path.parent / f".{path.name}.{os.getpid()}.tmp"
+  tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+  os.replace(tmp, path)
 
 
 def list_annotators(data: dict[str, Any]) -> list[str]:
@@ -127,16 +151,17 @@ def save_annotator_labels(
 ) -> dict[str, Any]:
   """Replace one annotator's label map; other annotators are preserved."""
   validate_annotator_id(annotator_id)
-  data = load_annotations(path, packet_id=packet_id, packet_dir=path.parent)
-  merged: dict[str, dict[str, Any]] = {}
-  for episode_key, entry in labels.items():
-    if not isinstance(entry, dict):
-      continue
-    item = dict(entry)
-    item["updated_at"] = item.get("updated_at") or _utc_now()
-    merged[str(episode_key)] = item
-  data["annotators"][annotator_id]["labels"] = merged
-  save_annotations(path, data)
+  with annotations_lock(path):
+    data = load_annotations(path, packet_id=packet_id, packet_dir=path.parent)
+    merged: dict[str, dict[str, Any]] = {}
+    for episode_key, entry in labels.items():
+      if not isinstance(entry, dict):
+        continue
+      item = dict(entry)
+      item["updated_at"] = item.get("updated_at") or _utc_now()
+      merged[str(episode_key)] = item
+    data["annotators"][annotator_id]["labels"] = merged
+    save_annotations(path, data)
   return data
 
 
@@ -150,12 +175,33 @@ def save_single_episode(
 ) -> dict[str, Any]:
   """Merge one episode label for an annotator without touching others."""
   validate_annotator_id(annotator_id)
-  data = load_annotations(path, packet_id=packet_id, packet_dir=path.parent)
-  item = dict(entry)
-  item["updated_at"] = item.get("updated_at") or _utc_now()
-  data["annotators"][annotator_id]["labels"][str(episode_key)] = item
-  save_annotations(path, data)
+  with annotations_lock(path):
+    data = load_annotations(path, packet_id=packet_id, packet_dir=path.parent)
+    item = dict(entry)
+    item["updated_at"] = item.get("updated_at") or _utc_now()
+    data["annotators"][annotator_id]["labels"][str(episode_key)] = item
+    save_annotations(path, data)
   return data
+
+
+def merge_annotations(base: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
+  """Merge two v2 annotation payloads; per (annotator, episode) the entry with
+  the newer ``updated_at`` wins (entries without a timestamp always lose to
+  entries that have one). Used by the git snapshot sync."""
+  out = empty_annotations(str(base.get("packet_id") or other.get("packet_id") or ""))
+  for annotator_id in REGISTERED_ANNOTATORS:
+    merged: dict[str, dict[str, Any]] = {}
+    for source in (base, other):
+      for episode_key, entry in get_annotator_labels(source, annotator_id).items():
+        if not isinstance(entry, dict):
+          continue
+        current = merged.get(episode_key)
+        if current is None or str(entry.get("updated_at") or "") >= str(
+          current.get("updated_at") or ""
+        ):
+          merged[episode_key] = dict(entry)
+    out["annotators"][annotator_id]["labels"] = merged
+  return out
 
 
 def annotations_summary(data: dict[str, Any]) -> dict[str, dict[str, str]]:
