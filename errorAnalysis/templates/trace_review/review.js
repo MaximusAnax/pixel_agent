@@ -7,10 +7,13 @@
   const apiBase = cfg.apiBase || "";
 
   function currentAnnotator() {
-    const fromCfg = cfg.annotator;
-    if (fromCfg && registered.includes(fromCfg)) return fromCfg;
+    // The stored picker choice must outrank cfg.annotator: every page bakes in
+    // the same build-time default, so cfg-first would silently reset the
+    // annotator each time a new page is opened.
     const stored = localStorage.getItem(annotatorKey);
     if (stored && registered.includes(stored)) return stored;
+    const fromCfg = cfg.annotator;
+    if (fromCfg && registered.includes(fromCfg)) return fromCfg;
     return registered[0];
   }
 
