@@ -23,11 +23,28 @@
     <span class="hint">Serve: <code>python scripts/serve_review_packet.py {{ packet_id }} --annotator abdoul --babel-sync</code></span>
   </section>
 
+  <section class="panel toolbar filterbar">
+    <input type="text" id="f-search" class="search-input" placeholder="search instruction / task id…">
+    <select id="f-domain" class="annotator-select">
+      <option value="">all domains</option>
+      {% for d in task_groups | map(attribute='domain') | unique | sort %}
+      <option value="{{ d }}">{{ d }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" class="qf" data-f="a3b-fail">A3B ✗</button>
+    <button type="button" class="qf" data-f="7b-fail">7B ✗</button>
+    <button type="button" class="qf" data-f="human-pass">Human ✓</button>
+    <button type="button" class="qf" data-f="unlabeled">unlabeled</button>
+    <button type="button" class="qf" data-f="labeled">labeled</button>
+    <span class="hint" id="f-count"></span>
+  </section>
+
   <table>
     <thead>
       <tr>
         <th>Domain</th>
         <th>Task</th>
+        <th class="instr-col">Instruction</th>
         <th>Judge A3B</th>
         <th>Judge 7B</th>
         <th>abdoul (A3B)</th>
@@ -39,12 +56,18 @@
     </thead>
     <tbody>
       {% for group in task_groups %}
-      <tr data-label-key="">
+      {% set a3b = group.models.get('a3b', {}) %}
+      {% set b7 = group.models.get('7b', {}) %}
+      {% set human = group.models.get('human', {}) %}
+      {% set instr = instructions.get(group.task_id, '') if instructions is defined else '' %}
+      <tr data-domain="{{ group.domain }}"
+          data-a3b="{{ 'pass' if a3b.success is sameas true else 'fail' if a3b.success is sameas false else 'unknown' }}"
+          data-7b="{{ 'pass' if b7.success is sameas true else 'fail' if b7.success is sameas false else 'unknown' }}"
+          data-human="{{ 'pass' if human.success is sameas true else 'fail' if human.success is sameas false else 'unknown' }}"
+          data-search="{{ (group.task_id ~ ' ' ~ instr) | lower }}">
         <td>{{ group.domain }}</td>
         <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
-        {% set a3b = group.models.get('a3b', {}) %}
-        {% set b7 = group.models.get('7b', {}) %}
-        {% set human = group.models.get('human', {}) %}
+        <td class="instr-col"><span class="instr-clamp" title="{{ instr }}">{{ instr }}</span></td>
         <td>{{ a3b.provisional_primary or '—' }} {% if a3b.t_star is not none %}@ {{ a3b.t_star }}{% endif %}</td>
         <td>{{ b7.provisional_primary or '—' }} {% if b7.t_star is not none %}@ {{ b7.t_star }}{% endif %}</td>
         <td>
@@ -60,9 +83,9 @@
           <span class="human-status" data-annotator="raghav" data-label-key="7b/{{ b7.episode_id | replace('/', '__') if b7.episode_id else '' }}">—</span>
         </td>
         <td class="links">
-          {% if a3b.href %}<a href="{{ a3b.href }}">A3B{% if a3b.success is sameas true %} ✓{% elif a3b.success is sameas false %} ✗{% endif %}</a>{% endif %}
-          {% if b7.href %}<a href="{{ b7.href }}">7B{% if b7.success is sameas true %} ✓{% elif b7.success is sameas false %} ✗{% endif %}</a>{% endif %}
-          {% if human.href %}<a href="{{ human.href }}">Human{% if human.success is sameas true %} ✓{% elif human.success is sameas false %} ✗{% endif %}</a>{% endif %}
+          {% if a3b.href %}<a href="{{ a3b.href }}"><span class="dot {{ 'pass' if a3b.success is sameas true else 'fail' if a3b.success is sameas false else 'none' }}"></span>A3B</a>{% endif %}
+          {% if b7.href %}<a href="{{ b7.href }}"><span class="dot {{ 'pass' if b7.success is sameas true else 'fail' if b7.success is sameas false else 'none' }}"></span>7B</a>{% endif %}
+          {% if human.href %}<a href="{{ human.href }}"><span class="dot {{ 'pass' if human.success is sameas true else 'fail' if human.success is sameas false else 'none' }}"></span>Human</a>{% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -81,5 +104,47 @@
     };
   </script>
   <script src="review.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const rows = Array.from(document.querySelectorAll("tbody tr"));
+      const search = document.getElementById("f-search");
+      const domainSel = document.getElementById("f-domain");
+      const countEl = document.getElementById("f-count");
+      const chips = Array.from(document.querySelectorAll(".qf"));
+      const active = new Set();
+
+      function apply() {
+        const q = search.value.trim().toLowerCase();
+        const dom = domainSel.value;
+        let shown = 0;
+        for (const row of rows) {
+          let ok = true;
+          if (q && !(row.dataset.search || "").includes(q)) ok = false;
+          if (ok && dom && row.dataset.domain !== dom) ok = false;
+          if (ok && active.has("a3b-fail") && row.dataset.a3b !== "fail") ok = false;
+          if (ok && active.has("7b-fail") && row.getAttribute("data-7b") !== "fail") ok = false;
+          if (ok && active.has("human-pass") && row.dataset.human !== "pass") ok = false;
+          if (ok && active.has("unlabeled") && row.querySelector(".human-status.has-label")) ok = false;
+          if (ok && active.has("labeled") && !row.querySelector(".human-status.has-label")) ok = false;
+          row.style.display = ok ? "" : "none";
+          if (ok) shown += 1;
+        }
+        countEl.textContent = shown + " / " + rows.length + " tasks";
+      }
+
+      search.addEventListener("input", apply);
+      domainSel.addEventListener("change", apply);
+      for (const chip of chips) {
+        chip.addEventListener("click", () => {
+          const f = chip.dataset.f;
+          if (active.has(f)) { active.delete(f); chip.classList.remove("active"); }
+          else { active.add(f); chip.classList.add("active"); }
+          apply();
+        });
+      }
+      apply();
+    })();
+  </script>
 </body>
 </html>

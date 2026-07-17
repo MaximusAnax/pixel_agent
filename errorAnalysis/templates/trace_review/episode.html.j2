@@ -128,6 +128,14 @@
     {% endfor %}
   </section>
 
+  <div id="lightbox">
+    <span id="lb-close">✕</span>
+    <span class="lb-nav" id="lb-prev">‹</span>
+    <img id="lb-img" src="" alt="">
+    <span class="lb-nav" id="lb-next">›</span>
+    <div id="lb-cap"></div>
+  </div>
+
   <script>
     window.REVIEW_CONFIG = {
       page: "episode",
@@ -144,6 +152,44 @@
         if (step) document.getElementById("root-step").value = step;
       });
     });
+
+    (function () {
+      "use strict";
+      const shots = Array.from(document.querySelectorAll(".step-body img")).map((img) => ({
+        src: img.getAttribute("src"),
+        step: img.closest(".step")?.dataset?.step || "?",
+        el: img,
+      }));
+      if (!shots.length) return;
+      const lb = document.getElementById("lightbox");
+      const lbImg = document.getElementById("lb-img");
+      const lbCap = document.getElementById("lb-cap");
+      let idx = 0;
+
+      function show(i) {
+        idx = (i + shots.length) % shots.length;
+        lbImg.src = shots[idx].src;
+        lbCap.textContent = "step " + shots[idx].step + "  (" + (idx + 1) + "/" + shots.length + ")";
+      }
+      function open(i) { show(i); lb.style.display = "flex"; }
+      function close() { lb.style.display = "none"; }
+
+      shots.forEach((s, i) => {
+        s.el.classList.add("zoomable");
+        s.el.addEventListener("click", () => open(i));
+      });
+      document.getElementById("lb-close").addEventListener("click", close);
+      document.getElementById("lb-prev").addEventListener("click", () => show(idx - 1));
+      document.getElementById("lb-next").addEventListener("click", () => show(idx + 1));
+      lb.addEventListener("click", (e) => { if (e.target === lb) close(); });
+      document.addEventListener("keydown", (e) => {
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+        if (lb.style.display !== "flex") return;
+        if (e.key === "ArrowLeft") show(idx - 1);
+        if (e.key === "ArrowRight") show(idx + 1);
+        if (e.key === "Escape") close();
+      });
+    })();
   </script>
   <script src="../../review.js"></script>
 </body>

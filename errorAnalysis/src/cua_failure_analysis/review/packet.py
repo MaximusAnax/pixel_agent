@@ -347,6 +347,16 @@ def _assets_from_episode_dir(episode_dir: Path, episode_id: str) -> dict[str, An
   }
 
 
+def _instructions_by_task(episodes: list[dict[str, Any]]) -> dict[str, str]:
+  """task_id -> first non-empty instruction across the task's episodes."""
+  out: dict[str, str] = {}
+  for ep in episodes:
+    task_id = ep.get("task_id") or ep.get("episode_id", "").split("/", 1)[-1]
+    if task_id and ep.get("instruction") and not out.get(task_id):
+      out[task_id] = str(ep["instruction"])
+  return out
+
+
 def refresh_review_packet_html(
   packet_dir: Path,
   *,
@@ -468,6 +478,7 @@ def refresh_review_packet_html(
       task_groups=task_groups,
       n_episodes=len(episode_pages),
       n_tasks=len(task_groups) or len({ep.get("task_id") for ep in episodes}),
+      instructions=_instructions_by_task(episodes),
       api_base="",
       default_annotator="abdoul",
     ),
@@ -642,6 +653,7 @@ def build_review_packet(
       task_groups=task_groups,
       n_episodes=len(episode_pages),
       n_tasks=len(task_groups) or len({ep.get("task_id") for ep in episodes}),
+      instructions=_instructions_by_task(episodes),
       api_base="",
       default_annotator="abdoul",
     )
