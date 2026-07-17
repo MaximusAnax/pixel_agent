@@ -247,12 +247,14 @@ def test_build_review_packet_with_human(sample_zip: Path, tmp_path: Path):
     {"a3b": sample_zip, "7b": sample_zip}, gold_root=gold_root
   )
   manifest_path = tmp_path / "manifest.json"
+  groups[0]["in_label_batch"] = True
   write_manifest(
     manifest_path,
     episodes,
     packet_id="human_test",
     task_groups=groups,
     selection_mode="paired-all",
+    label_batch=[groups[0]["task_id"]],
   )
   out = build_review_packet(
     manifest_path,
@@ -277,6 +279,10 @@ def test_build_review_packet_with_human(sample_zip: Path, tmp_path: Path):
   # Quotes/angle brackets in instructions must be escaped, not break the markup.
   assert "<config>" not in index and "<config>" not in human_html
   assert not re.search(r'data-search="[^"]*"[^\s>]', index), "attribute broken by raw quote"
+
+  # Label-batch marking surfaces as a filterable chip + row attribute.
+  assert 'data-batch="1"' in index
+  assert "label batch (1)" in index
 
   # Refresh re-renders human episodes from human_steps.json without the gold dir.
   refresh_review_packet_html(out, template_dir=TEMPLATE_DIR)

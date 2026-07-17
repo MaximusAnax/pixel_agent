@@ -559,6 +559,7 @@ def write_manifest(
   b7_run: str | None = None,
   task_groups: list[dict[str, Any]] | None = None,
   selection_mode: str = "paired-pilot",
+  label_batch: list[str] | None = None,
 ) -> None:
   path.parent.mkdir(parents=True, exist_ok=True)
   payload = {
@@ -568,6 +569,7 @@ def write_manifest(
     "n_tasks": len(task_groups) if task_groups else None,
     "a3b_run": a3b_run,
     "7b_run": b7_run,
+    "label_batch": label_batch or [],
     "task_groups": task_groups or [],
     "episodes": episodes,
   }

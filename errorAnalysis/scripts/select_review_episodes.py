@@ -58,6 +58,13 @@ def main() -> None:
     "(paired-all mode)",
   )
   p.add_argument(
+    "--label-batch",
+    type=Path,
+    default=None,
+    help="Text file of task ids (one per line, # comments) to mark as the "
+    "active annotation batch; the index gets a 'label batch' filter for them",
+  )
+  p.add_argument(
     "--tasks-file",
     type=Path,
     default=ROOT / "config" / "stratified_tasks.json",
@@ -108,6 +115,21 @@ def main() -> None:
   a3b_run = next((str(d) for d in args.run_dirs if "a3b" in d.name.lower()), None)
   b7_run = next((str(d) for d in args.run_dirs if "7b" in d.name.lower()), None)
 
+  batch_ids: list[str] = []
+  if args.label_batch:
+    batch_ids = [
+      line.strip()
+      for line in args.label_batch.read_text(encoding="utf-8").splitlines()
+      if line.strip() and not line.strip().startswith("#")
+    ]
+    if task_groups is not None:
+      known = {g["task_id"] for g in task_groups}
+      missing = [t for t in batch_ids if t not in known]
+      if missing:
+        raise SystemExit(f"--label-batch task ids not in selection: {missing}")
+      for group in task_groups:
+        group["in_label_batch"] = group["task_id"] in batch_ids
+
   write_manifest(
     manifest_path,
     episodes,
@@ -116,6 +138,7 @@ def main() -> None:
     b7_run=b7_run,
     task_groups=task_groups,
     selection_mode=args.mode,
+    label_batch=batch_ids,
   )
 
   by_model: dict[str, int] = {}

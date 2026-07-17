@@ -35,6 +35,10 @@
       <button type="button" class="qf" data-f="unlabeled">unlabeled</button>
       <button type="button" class="qf" data-f="labeled">labeled</button>
       <button type="button" class="qf" data-f="judges-disagree" title="offline judges give different primary modes">judges differ</button>
+      {% set batch_n = task_groups | selectattr('in_label_batch') | list | length %}
+      {% if batch_n %}
+      <button type="button" class="qf qf-batch" data-f="batch" title="active annotation batch: human replay passes, both models fail">label batch ({{ batch_n }})</button>
+      {% endif %}
       <span class="hint" id="f-count"></span>
     </div>
   </div>
@@ -68,6 +72,7 @@
           data-7b="{{ 'pass' if b7.success is sameas true else 'fail' if b7.success is sameas false else 'unknown' }}"
           data-human="{{ 'pass' if human.success is sameas true else 'fail' if human.success is sameas false else 'unknown' }}"
           data-judges-disagree="{{ '1' if group.judges_disagree else '0' }}"
+          data-batch="{{ '1' if group.in_label_batch else '0' }}"
           data-search="{{ (group.task_id ~ ' ' ~ instr) | lower }}">
         <td class="domain-cell">{{ group.domain }}</td>
         <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
@@ -135,6 +140,7 @@
           if (ok && active.has("unlabeled") && row.querySelector(".human-status.has-label")) ok = false;
           if (ok && active.has("labeled") && !row.querySelector(".human-status.has-label")) ok = false;
           if (ok && active.has("judges-disagree") && row.dataset.judgesDisagree !== "1") ok = false;
+          if (ok && active.has("batch") && row.dataset.batch !== "1") ok = false;
           row.style.display = ok ? "" : "none";
           if (ok) shown += 1;
         }

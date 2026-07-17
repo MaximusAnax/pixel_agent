@@ -166,6 +166,9 @@ td.domain-cell { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
   font-size: 0.82rem;
   color: var(--muted);
 }
+tr[data-batch="1"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.qf-batch { border-color: var(--accent); color: var(--accent); }
+.qf-batch.active { background: var(--accent); color: #0c0e12; }
 .judge-cell { font-size: 0.8rem; overflow: hidden; }
 .judge-cell > div:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-cell { color: #3a4150; }
