@@ -12,7 +12,7 @@
       <h1>Paired Trace Review</h1>
       <span class="chip"><b>{{ n_tasks }}</b> tasks</span>
       <span class="chip"><b>{{ n_episodes }}</b> traces</span>
-      <span class="chip mono" title="packet id">{{ packet_id }}</span>
+      <span class="chip mono" title="packet id">packet · {{ packet_id }}</span>
       <span class="spacer"></span>
       <label class="hint">Annotator
         <select id="annotator-select" class="annotator-select"></select>
@@ -40,6 +40,11 @@
   </div>
 
   <table>
+    <colgroup>
+      <col style="width:8%"><col style="width:7%"><col style="width:30%">
+      <col style="width:14%"><col style="width:14%">
+      <col style="width:8%"><col style="width:8%"><col style="width:11%">
+    </colgroup>
     <thead>
       <tr>
         <th>Domain</th>
@@ -68,12 +73,12 @@
         <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
         <td class="instr-col"><span class="instr-clamp" title="{{ instr }}">{{ instr }}</span></td>
         <td class="judge-cell">
-          {% if a3b.provisional_primary or a3b.t_star is not none %}{{ a3b.provisional_primary or '—' }} {% if a3b.t_star is not none %}@ {{ a3b.t_star }}{% endif %}{% elif not a3b.offline %}—{% endif %}
-          {% if a3b.offline %}<div class="oj-line">{% for jn, jp in a3b.offline.items() %}<span title="{{ jn }} (offline judge)">{{ jn }}: {{ jp or '—' }}</span>{% endfor %}</div>{% endif %}
+          {% if a3b.provisional_primary or a3b.t_star is not none %}<div>{{ a3b.provisional_primary or '—' }}{% if a3b.t_star is not none %} @ {{ a3b.t_star }}{% endif %}</div>{% elif not a3b.offline %}<span class="empty-cell">—</span>{% endif %}
+          {% if a3b.offline %}<div class="oj-line{% if a3b.offline.values() | unique | list | length > 1 %} oj-differ{% endif %}">{% for jn, jp in a3b.offline.items() %}<span class="oj-badge" title="{{ jn }} (offline whole-trajectory judge)"><b>{{ 'Q7' if jn == 'qwen7b' else 'Q32' if jn == 'qwen32b' else jn }}</b>{{ jp or '—' }}</span>{% endfor %}</div>{% endif %}
         </td>
         <td class="judge-cell">
-          {% if b7.provisional_primary or b7.t_star is not none %}{{ b7.provisional_primary or '—' }} {% if b7.t_star is not none %}@ {{ b7.t_star }}{% endif %}{% elif not b7.offline %}—{% endif %}
-          {% if b7.offline %}<div class="oj-line">{% for jn, jp in b7.offline.items() %}<span title="{{ jn }} (offline judge)">{{ jn }}: {{ jp or '—' }}</span>{% endfor %}</div>{% endif %}
+          {% if b7.provisional_primary or b7.t_star is not none %}<div>{{ b7.provisional_primary or '—' }}{% if b7.t_star is not none %} @ {{ b7.t_star }}{% endif %}</div>{% elif not b7.offline %}<span class="empty-cell">—</span>{% endif %}
+          {% if b7.offline %}<div class="oj-line{% if b7.offline.values() | unique | list | length > 1 %} oj-differ{% endif %}">{% for jn, jp in b7.offline.items() %}<span class="oj-badge" title="{{ jn }} (offline whole-trajectory judge)"><b>{{ 'Q7' if jn == 'qwen7b' else 'Q32' if jn == 'qwen32b' else jn }}</b>{{ jp or '—' }}</span>{% endfor %}</div>{% endif %}
         </td>
         <td class="label-cell">
           <div><span class="mini">A3B</span><span class="human-status" data-annotator="abdoul" data-label-key="a3b/{{ a3b.episode_id | replace('/', '__') if a3b.episode_id else '' }}">—</span></div>

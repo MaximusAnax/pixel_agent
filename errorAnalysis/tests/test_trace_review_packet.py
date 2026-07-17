@@ -344,7 +344,8 @@ def test_offline_judges_attach_and_render(sample_zip: Path, tmp_path: Path):
   assert "Offline whole-trajectory judges" not in b7_html
   index = (out / "index.html").read_text(encoding="utf-8")
   assert 'data-judges-disagree="1"' in index
-  assert "qwen7b: click_region_error" in index
+  assert "oj-badge" in index and "click_region_error" in index
+  assert "oj-differ" in index  # the two judges disagree on this episode
 
 
 def test_build_discovery_row_merges_human():

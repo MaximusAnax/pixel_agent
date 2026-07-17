@@ -117,6 +117,9 @@ pre { display: block; overflow-x: auto; border: 1px solid var(--border); }
 /* ---------- index table ---------- */
 table {
   width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  table-layout: fixed;
   border-collapse: collapse;
   background: var(--card);
   border: 1px solid var(--border);
@@ -163,10 +166,32 @@ td.domain-cell { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
   font-size: 0.82rem;
   color: var(--muted);
 }
-.judge-cell { font-size: 0.8rem; max-width: 200px; }
-.oj-line { font-size: 0.72rem; color: var(--muted); margin-top: 0.1rem; }
-.oj-line span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.label-cell { font-size: 0.78rem; white-space: nowrap; }
+.judge-cell { font-size: 0.8rem; overflow: hidden; }
+.judge-cell > div:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty-cell { color: #3a4150; }
+.oj-line { display: flex; flex-direction: column; gap: 2px; margin-top: 0.15rem; align-items: flex-start; }
+.oj-line.oj-differ { border-left: 2px solid var(--warn); padding-left: 0.35rem; }
+.oj-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.32rem;
+  max-width: 100%;
+  background: #0c0e12;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.05rem 0.4rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.oj-badge b { font-size: 0.6rem; letter-spacing: 0.05em; color: var(--warn); flex-shrink: 0; }
+.oj-badge:nth-child(2) b { color: var(--m-7b); }
+.label-cell { font-size: 0.78rem; white-space: nowrap; overflow: hidden; }
+.label-cell div { overflow: hidden; text-overflow: ellipsis; }
+.label-cell div:has(.human-status:not(.has-label)) { opacity: 0.4; }
 .label-cell .mini {
   display: inline-block;
   width: 2.1rem;
