@@ -243,6 +243,154 @@ def select_paired_pilot_episodes(
   return episodes, task_groups
 
 
+def select_paired_all_episodes(
+  zip_paths: dict[str, Path],
+  *,
+  run_dirs: list[Path] | None = None,
+  gold_root: Path | None = None,
+  select_turns: dict[str, str] | None = None,
+  model_order: tuple[str, ...] = ("a3b", "7b"),
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+  """Select EVERY task present in the zips (paired by ``task_id``), not just pilot.
+
+  Judge metadata is merged from ``run_dirs`` when the episode was analyzed there.
+  When ``gold_root`` is given, tasks with an OSWorld-Human guided replay under
+  ``gold_root/<task_id>/`` get a third ``human`` trace (built from the replay
+  directory, not a zip — see ``build_review_packet``).
+  """
+  import zipfile
+
+  from cua_failure_analysis.adapters.grouping import group_opencua_episodes
+
+  select_turns = select_turns or {}
+  run_dirs = run_dirs or []
+
+  slug_to_run = {_model_slug(d): d for d in run_dirs}
+  labels = {m: load_all_labels(slug_to_run[m]) if m in slug_to_run else {} for m in model_order}
+  manifests = {m: load_manifest_by_task(slug_to_run[m]) if m in slug_to_run else {} for m in model_order}
+
+  episodes_by_model: dict[str, dict[str, str]] = {}
+  success_by_model: dict[str, dict[str, bool | None]] = {}
+  for model in model_order:
+    zip_path = zip_paths.get(model)
+    if zip_path is None:
+      raise ValueError(f"Missing zip path for model {model!r}")
+    episodes_by_model[model] = {}
+    success_by_model[model] = {}
+    with zipfile.ZipFile(zip_path) as zf:
+      for bundle in group_opencua_episodes(zf, select_turn=select_turns.get(model)):
+        tid = _task_id(bundle.episode_id)
+        episodes_by_model[model][tid] = bundle.episode_id
+        result_member = next(
+          (m for m in bundle.members if m.endswith("/result.txt")), None
+        )
+        success = None
+        if result_member:
+          try:
+            raw = zf.read(result_member).decode("utf-8", "replace").strip()
+            success = float(raw) >= 1.0 if raw else None
+          except (ValueError, KeyError):
+            success = None
+        success_by_model[model][tid] = success
+
+  task_domain: dict[str, str] = {}
+  for eps in episodes_by_model.values():
+    for tid, eid in eps.items():
+      task_domain.setdefault(tid, _domain(eid))
+  all_task_ids = sorted(task_domain, key=lambda t: (task_domain[t], t))
+
+  episodes: list[dict[str, Any]] = []
+  task_groups: list[dict[str, Any]] = []
+
+  for task_id in all_task_ids:
+    present = {m: episodes_by_model[m][task_id] for m in model_order if task_id in episodes_by_model[m]}
+
+    gold_dir = (gold_root / task_id) if gold_root is not None else None
+    has_human = bool(gold_dir and (gold_dir / "trace.jsonl").exists())
+    gold_manifest: dict[str, Any] = {}
+    if gold_dir is not None:
+      gm_path = gold_dir / "manifest.json"
+      if gm_path.exists():
+        gold_manifest = json.loads(gm_path.read_text(encoding="utf-8"))
+
+    hrefs = {m: f"{m}/{eid.replace('/', '__')}/episode.html" for m, eid in present.items()}
+    domain = _domain(next(iter(present.values())))
+    human_eid = f"{domain}/{task_id}"
+    if has_human:
+      hrefs["human"] = f"human/{human_eid.replace('/', '__')}/episode.html"
+
+    group_models: dict[str, dict[str, Any]] = {}
+    for model, eid in present.items():
+      label_row = labels[model].get(eid)
+      manifest_row = manifests[model].get(task_id)
+      siblings = [
+        {"href": h, "model": m} for m, h in hrefs.items() if m != model
+      ]
+      entry = _manifest_entry(
+        model=model,
+        run_dir=slug_to_run.get(model, Path(str(zip_paths[model]))),
+        episode_id=eid,
+        manifest_row=manifest_row,
+        label_row=label_row,
+        task_id=task_id,
+        sibling_href=hrefs.get("7b" if model == "a3b" else "a3b"),
+      )
+      entry["siblings"] = siblings
+      if not entry["instruction"]:
+        entry["instruction"] = gold_manifest.get("instruction", "")
+      if entry["success"] is None:
+        entry["success"] = success_by_model[model].get(task_id)
+      episodes.append(entry)
+      group_models[model] = {
+        "href": hrefs[model],
+        "episode_id": eid,
+        "success": entry["success"],
+        "provisional_primary": entry["provisional_primary"],
+        "t_star": entry["t_star"],
+      }
+
+    if has_human:
+      human_entry = {
+        "model": "human",
+        "episode_id": human_eid,
+        "domain": domain,
+        "task_id": task_id,
+        "success": gold_manifest.get("success"),
+        "t_star": None,
+        "provisional_primary": "",
+        "secondary_modes": [],
+        "propagated": False,
+        "evidence": "",
+        "confidence": None,
+        "tier_used": "",
+        "run_dir": str(gold_dir),
+        "gold_dir": str(gold_dir),
+        "confusing": False,
+        "sibling_href": hrefs.get("a3b") or hrefs.get("7b"),
+        "siblings": [{"href": h, "model": m} for m, h in hrefs.items() if m != "human"],
+        "instruction": gold_manifest.get("instruction", ""),
+      }
+      episodes.append(human_entry)
+      group_models["human"] = {
+        "href": hrefs["human"],
+        "episode_id": human_eid,
+        "success": gold_manifest.get("success"),
+        "provisional_primary": "",
+        "t_star": None,
+      }
+
+    task_groups.append(
+      {
+        "task_id": task_id,
+        "domain": domain,
+        "missing_models": [m for m in model_order if m not in present] + ([] if has_human else ["human"]),
+        "models": group_models,
+      }
+    )
+
+  return episodes, task_groups
+
+
 def select_from_pool(
   rows: list[dict[str, Any]],
   *,

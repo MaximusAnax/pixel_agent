@@ -9,7 +9,9 @@
 <body>
   <div class="nav">
     <a href="../../index.html">← Index</a>
-    {% if sibling_href %}<a href="../../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
+    {% if siblings %}
+    {% for sib in siblings %}<a href="../../{{ sib.href }}">↔ Same task ({{ sib.model | upper }})</a>{% endfor %}
+    {% elif sibling_href %}<a href="../../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
     {% if prev_link %}<a href="{{ prev_link }}">← Previous</a>{% endif %}
     {% if next_link %}<a href="{{ next_link }}">Next →</a>{% endif %}
   </div>

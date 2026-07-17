@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from cua_failure_analysis.review.selection import (
+  select_paired_all_episodes,
   select_paired_pilot_episodes,
   select_review_episodes,
   write_manifest,
@@ -22,15 +23,29 @@ def main() -> None:
   p.add_argument(
     "--run-dirs",
     type=Path,
-    nargs="+",
-    required=True,
-    help="Two babel_outputs run dirs (a3b and 7b)",
+    nargs="*",
+    default=[],
+    help="Two babel_outputs run dirs (a3b and 7b); optional judge-metadata source in paired-all mode",
   )
   p.add_argument(
     "--mode",
-    choices=("paired-pilot", "stratified-failures"),
+    choices=("paired-pilot", "stratified-failures", "paired-all"),
     default="paired-pilot",
-    help="paired-pilot: all pilot tasks with both models (default)",
+    help="paired-pilot: all pilot tasks with both models (default); "
+    "paired-all: every task in the zips, plus OSWorld-Human replays with --gold-root",
+  )
+  p.add_argument("--zip-a3b", type=Path, default=None, help="A3B HF zip (paired-all mode)")
+  p.add_argument("--zip-7b", type=Path, default=None, help="7B HF zip (paired-all mode)")
+  p.add_argument(
+    "--gold-root",
+    type=Path,
+    default=None,
+    help="OSWorld-Human guided replay root (gold/<task_id>/) to pair as a 'human' trace",
+  )
+  p.add_argument(
+    "--select-turn-7b",
+    default=None,
+    help="Which turn_N to use from a multi-attempt 7B zip (default: lowest present)",
   )
   p.add_argument(
     "--tasks-file",
@@ -49,7 +64,17 @@ def main() -> None:
   manifest_path = output_dir / "manifest.json"
 
   task_groups: list[dict] | None = None
-  if args.mode == "paired-pilot":
+  if args.mode == "paired-all":
+    if not (args.zip_a3b and args.zip_7b):
+      p.error("paired-all mode requires --zip-a3b and --zip-7b")
+    select_turns = {"7b": args.select_turn_7b} if args.select_turn_7b else None
+    episodes, task_groups = select_paired_all_episodes(
+      {"a3b": args.zip_a3b, "7b": args.zip_7b},
+      run_dirs=args.run_dirs,
+      gold_root=args.gold_root,
+      select_turns=select_turns,
+    )
+  elif args.mode == "paired-pilot":
     if len(args.run_dirs) != 2:
       p.error("paired-pilot mode requires exactly two --run-dirs")
     episodes, task_groups = select_paired_pilot_episodes(

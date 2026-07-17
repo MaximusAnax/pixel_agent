@@ -62,7 +62,9 @@ def main() -> None:
   if args.zip_7b:
     zip_paths["7b"] = args.zip_7b
 
-  models_needed = {ep["model"] for ep in manifest.get("episodes", [])}
+  models_needed = {
+    ep["model"] for ep in manifest.get("episodes", []) if not ep.get("gold_dir")
+  }
   for model in models_needed:
     if model not in zip_paths:
       raise SystemExit(f"Missing --zip-{model} for episodes in manifest")

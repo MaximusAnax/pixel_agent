@@ -9,7 +9,7 @@
 <body>
   <h1>Taxonomy Discovery — Paired Trace Review</h1>
   <p class="meta">
-    {{ packet_id }} · {{ n_tasks }} pilot tasks · {{ n_episodes }} traces (A3B + 7B)
+    {{ packet_id }} · {{ n_tasks }} tasks · {{ n_episodes }} traces
     · <strong>Label in each episode page</strong>
   </p>
 
@@ -44,6 +44,7 @@
         <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
         {% set a3b = group.models.get('a3b', {}) %}
         {% set b7 = group.models.get('7b', {}) %}
+        {% set human = group.models.get('human', {}) %}
         <td>{{ a3b.provisional_primary or '—' }} {% if a3b.t_star is not none %}@ {{ a3b.t_star }}{% endif %}</td>
         <td>{{ b7.provisional_primary or '—' }} {% if b7.t_star is not none %}@ {{ b7.t_star }}{% endif %}</td>
         <td>
@@ -59,8 +60,9 @@
           <span class="human-status" data-annotator="raghav" data-label-key="7b/{{ b7.episode_id | replace('/', '__') if b7.episode_id else '' }}">—</span>
         </td>
         <td class="links">
-          {% if a3b.href %}<a href="{{ a3b.href }}">A3B</a>{% endif %}
-          {% if b7.href %}<a href="{{ b7.href }}">7B</a>{% endif %}
+          {% if a3b.href %}<a href="{{ a3b.href }}">A3B{% if a3b.success is sameas true %} ✓{% elif a3b.success is sameas false %} ✗{% endif %}</a>{% endif %}
+          {% if b7.href %}<a href="{{ b7.href }}">7B{% if b7.success is sameas true %} ✓{% elif b7.success is sameas false %} ✗{% endif %}</a>{% endif %}
+          {% if human.href %}<a href="{{ human.href }}">Human{% if human.success is sameas true %} ✓{% elif human.success is sameas false %} ✗{% endif %}</a>{% endif %}
         </td>
       </tr>
       {% endfor %}

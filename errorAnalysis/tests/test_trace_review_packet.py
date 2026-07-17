@@ -10,11 +10,18 @@ from pathlib import Path
 import pytest
 
 from cua_failure_analysis.review.labels import build_discovery_row, judge_modes_ordered
-from cua_failure_analysis.review.packet import build_review_packet, episode_slug, parse_traj_steps
+from cua_failure_analysis.review.packet import (
+  build_review_packet,
+  episode_slug,
+  parse_traj_steps,
+  refresh_review_packet_html,
+)
 from cua_failure_analysis.review.selection import (
   is_confusing_episode,
   select_from_pool,
+  select_paired_all_episodes,
   select_paired_pilot_episodes,
+  write_manifest,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "opencua_a3b"
@@ -173,6 +180,102 @@ def test_episode_nav_links_resolve(sample_zip: Path, tmp_path: Path):
     if href.startswith("../../") and href.endswith("/episode.html"):
       target = out / Path(*href.removeprefix("../../").split("/"))
       assert target.exists(), href
+
+
+def _write_gold_run(root: Path, task_id: str) -> Path:
+  """Minimal OSWorld-Human guided replay dir (goldTrajectories layout)."""
+  PIL = pytest.importorskip("PIL.Image")
+  d = root / task_id
+  (d / "screenshots").mkdir(parents=True)
+  (d / "manifest.json").write_text(
+    json.dumps(
+      {
+        "task_id": task_id,
+        "success": True,
+        "score": 1.0,
+        "instruction": "Do the thing",
+        "guided_by": "osworld-human",
+      }
+    ),
+    encoding="utf-8",
+  )
+  rec = {
+    "task_id": task_id,
+    "step": 0,
+    "human_step": "`CLICK` the settings button",
+    "verb": "CLICK",
+    "coords": [12, 34],
+    "grounded_desc": "the settings button",
+    "ground_raw": "(12,34)",
+    "action": {"type": "click", "command": "pyautogui.click(12, 34)"},
+  }
+  (d / "trace.jsonl").write_text(json.dumps(rec) + "\n", encoding="utf-8")
+  img = PIL.new("RGB", (32, 20), "white")
+  img.save(d / "screenshots" / "step00_before.png")
+  img.save(d / "screenshots" / "final.png")
+  return d
+
+
+def test_select_paired_all_episodes_with_human(sample_zip: Path, tmp_path: Path):
+  gold_root = tmp_path / "gold"
+  _write_gold_run(gold_root, "030eeff7-b492-4218-b312-701ec99ee0cc")
+  episodes, groups = select_paired_all_episodes(
+    {"a3b": sample_zip, "7b": sample_zip}, gold_root=gold_root
+  )
+  assert len(groups) == 1
+  assert {ep["model"] for ep in episodes} == {"a3b", "7b", "human"}
+  assert set(groups[0]["models"]) == {"a3b", "7b", "human"}
+
+  a3b = next(ep for ep in episodes if ep["model"] == "a3b")
+  assert a3b["success"] is False  # result.txt in the zip is "0"
+  assert a3b["instruction"] == "Do the thing"  # falls back to the gold manifest
+  assert {s["model"] for s in a3b["siblings"]} == {"7b", "human"}
+
+  human = next(ep for ep in episodes if ep["model"] == "human")
+  assert human["gold_dir"]
+  assert human["success"] is True
+  assert human["episode_id"] == EPISODE_ID
+
+
+def test_build_review_packet_with_human(sample_zip: Path, tmp_path: Path):
+  pytest.importorskip("jinja2")
+  gold_root = tmp_path / "gold"
+  _write_gold_run(gold_root, "030eeff7-b492-4218-b312-701ec99ee0cc")
+  episodes, groups = select_paired_all_episodes(
+    {"a3b": sample_zip, "7b": sample_zip}, gold_root=gold_root
+  )
+  manifest_path = tmp_path / "manifest.json"
+  write_manifest(
+    manifest_path,
+    episodes,
+    packet_id="human_test",
+    task_groups=groups,
+    selection_mode="paired-all",
+  )
+  out = build_review_packet(
+    manifest_path,
+    zip_paths={"a3b": sample_zip, "7b": sample_zip},
+    output_dir=tmp_path / "packet",
+    template_dir=TEMPLATE_DIR,
+  )
+
+  human_dir = out / "human" / EPISODE_SLUG
+  human_html = (human_dir / "episode.html").read_text(encoding="utf-8")
+  assert "CLICK" in human_html and "settings button" in human_html
+  assert (human_dir / "step_1_before.jpg").exists()
+  assert (human_dir / "step_2_final.jpg").exists()
+  assert (human_dir / "human_steps.json").exists()
+
+  index = (out / "index.html").read_text(encoding="utf-8")
+  assert f"human/{EPISODE_SLUG}/episode.html" in index
+
+  a3b_html = (out / "a3b" / EPISODE_SLUG / "episode.html").read_text(encoding="utf-8")
+  assert f"../../human/{EPISODE_SLUG}/episode.html" in a3b_html
+
+  # Refresh re-renders human episodes from human_steps.json without the gold dir.
+  refresh_review_packet_html(out, template_dir=TEMPLATE_DIR)
+  refreshed = (human_dir / "episode.html").read_text(encoding="utf-8")
+  assert "settings button" in refreshed
 
 
 def test_build_discovery_row_merges_human():

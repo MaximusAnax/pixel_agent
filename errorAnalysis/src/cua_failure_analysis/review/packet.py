@@ -22,6 +22,10 @@ from cua_failure_analysis.taxonomy import ALL_LEAVES
 
 STEP_SCREENSHOT_RE = re.compile(r"^step_(\d+)_", re.I)
 
+# Written into human (OSWorld-Human guided replay) episode dirs so
+# refresh_review_packet_html can re-render them without the gold run dir.
+HUMAN_STEPS_FILE = "human_steps.json"
+
 
 @dataclass
 class ParsedStep:
@@ -169,8 +173,148 @@ def build_episode_assets(
   }
 
 
+def _downscale_screenshot(src: Path, dst: Path, *, max_side: int = 1600, quality: int = 80) -> bool:
+  """Write a downscaled JPEG copy of ``src`` to ``dst`` (skip if it exists)."""
+  if dst.exists():
+    return True
+  try:
+    from PIL import Image
+  except ImportError as exc:
+    raise ImportError("Pillow is required for human replay episodes; pip install Pillow") from exc
+  try:
+    img = Image.open(src).convert("RGB")
+  except OSError:
+    return False
+  w, h = img.size
+  scale = max_side / max(w, h)
+  if scale < 1.0:
+    img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))))
+  dst.parent.mkdir(parents=True, exist_ok=True)
+  img.save(dst, "JPEG", quality=quality)
+  return True
+
+
+def build_human_episode_assets(
+  gold_dir: Path,
+  episode_dir: Path,
+  *,
+  episode_id: str,
+) -> dict[str, Any]:
+  """Build episode assets from an OSWorld-Human guided replay run directory.
+
+  Gold replay layout (goldTrajectories pipeline): ``trace.jsonl`` with 0-based
+  ``step`` records (``human_step``, ``verb``, ``coords``, ``action.command``),
+  ``screenshots/stepNN_before.png`` observations plus ``final.png``, and
+  ``manifest.json`` with ``success``/``score``/``instruction``.
+  """
+  trace_path = gold_dir / "trace.jsonl"
+  if not trace_path.exists():
+    raise FileNotFoundError(f"No trace.jsonl in {gold_dir}")
+  records = [
+    json.loads(line)
+    for line in trace_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    if line.strip()
+  ]
+
+  gold_manifest: dict[str, Any] = {}
+  manifest_path = gold_dir / "manifest.json"
+  if manifest_path.exists():
+    gold_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+  episode_dir.mkdir(parents=True, exist_ok=True)
+  steps: list[ParsedStep] = []
+  screenshot_by_step: dict[int, str] = {}
+
+  for idx, rec in enumerate(records):
+    raw_step = rec.get("step", idx)
+    step_num = int(raw_step) + 1
+    shot_name = None
+    src = gold_dir / "screenshots" / f"step{int(raw_step):02d}_before.png"
+    if src.exists() and _downscale_screenshot(src, episode_dir / f"step_{step_num}_before.jpg"):
+      shot_name = f"step_{step_num}_before.jpg"
+      screenshot_by_step[step_num] = shot_name
+
+    coords = rec.get("coords")
+    verb = rec.get("verb") or "?"
+    action = f"{verb} @ {tuple(coords)}" if coords else verb
+    code = str((rec.get("action") or {}).get("command") or "")
+    if coords:
+      code += (
+        f"\n# grounded {str(rec.get('grounded_desc') or '')!r}"
+        f" -> {tuple(coords)} (raw {rec.get('ground_raw')})"
+      )
+    steps.append(
+      ParsedStep(
+        step_num=step_num,
+        action=action,
+        thought=str(rec.get("human_step") or ""),
+        action_section=str(rec.get("grounded_desc") or ""),
+        code=code,
+        screenshot_file=shot_name,
+        reward=None,
+        done=False,
+      )
+    )
+
+  final_src = gold_dir / "screenshots" / "final.png"
+  if final_src.exists():
+    step_num = (steps[-1].step_num + 1) if steps else 1
+    shot_name = f"step_{step_num}_final.jpg"
+    if _downscale_screenshot(final_src, episode_dir / shot_name):
+      screenshot_by_step[step_num] = shot_name
+      steps.append(
+        ParsedStep(
+          step_num=step_num,
+          action="(final screen at evaluation)",
+          thought="Final state of the VM when the OSWorld evaluator ran.",
+          action_section="",
+          code="",
+          screenshot_file=shot_name,
+          reward=gold_manifest.get("score"),
+          done=True,
+        )
+      )
+
+  score = gold_manifest.get("score")
+  result_raw = "" if score is None else f"{score:g} (OSWorld-Human guided replay)"
+  assets = {
+    "episode_id": episode_id,
+    "success": gold_manifest.get("success"),
+    "result_raw": result_raw,
+    "steps": steps,
+    "screenshot_by_step": screenshot_by_step,
+    "select_turn": None,
+  }
+  (episode_dir / HUMAN_STEPS_FILE).write_text(
+    json.dumps(
+      {
+        "episode_id": episode_id,
+        "success": assets["success"],
+        "result_raw": result_raw,
+        "steps": [step.__dict__ for step in steps],
+        "screenshot_by_step": screenshot_by_step,
+      },
+      indent=2,
+    ),
+    encoding="utf-8",
+  )
+  return assets
+
+
 def _assets_from_episode_dir(episode_dir: Path, episode_id: str) -> dict[str, Any]:
   """Load traj + screenshots already on disk (no zip extraction)."""
+  human_path = episode_dir / HUMAN_STEPS_FILE
+  if human_path.exists():
+    saved = json.loads(human_path.read_text(encoding="utf-8"))
+    return {
+      "episode_id": episode_id,
+      "success": saved.get("success"),
+      "result_raw": saved.get("result_raw", ""),
+      "steps": [ParsedStep(**row) for row in saved.get("steps", [])],
+      "screenshot_by_step": {int(k): v for k, v in saved.get("screenshot_by_step", {}).items()},
+      "select_turn": None,
+    }
+
   traj_path = episode_dir / "traj.jsonl"
   if not traj_path.exists():
     raise FileNotFoundError(f"No traj.jsonl in {episode_dir}")
@@ -234,6 +378,9 @@ def refresh_review_packet_html(
     judge_modes = judge_modes_ordered(ep)
     sibling_href = ep.get("sibling_href") or ""
     sibling_model = "7b" if model == "a3b" else "a3b" if sibling_href else ""
+    siblings = ep.get("siblings") or (
+      [{"href": sibling_href, "model": sibling_model}] if sibling_href else []
+    )
     label_key = label_storage_key(model, episode_id)
 
     step_rows = []
@@ -289,6 +436,7 @@ def refresh_review_packet_html(
         index_href="../../index.html",
         sibling_href=sibling_href,
         sibling_model=sibling_model,
+        siblings=siblings,
         label_key=label_key,
         taxonomy_leaves=taxonomy_leaves,
         api_base="",
@@ -368,38 +516,47 @@ def build_review_packet(
       episode_dir = output_dir / rel_dir
       episode_dir.mkdir(parents=True, exist_ok=True)
 
-      zip_path = zip_paths.get(model)
-      if zip_path is None:
-        raise KeyError(f"No zip path for model {model!r}")
+      gold_dir = ep.get("gold_dir")
+      if gold_dir:
+        assets = build_human_episode_assets(
+          Path(gold_dir), episode_dir, episode_id=episode_id
+        )
+      else:
+        zip_path = zip_paths.get(model)
+        if zip_path is None:
+          raise KeyError(f"No zip path for model {model!r}")
 
-      if model not in zf_cache:
-        zf_cache[model] = zipfile.ZipFile(zip_path)
-      zf = zf_cache[model]
+        if model not in zf_cache:
+          zf_cache[model] = zipfile.ZipFile(zip_path)
+        zf = zf_cache[model]
 
-      cache_key = (model, ep.get("run_dir", ""))
-      if cache_key not in bundle_cache:
-        turn = select_turns.get(model)
-        bundles = group_opencua_episodes(zf, select_turn=turn)
-        bundle_cache[cache_key] = {
-          b.episode_id: b.members for b in bundles
-        }
-      members = bundle_cache[cache_key].get(episode_id)
-      if members is None:
-        raise KeyError(f"Episode {episode_id} not found in zip for {model}")
+        cache_key = (model, ep.get("run_dir", ""))
+        if cache_key not in bundle_cache:
+          turn = select_turns.get(model)
+          bundles = group_opencua_episodes(zf, select_turn=turn)
+          bundle_cache[cache_key] = {
+            b.episode_id: b.members for b in bundles
+          }
+        members = bundle_cache[cache_key].get(episode_id)
+        if members is None:
+          raise KeyError(f"Episode {episode_id} not found in zip for {model}")
 
-      assets = build_episode_assets(
-        zf,
-        episode_id,
-        members,
-        episode_dir,
-        select_turn=select_turns.get(model),
-      )
+        assets = build_episode_assets(
+          zf,
+          episode_id,
+          members,
+          episode_dir,
+          select_turn=select_turns.get(model),
+        )
 
       task_id = ep.get("task_id") or episode_id.split("/", 1)[-1]
       instruction = ep.get("instruction") or _load_instruction(stratified_tasks, task_id)
       judge_modes = judge_modes_ordered(ep)
       sibling_href = ep.get("sibling_href") or ""
       sibling_model = "7b" if model == "a3b" else "a3b" if sibling_href else ""
+      siblings = ep.get("siblings") or (
+        [{"href": sibling_href, "model": sibling_model}] if sibling_href else []
+      )
       label_key = label_storage_key(model, episode_id)
 
       step_rows = []
@@ -455,6 +612,7 @@ def build_review_packet(
         index_href="../../index.html",
         sibling_href=sibling_href,
         sibling_model=sibling_model,
+        siblings=siblings,
         label_key=label_key,
         taxonomy_leaves=taxonomy_leaves,
         api_base="",
