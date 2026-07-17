@@ -1,0 +1,12 @@
+{
+  "schema_version": 2,
+  "packet_id": "full_paired_human_20260717",
+  "annotators": {
+    "abdoul": {
+      "labels": {}
+    },
+    "raghav": {
+      "labels": {}
+    }
+  }
+}
