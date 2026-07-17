@@ -194,7 +194,7 @@ def _write_gold_run(root: Path, task_id: str) -> Path:
         "task_id": task_id,
         "success": True,
         "score": 1.0,
-        "instruction": "Do the thing",
+        "instruction": 'Do "the thing" from <config>',
         "guided_by": "osworld-human",
       }
     ),
@@ -229,7 +229,8 @@ def test_select_paired_all_episodes_with_human(sample_zip: Path, tmp_path: Path)
 
   a3b = next(ep for ep in episodes if ep["model"] == "a3b")
   assert a3b["success"] is False  # result.txt in the zip is "0"
-  assert a3b["instruction"] == "Do the thing"  # falls back to the gold manifest
+  # Falls back to the gold manifest (raw, unescaped at the data level).
+  assert a3b["instruction"] == 'Do "the thing" from <config>'
   assert {s["model"] for s in a3b["siblings"]} == {"7b", "human"}
 
   human = next(ep for ep in episodes if ep["model"] == "human")
@@ -272,6 +273,10 @@ def test_build_review_packet_with_human(sample_zip: Path, tmp_path: Path):
 
   a3b_html = (out / "a3b" / EPISODE_SLUG / "episode.html").read_text(encoding="utf-8")
   assert f"../../human/{EPISODE_SLUG}/episode.html" in a3b_html
+
+  # Quotes/angle brackets in instructions must be escaped, not break the markup.
+  assert "<config>" not in index and "<config>" not in human_html
+  assert not re.search(r'data-search="[^"]*"[^\s>]', index), "attribute broken by raw quote"
 
   # Refresh re-renders human episodes from human_steps.json without the gold dir.
   refresh_review_packet_html(out, template_dir=TEMPLATE_DIR)

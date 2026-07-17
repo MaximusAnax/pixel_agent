@@ -107,13 +107,16 @@ def _load_instruction(stratified_path: Path | None, task_id: str) -> str:
 
 def _render_template(template_dir: Path, name: str, **ctx: Any) -> str:
   try:
-    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    from jinja2 import Environment, FileSystemLoader
   except ImportError as exc:
     raise ImportError("jinja2 is required for trace review packets; pip install jinja2") from exc
 
+  # Always autoescape: select_autoescape() keys on the template suffix, and our
+  # templates end in .j2, so it silently disabled escaping — instructions or
+  # trace text containing quotes/angle brackets then broke the markup.
   env = Environment(
     loader=FileSystemLoader(str(template_dir)),
-    autoescape=select_autoescape(["html", "xml"]),
+    autoescape=True,
   )
   return env.get_template(name).render(**ctx)
 
