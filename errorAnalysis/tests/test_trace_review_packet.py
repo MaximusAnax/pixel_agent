@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
+import re
 import zipfile
 from pathlib import Path
 
 import pytest
 
 from cua_failure_analysis.review.labels import build_discovery_row, judge_modes_ordered
-from cua_failure_analysis.review.packet import build_review_packet, parse_traj_steps
+from cua_failure_analysis.review.packet import build_review_packet, episode_slug, parse_traj_steps
 from cua_failure_analysis.review.selection import (
   is_confusing_episode,
   select_from_pool,
@@ -18,6 +19,7 @@ from cua_failure_analysis.review.selection import (
 
 FIXTURES = Path(__file__).parent / "fixtures" / "opencua_a3b"
 EPISODE_ID = "chrome/030eeff7-b492-4218-b312-701ec99ee0cc"
+EPISODE_SLUG = episode_slug(EPISODE_ID)
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "templates" / "trace_review"
 ROOT = Path(__file__).resolve().parents[1]
 A3B_RUN = ROOT / "data/babel_outputs/20260626_172919_a3b_pilot_full_v4"
@@ -108,13 +110,69 @@ def test_build_review_packet(sample_zip: Path, tmp_path: Path):
   )
   assert (out / "review.js").exists()
   assert (out / "review.css").exists()
-  assert (out / "human_labels.json").exists()
+  assert (out / "annotations.json").exists()
   assert "test_packet" in index
   assert "Judge reasoning" in episode
   assert "Reasoning Drift" in episode and "Goal Hallucination" in episode
   assert "human-reasoning" in episode
   assert "pipeline t*" in episode
   assert "judge says X" in episode
+
+
+def test_episode_nav_links_resolve(sample_zip: Path, tmp_path: Path):
+  pytest.importorskip("jinja2")
+  slug = EPISODE_SLUG
+  manifest_path = tmp_path / "manifest.json"
+  manifest_path.write_text(
+    json.dumps(
+      {
+        "packet_id": "nav_test",
+        "task_groups": [],
+        "episodes": [
+          {
+            "model": "a3b",
+            "episode_id": EPISODE_ID,
+            "domain": "chrome",
+            "task_id": "030eeff7-b492-4218-b312-701ec99ee0cc",
+            "sibling_href": f"7b/{slug}/episode.html",
+            "run_dir": str(tmp_path),
+          },
+          {
+            "model": "7b",
+            "episode_id": EPISODE_ID,
+            "domain": "chrome",
+            "task_id": "030eeff7-b492-4218-b312-701ec99ee0cc",
+            "sibling_href": f"a3b/{slug}/episode.html",
+            "run_dir": str(tmp_path),
+          },
+        ],
+      }
+    ),
+    encoding="utf-8",
+  )
+  out = build_review_packet(
+    manifest_path,
+    zip_paths={"a3b": sample_zip, "7b": sample_zip},
+    output_dir=tmp_path / "packet",
+    template_dir=TEMPLATE_DIR,
+  )
+
+  a3b_html = (out / "a3b" / slug / "episode.html").read_text(encoding="utf-8")
+  b7_html = (out / "7b" / slug / "episode.html").read_text(encoding="utf-8")
+
+  a3b_hrefs = re.findall(r'href="([^"]+)"', a3b_html)
+  b7_hrefs = re.findall(r'href="([^"]+)"', b7_html)
+
+  sibling_a3b = f"../../7b/{slug}/episode.html"
+  sibling_b7 = f"../../a3b/{slug}/episode.html"
+  assert sibling_a3b in a3b_hrefs
+  assert sibling_b7 in b7_hrefs
+  assert sibling_a3b in a3b_hrefs  # next episode after a3b in paired order
+
+  for href in a3b_hrefs + b7_hrefs:
+    if href.startswith("../../") and href.endswith("/episode.html"):
+      target = out / Path(*href.removeprefix("../../").split("/"))
+      assert target.exists(), href
 
 
 def test_build_discovery_row_merges_human():

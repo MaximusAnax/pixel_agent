@@ -76,7 +76,6 @@ h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; colo
 #save-status { font-size: 0.85rem; }
 .save-ok { color: var(--ok); }
 .save-err { color: var(--tstar); }
-video { width: 100%; max-width: 960px; border-radius: 6px; background: #000; }
 .step { border: 1px solid #2a3548; border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
 .step.t-star { border-color: var(--tstar); box-shadow: 0 0 0 1px var(--tstar); }
 .step-head { background: #243044; padding: 0.5rem 0.85rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
@@ -93,4 +92,7 @@ th { background: #243044; font-size: 0.8rem; text-transform: uppercase; letter-s
 tr:hover td { background: #1f2a3d; }
 .links a { margin-right: 0.5rem; }
 .human-status.has-label { color: var(--ok); font-weight: 600; }
-.provisional { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+.annotator-select { background: #0d1117; border: 1px solid #2a3548; color: var(--text); border-radius: 4px; padding: 0.35rem 0.5rem; }
+.annotator-banner { font-size: 0.85rem; color: var(--ok); font-weight: 600; }
+.partner-badge { font-size: 0.85rem; color: var(--muted); margin-left: 0.5rem; }
+.annotator-toolbar { margin-bottom: 0.75rem; }

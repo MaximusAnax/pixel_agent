@@ -57,8 +57,15 @@ These failures stem from the agent's inability to maintain a coherent strategy, 
 
 | Meta-label | When to use |
 |---|---|
-| `evaluator_mismatch` | Action is reasonable per human rubric but OSWorld script marks failure |
+| `evaluator_mismatch` | Action is reasonable per human rubric / available evidence but OSWorld script marks failure (use when eval criteria appear met or the failure is an evaluator artifact, not an agent mistake) |
 | `propagated_failure` | Failure at `t*` caused by earlier root error |
+
+### Annotator vs judge (boundaries)
+
+- **Human annotators** (`abdoul`, `raghav`) write gold-in-progress labels to `annotations.json`. Their labels are the scientific target for discovery and Phase D.
+- **VLM judge** writes versioned provisional labels (`judge_context_version`). Treat as reference during discovery — **not** gold. Do not revise this taxonomy from provisional judge disagreement alone.
+- When OpenCUA (or similar) logs both **CoT model code** and **executed trajectory** actions, compare them after coordinate normalization. Divergence supports grounding leaves (Click Region Error, Location Hallucination, Fine-Grained Manipulation Failure) using screenshot + stated intent; it is **not** a new leaf.
+- **Human reference trajectories** (OSWorld-Human text + Human Agent screenshots) are a viable path for cross-reference — **not** a required path. Do not label “failure” solely because the agent diverged from the human sequence.
 
 ### Global decision order (apply before leaf-specific rules)
 

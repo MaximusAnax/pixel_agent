@@ -6,6 +6,8 @@ This document defines **what we run** (models, environment, controlled tracks, m
 
 **Master plan:** [failureAnalysisFinalPlan.md](failureAnalysisFinalPlan.md)
 
+**Current experiment phase (2026-07-10):** **Annotation-ready infrastructure** for the pilot (30 tasks × OpenCUA A3B + 7B) — OSWorld task/eval context, Human Agent screenshots, mockup-approved review UI, provisional multimodal rejudge — **before** discovery labeling and **before** Phase D calibration / prevalence. See [docs/GROUNDING_MANIFEST.md](docs/GROUNDING_MANIFEST.md).
+
 ---
 
 ## I. Failure taxonomy reference
@@ -79,8 +81,10 @@ RegionFocus and Image-as-Map are **post-hoc interventions** to test after baseli
 
 | Stage | Scope |
 |---|---|
-| **Pilot** | 30 tasks × 1 seed — pipeline debug on **Bridges-2** |
-| **Core study** | **100 stratified tasks × 3 seeds × 2–3 models** |
+| **Pilot (HF traces)** | 30 stratified tasks × OpenCUA A3B + 7B — inventory + attribution on Babel |
+| **Annotation-ready (current)** | Vendor OSWorld + OSWorld-Human metadata; Human Agent screenshots; dual-trace review packet; provisional `osworld_v1` rejudge |
+| **Discovery labeling** | `abdoul` + `raghav` gold-in-progress on pilot packet |
+| **Core study** | **100 stratified tasks × 3 seeds × 2–3 models** (after calibration path is clear) |
 | Extension (optional) | 200 tasks × 3 seeds |
 | Full OSWorld-Verified (optional) | 369 tasks × 3 seeds — not required for taxonomy paper |
 
@@ -129,9 +133,11 @@ Map each metric to specific taxonomy leaves or meta-labels:
 Failed runs are processed per [failureStudyProtocol.md](failureStudyProtocol.md):
 
 1. Identify first failure step `t*`
-2. Apply Tier-1 programmatic detectors
-3. VLM judge on unresolved cases (screenshot + CoT at `t*`)
-4. Human gold set (150–200 steps) for calibration
+2. Apply Tier-1 programmatic detectors (including optional `grounding_mismatch` pre-check)
+3. VLM judge on unresolved cases with **full context bundle** (eval + CoT vs executed + human screenshots when ready)
+4. Human discovery labels on annotation-ready packet → later gold set (150–200 steps) for calibration
+
+**UI / labeling:** Review packet must use mockup-approved collapsible dual-trace layout (model vs human). Judge panel = provisional reference only during discovery.
 
 ---
 

@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
-# Copy compact analysis artifacts from compute-node storage to home, where the
-# login node and local rsync can reach them.
+# Copy compact analysis artifacts from shared group outputs to home mirror.
 #
-# Run on a compute node (e.g. at the end of analyze_hf_osworld.sbatch), or via:
-#   ssh babel "srun --partition=debug ... bash --noprofile --norc \
-#     /home/andiongu/cua-failure-analysis/scripts/babel/stage_outputs_to_home.sh <run_id>"
+# Run on a compute node (end of analyze_hf_osworld.sbatch), or via srun.
 
 set -euo pipefail
 
-if [[ -f "${HOME}/cua-failure-analysis/config/babel.env" ]]; then
-  # shellcheck disable=SC1091
-  source "${HOME}/cua-failure-analysis/config/babel.env"
-fi
+for _babel_env in \
+  "${HOME}/cua-failure-analysis/config/babel.env" \
+  "${HOME}/.pixel_agent/babel.env"; do
+  if [[ -f "${_babel_env}" ]]; then
+    # shellcheck disable=SC1090
+    source "${_babel_env}"
+    break
+  fi
+done
 
-: "${BABEL_USER:=andiongu}"
-: "${BABEL_PROJECT_DIR:=/home/${BABEL_USER}/cua-failure-analysis}"
-: "${BABEL_OUTPUT_ROOT:=/data/user_data/${BABEL_USER}/cua_failure_analysis/outputs}"
-: "${BABEL_STAGING_ROOT:=${BABEL_PROJECT_DIR}/data/babel_outputs}"
-# Set STAGE_NORMALIZED_TRACES=1 to also copy the per-episode normalized_traces/
-# tree (bounded by --phase/--failed-only) for human gold labeling.
+: "${BABEL_USER:=${USER}}"
+: "${BABEL_HOME_DIR:=/home/${BABEL_USER}}"
+: "${BABEL_GROUP_ROOT:=/data/group_data/mattlab/pixel_agent}"
+: "${BABEL_SHARED_OUTPUT_ROOT:=${BABEL_GROUP_ROOT}/outputs}"
+: "${BABEL_OUTPUT_ROOT:=${BABEL_SHARED_OUTPUT_ROOT}}"
+: "${BABEL_OUTPUT_MIRROR:=${BABEL_HOME_DIR}/cua-failure-analysis/data/babel_outputs}"
 : "${STAGE_NORMALIZED_TRACES:=0}"
 
 RUN_ID="${1:-}"
@@ -28,7 +30,7 @@ if [[ -z "${RUN_ID}" ]]; then
 fi
 
 SRC="${BABEL_OUTPUT_ROOT}/${RUN_ID}"
-DST="${BABEL_STAGING_ROOT}/${RUN_ID}"
+DST="${BABEL_OUTPUT_MIRROR}/${RUN_ID}"
 
 if [[ ! -d "${SRC}" ]]; then
   echo "ERROR: source output dir not found on compute node: ${SRC}" >&2

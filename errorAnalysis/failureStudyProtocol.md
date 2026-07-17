@@ -160,16 +160,39 @@ Identify the earliest step where either:
 - OSWorld evaluator would fail if the run stopped there, or
 - The agent's action diverges from a viable path (programmatic heuristics + optional human demo from OSWorld-Human)
 
+### Trace step semantics (OpenCUA / similar)
+
+Per step in `traj.jsonl`-style logs, treat these as **distinct**:
+
+| Field | Meaning |
+|---|---|
+| **Observation (before action)** | Screenshot at step *k* = UI state when choosing action *k* |
+| **Executed action (trajectory)** | What the runtime ran on the VM (often absolute pixels) |
+| **Model code (CoT)** | Code block in the model response (often normalized 0–1 coords) |
+| **Stated intent (CoT)** | Natural-language `## Action:` (or equivalent) section |
+
+Post-action visual state is the **next** step’s observation (no separate post-image in typical HF zips). A programmatic `grounding_mismatch` flag may mark when executed vs proposed coords diverge beyond tolerance after normalization — evidence for Click Region Error / Location Hallucination / Fine-Grained Manipulation, not a taxonomy leaf.
+
 ### VLM judge input bundle (step `t*` only)
 
-- Task instruction + evaluator description
-- Screenshot at `t*` with predicted click/action overlay
-- Agent CoT / action JSON at `t*`
+Required context for attribution (annotation-ready / `osworld_v1` and later):
+
+- **Canonical task instruction** from OSWorld task JSON (not only the agent-visible / traj-truncated string)
+- **OSWorld evaluator bundle:** outcome (`result.txt`), `evaluator` rules, and a **per-func** summary of what the metric checks (do not dump all OSWorld metrics)
+- **Model observation** at `t*` (screenshot) with predicted click/action overlay when available
+- **Executed action** (trajectory) vs **model code (CoT)** vs **stated intent** at `t*`
 - Previous 2–3 steps (compressed)
-- Evaluator failure message / failed assertion
+- Evaluator failure message / failed assertion when available (else binary score + eval bundle)
 - Taxonomy decision tree for confusable pairs
+- **Human reference path (non-binding):** full OSWorld-Human / Human Agent sequence — each human step’s action text **plus** observation screenshot when Human Agent artifacts exist
+
+**Human reference contract:** The human sequence is **one viable path**, not the only valid path. Do **not** require step-wise alignment to the agent trace, and do **not** penalize agent actions that diverge from the human path if they still progress toward OSWorld success criteria. Prefer labeling agent failure modes over “didn’t match human.”
+
+**Provisional vs gold:** Versioned judge labels (`judge_context_version`) are provisional reference during discovery. Human labels in `annotations.json` are gold-in-progress. Calibrate the judge against adjudicated gold in Phase D — not during the first enriched rejudge.
 
 **Do not** judge from trajectory text alone. OSWorld success is execution-based, not reference-trajectory matching.
+
+**Timing:** Provisional multimodal rejudge (`osworld_v1`) waits until Human Agent screenshots are ready for the episode (`oracle_status` ready or partial). Never overwrite prior judge outputs — write a new version.
 
 ### Judge output schema
 
@@ -199,6 +222,8 @@ Identify the earliest step where either:
 
 ## Phase D — Validation for publication (weeks 5–8)
 
+**Prerequisite:** Annotation-ready pilot packet + discovery labeling by `abdoul` / `raghav`. Phase D is **after** human gold exists — not the current milestone.
+
 ### Human gold set
 
 - **150–200** first-failure steps labeled by **two annotators**
@@ -209,16 +234,17 @@ Identify the earliest step where either:
 ### Judge calibration
 
 - **5+ anchor examples per leaf** in judge prompt
-- Report judge-vs-human agreement per leaf
-- Ablations: judge size, with/without CoT, with/without reference trajectory
+- Report judge-vs-human agreement per leaf (compare pre-context vs `osworld_v1` vs gold-calibrated)
+- Ablations: judge size, with/without CoT, with/without human reference images
 
 ### Reportable outcomes
 
-1. Prevalence of each leaf at `t*`, per model, with confidence intervals
+1. Prevalence of each leaf at `t*`, per model, with confidence intervals (**human gold**, not provisional judge alone)
 2. Co-occurrence matrix among leaves
 3. Fraction of Long-Horizon / Action Looping failures that are `propagated`
 4. Hidden Operation Blindness rate vs grounding rate on OSWorld
 5. Cross-Application Context Loss rate on `cross_app`-tagged tasks only
+6. `evaluator_mismatch` rate
 
 ---
 
@@ -408,17 +434,17 @@ $PROJECT/cua-failure-analysis/
 |---|---|---|
 | A — Taxonomy hardening | 1–2 | Decision rules in failureTaxonomy.md; rubric ready |
 | B — Instrumentation | 2–3 | Trace JSON emitted; Tier-1 detectors run on pilot traces |
-| C — Attribution | 3–5 | Failed runs get `t*` + primary label (hybrid pipeline) |
-| D — Validation | 5–8 | κ and prevalence tables per model; judge calibrated |
+| **C′ — Annotation-ready** | **Now** | OSWorld context + Human Agent screenshots in UI/judge; mockup-approved dual-trace packet; provisional `osworld_v1` |
+| C — Attribution (scaled) | 3–5 | Failed runs get `t*` + primary label (hybrid pipeline) |
+| D — Validation | 5–8 | κ and prevalence tables per model; judge calibrated vs **human gold** |
 | E — Controlled tracks | 4–8 (parallel) | Separate tables per track |
 
 ---
 
 ## Immediate next steps
 
-1. **Bridges:** SSH, `projects`, `my_quotas`; GPU-shared vLLM smoke test
-2. **Advisor:** OSWorld VM strategy (KVM vs AWS/local) + charge ID
-3. **AgentNetBench** pilot on Bridges
-4. **Pre-register** 100-task stratified list
-5. **Babel:** Submit account request (non-blocking)
-6. **30-task pilot** → begin human gold labeling
+1. Phase 0 grounding freeze + Abdoul sign-off (`docs/GROUNDING_MANIFEST.md`)
+2. Annotation-ready infrastructure (vendor metadata, UI mockups, Human Agent, `osworld_v1` rejudge)
+3. Discovery labeling on pilot packet (`abdoul` + `raghav`)
+4. Agreement diagnostics → Phase D gold set + judge calibration
+5. Core 100-task prevalence (after calibration)

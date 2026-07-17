@@ -39,6 +39,44 @@ def human_modes_to_csv(modes: list[str] | None) -> str:
   return ";".join(modes)
 
 
+def _annotator_export_fields(
+  human: dict[str, Any] | None,
+  *,
+  prefix: str,
+) -> dict[str, str]:
+  human_modes = list((human or {}).get("modes_ordered") or [])
+  return {
+    f"{prefix}_modes_ordered": human_modes_to_csv(human_modes),
+    f"{prefix}_primary": human_modes[0] if human_modes else "",
+    f"{prefix}_root_step": str(
+      (human or {}).get("root_step") if (human or {}).get("root_step") is not None else ""
+    ),
+    f"{prefix}_reasoning": str((human or {}).get("reasoning") or ""),
+    f"{prefix}_confidence": str(
+      (human or {}).get("confidence") if (human or {}).get("confidence") is not None else ""
+    ),
+    f"{prefix}_is_propagated": str(bool((human or {}).get("is_propagated"))),
+  }
+
+
+def build_comparison_row(
+  ep: dict[str, Any],
+  *,
+  human_a: dict[str, Any] | None,
+  human_b: dict[str, Any] | None,
+  annotator_a: str,
+  annotator_b: str,
+  columns: list[str],
+) -> dict[str, str]:
+  """Wide export row: judge + two annotators."""
+  base = build_discovery_row(ep, human_a, columns=columns)
+  judge_modes = judge_modes_ordered(ep)
+  base["judge_label"] = judge_modes[0] if judge_modes else ""
+  base.update(_annotator_export_fields(human_a, prefix=annotator_a))
+  base.update(_annotator_export_fields(human_b, prefix=annotator_b))
+  return {col: str(base.get(col, "")) for col in columns}
+
+
 def build_discovery_row(
   ep: dict[str, Any],
   human: dict[str, Any] | None,

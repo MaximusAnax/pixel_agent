@@ -9,7 +9,7 @@
 <body>
   <div class="nav">
     <a href="../../index.html">← Index</a>
-    {% if sibling_href %}<a href="../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
+    {% if sibling_href %}<a href="../../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
     {% if prev_link %}<a href="{{ prev_link }}">← Previous</a>{% endif %}
     {% if next_link %}<a href="{{ next_link }}">Next →</a>{% endif %}
   </div>
@@ -47,8 +47,15 @@
     <h2>Your taxonomy discovery label</h2>
     <p class="hint">Select all failure modes that apply, in priority order (1 = primary root cause). Root step may differ from pipeline t*.</p>
 
+    <div class="toolbar annotator-toolbar">
+      <label>Annotator
+        <select id="annotator-select" class="annotator-select"></select>
+      </label>
+      <span id="annotator-banner" class="annotator-banner"></span>
+      <span id="partner-label-badge" class="partner-badge"></span>
+    </div>
+
     <div class="form-grid">
-      <label>Reviewer<input type="text" id="reviewer" placeholder="Your name"></label>
       <label>Root failure step<input type="number" id="root-step" min="1" placeholder="e.g. 3"></label>
       <label>Your confidence (0–1)<input type="number" id="human-confidence" min="0" max="1" step="0.05" placeholder="0.85"></label>
     </div>
@@ -92,13 +99,6 @@
     </div>
   </section>
 
-  {% if has_video %}
-  <section class="panel">
-    <h2>Full run video</h2>
-    <video controls preload="metadata" src="recording.mp4"></video>
-  </section>
-  {% endif %}
-
   <section class="panel">
     <h2>Step timeline ({{ steps | length }} steps) — click step # to set root step</h2>
     {% for step in steps %}
@@ -131,7 +131,9 @@
       page: "episode",
       packetId: {{ packet_id | tojson }},
       labelKey: {{ label_key | tojson }},
-      storageKey: "taxonomy_discovery_{{ packet_id | replace('-', '_') }}",
+      storageKeyBase: "taxonomy_discovery_{{ packet_id | replace('-', '_') }}",
+      registeredAnnotators: ["abdoul", "raghav"],
+      annotator: {{ default_annotator | tojson }},
       apiBase: {{ api_base | tojson }}
     };
     document.querySelectorAll(".set-root-step").forEach((btn) => {
