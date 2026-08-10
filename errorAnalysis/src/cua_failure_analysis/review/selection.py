@@ -8,6 +8,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from cua_failure_analysis.review.packet import (
+  REPLAY_FAILED,
+  REPLAY_GOLD,
+  REPLAY_INCOMPLETE,
+)
+
 SUCCESS_CLAIM_RE = re.compile(
   r"\b(successfully|accomplished|terminate.*success|nothing more.*done|task.*complete)\b",
   re.I,
@@ -288,6 +294,22 @@ def load_offline_judge(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
   return out
 
 
+def load_task_domains(path: Path) -> dict[str, str]:
+  """``task_id -> domain`` from a ``domain/task_id`` task list (all_tasks.txt).
+
+  Needed for guided replays whose task is absent from the HF zips: their domain
+  cannot be recovered from an episode id, and the gold manifest has no domain.
+  """
+  out: dict[str, str] = {}
+  for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+    line = line.strip()
+    if not line or "/" not in line:
+      continue
+    domain, task_id = line.split("/", 1)
+    out[task_id.strip()] = domain.strip()
+  return out
+
+
 def select_paired_all_episodes(
   zip_paths: dict[str, Path],
   *,
@@ -296,13 +318,18 @@ def select_paired_all_episodes(
   select_turns: dict[str, str] | None = None,
   model_order: tuple[str, ...] = ("a3b", "7b"),
   offline_judges: dict[str, dict[tuple[str, str], dict[str, Any]]] | None = None,
+  task_domains: dict[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
   """Select EVERY task present in the zips (paired by ``task_id``), not just pilot.
 
   Judge metadata is merged from ``run_dirs`` when the episode was analyzed there.
-  When ``gold_root`` is given, tasks with an OSWorld-Human guided replay under
-  ``gold_root/<task_id>/`` get a third ``human`` trace (built from the replay
-  directory, not a zip — see ``build_review_packet``).
+  When ``gold_root`` is given, every guided replay under ``gold_root/<task_id>/``
+  gets a third ``human`` trace (built from the replay directory, not a zip — see
+  ``build_review_packet``), including replays that never produced a trace: those
+  become ``replay_status: incomplete`` stubs carrying only the replay log, so the
+  packet covers the whole sweep rather than silently dropping its failures.
+  Replays whose task is absent from the zips become human-only rows; pass
+  ``task_domains`` (see ``load_task_domains``) to give those rows a domain.
   ``offline_judges`` maps a judge name to a ``load_offline_judge`` result; matching
   classifications are attached to model episodes as ``episode["offline_judges"]``.
   """
@@ -342,10 +369,17 @@ def select_paired_all_episodes(
             success = None
         success_by_model[model][tid] = success
 
+  task_domains = task_domains or {}
   task_domain: dict[str, str] = {}
   for eps in episodes_by_model.values():
     for tid, eid in eps.items():
       task_domain.setdefault(tid, _domain(eid))
+
+  # Guided replays with no zip episode still get a (human-only) row.
+  if gold_root is not None and gold_root.exists():
+    for entry in sorted(gold_root.iterdir()):
+      if entry.is_dir():
+        task_domain.setdefault(entry.name, task_domains.get(entry.name, "unknown"))
   all_task_ids = sorted(task_domain, key=lambda t: (task_domain[t], t))
 
   episodes: list[dict[str, Any]] = []
@@ -355,7 +389,8 @@ def select_paired_all_episodes(
     present = {m: episodes_by_model[m][task_id] for m in model_order if task_id in episodes_by_model[m]}
 
     gold_dir = (gold_root / task_id) if gold_root is not None else None
-    has_human = bool(gold_dir and (gold_dir / "trace.jsonl").exists())
+    has_gold_dir = bool(gold_dir and gold_dir.is_dir())
+    has_trace = bool(gold_dir and (gold_dir / "trace.jsonl").exists())
     gold_manifest: dict[str, Any] = {}
     if gold_dir is not None:
       gm_path = gold_dir / "manifest.json"
@@ -363,9 +398,9 @@ def select_paired_all_episodes(
         gold_manifest = json.loads(gm_path.read_text(encoding="utf-8"))
 
     hrefs = {m: f"{m}/{eid.replace('/', '__')}/episode.html" for m, eid in present.items()}
-    domain = _domain(next(iter(present.values())))
+    domain = _domain(next(iter(present.values()))) if present else task_domain[task_id]
     human_eid = f"{domain}/{task_id}"
-    if has_human:
+    if has_gold_dir:
       hrefs["human"] = f"human/{human_eid.replace('/', '__')}/episode.html"
 
     group_models: dict[str, dict[str, Any]] = {}
@@ -407,7 +442,12 @@ def select_paired_all_episodes(
         },
       }
 
-    if has_human:
+    replay_status = ""
+    if has_gold_dir:
+      if not has_trace:
+        replay_status = REPLAY_INCOMPLETE
+      else:
+        replay_status = REPLAY_GOLD if gold_manifest.get("success") else REPLAY_FAILED
       human_entry = {
         "model": "human",
         "episode_id": human_eid,
@@ -423,6 +463,7 @@ def select_paired_all_episodes(
         "tier_used": "",
         "run_dir": str(gold_dir),
         "gold_dir": str(gold_dir),
+        "replay_status": replay_status,
         "confusing": False,
         "sibling_href": hrefs.get("a3b") or hrefs.get("7b"),
         "siblings": [{"href": h, "model": m} for m, h in hrefs.items() if m != "human"],
@@ -435,6 +476,7 @@ def select_paired_all_episodes(
         "success": gold_manifest.get("success"),
         "provisional_primary": "",
         "t_star": None,
+        "replay_status": replay_status,
       }
 
     judges_disagree = any(
@@ -445,9 +487,11 @@ def select_paired_all_episodes(
       {
         "task_id": task_id,
         "domain": domain,
-        "missing_models": [m for m in model_order if m not in present] + ([] if has_human else ["human"]),
+        "missing_models": [m for m in model_order if m not in present]
+        + ([] if has_gold_dir else ["human"]),
         "models": group_models,
         "judges_disagree": judges_disagree,
+        "replay_status": replay_status,
       }
     )
 

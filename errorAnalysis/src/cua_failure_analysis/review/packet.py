@@ -17,6 +17,7 @@ from cua_failure_analysis.adapters.opencua_osworld import (
   _parse_result_txt,
   _step_number,
 )
+from cua_failure_analysis.review.annotations import REPLAY_AUDIT_CATEGORIES
 from cua_failure_analysis.review.labels import judge_modes_ordered, label_storage_key
 from cua_failure_analysis.taxonomy import ALL_LEAVES
 
@@ -25,6 +26,17 @@ STEP_SCREENSHOT_RE = re.compile(r"^step_(\d+)_", re.I)
 # Written into human (OSWorld-Human guided replay) episode dirs so
 # refresh_review_packet_html can re-render them without the gold run dir.
 HUMAN_STEPS_FILE = "human_steps.json"
+
+# Replay outcomes for a human (guided replay) episode. "incomplete" runs never
+# wrote a manifest/trace — usually a >1200s timeout — so they have a log only.
+REPLAY_GOLD = "gold"
+REPLAY_FAILED = "failed"
+REPLAY_INCOMPLETE = "incomplete"
+
+# Last lines of replay.log kept on the episode page for audit triage.
+LOG_TAIL_LINES = 40
+
+CROSSHAIR_COLOR = "#ff2d2d"
 
 
 @dataclass
@@ -37,6 +49,11 @@ class ParsedStep:
   screenshot_file: str | None
   reward: Any
   done: bool
+  # Grounded click target in full-resolution screenshot pixels, when the step
+  # was a grounded action. Kept so screenshots can be re-marked without the
+  # gold run dir. Defaults for backwards compatibility with human_steps.json
+  # files written before crosshairs existed.
+  coords: Any = None
 
 
 def episode_slug(episode_id: str) -> str:
@@ -176,9 +193,41 @@ def build_episode_assets(
   }
 
 
-def _downscale_screenshot(src: Path, dst: Path, *, max_side: int = 1600, quality: int = 80) -> bool:
-  """Write a downscaled JPEG copy of ``src`` to ``dst`` (skip if it exists)."""
-  if dst.exists():
+def _draw_crosshair(img: Any, coords: Any) -> None:
+  """Ring + crosshair at the grounded pixel, drawn in full-resolution space.
+
+  Must run before downscaling: ``coords`` come from the replay trace and are in
+  the screenshot's native pixels.
+  """
+  from PIL import ImageDraw
+
+  try:
+    x, y = int(coords[0]), int(coords[1])
+  except (TypeError, ValueError, IndexError):
+    return
+  draw = ImageDraw.Draw(img)
+  radius = 22
+  arm = 14
+  draw.ellipse([x - radius, y - radius, x + radius, y + radius], outline=CROSSHAIR_COLOR, width=5)
+  draw.line([x - radius - arm, y, x + radius + arm, y], fill=CROSSHAIR_COLOR, width=3)
+  draw.line([x, y - radius - arm, x, y + radius + arm], fill=CROSSHAIR_COLOR, width=3)
+
+
+def _downscale_screenshot(
+  src: Path,
+  dst: Path,
+  *,
+  max_side: int = 1600,
+  quality: int = 80,
+  coords: Any = None,
+  overwrite: bool = False,
+) -> bool:
+  """Write a downscaled JPEG copy of ``src`` to ``dst`` (skip if it exists).
+
+  When ``coords`` are given the grounded pixel is marked before downscaling.
+  Pass ``overwrite`` to re-render an episode whose JPEGs predate crosshairs.
+  """
+  if dst.exists() and not overwrite:
     return True
   try:
     from PIL import Image
@@ -188,6 +237,8 @@ def _downscale_screenshot(src: Path, dst: Path, *, max_side: int = 1600, quality
     img = Image.open(src).convert("RGB")
   except OSError:
     return False
+  if coords:
+    _draw_crosshair(img, coords)
   w, h = img.size
   scale = max_side / max(w, h)
   if scale < 1.0:
@@ -197,11 +248,24 @@ def _downscale_screenshot(src: Path, dst: Path, *, max_side: int = 1600, quality
   return True
 
 
+def read_log_tail(gold_dir: Path, *, lines: int = LOG_TAIL_LINES) -> str:
+  """Last ``lines`` of the replay log, for audit triage of a failed replay."""
+  log_path = gold_dir / "replay.log"
+  if not log_path.exists():
+    return ""
+  try:
+    content = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+  except OSError:
+    return ""
+  return "\n".join(content[-lines:])
+
+
 def build_human_episode_assets(
   gold_dir: Path,
   episode_dir: Path,
   *,
   episode_id: str,
+  overwrite_shots: bool = False,
 ) -> dict[str, Any]:
   """Build episode assets from an OSWorld-Human guided replay run directory.
 
@@ -209,6 +273,9 @@ def build_human_episode_assets(
   ``step`` records (``human_step``, ``verb``, ``coords``, ``action.command``),
   ``screenshots/stepNN_before.png`` observations plus ``final.png``, and
   ``manifest.json`` with ``success``/``score``/``instruction``.
+
+  Grounded click targets are crosshaired onto the step's before-shot, so a
+  grounding miss is visible instead of only readable in the code block.
   """
   trace_path = gold_dir / "trace.jsonl"
   if not trace_path.exists():
@@ -231,13 +298,15 @@ def build_human_episode_assets(
   for idx, rec in enumerate(records):
     raw_step = rec.get("step", idx)
     step_num = int(raw_step) + 1
+    coords = rec.get("coords")
     shot_name = None
     src = gold_dir / "screenshots" / f"step{int(raw_step):02d}_before.png"
-    if src.exists() and _downscale_screenshot(src, episode_dir / f"step_{step_num}_before.jpg"):
+    if src.exists() and _downscale_screenshot(
+      src, episode_dir / f"step_{step_num}_before.jpg", coords=coords, overwrite=overwrite_shots
+    ):
       shot_name = f"step_{step_num}_before.jpg"
       screenshot_by_step[step_num] = shot_name
 
-    coords = rec.get("coords")
     verb = rec.get("verb") or "?"
     action = f"{verb} @ {tuple(coords)}" if coords else verb
     code = str((rec.get("action") or {}).get("command") or "")
@@ -256,6 +325,7 @@ def build_human_episode_assets(
         screenshot_file=shot_name,
         reward=None,
         done=False,
+        coords=list(coords) if coords else None,
       )
     )
 
@@ -263,7 +333,7 @@ def build_human_episode_assets(
   if final_src.exists():
     step_num = (steps[-1].step_num + 1) if steps else 1
     shot_name = f"step_{step_num}_final.jpg"
-    if _downscale_screenshot(final_src, episode_dir / shot_name):
+    if _downscale_screenshot(final_src, episode_dir / shot_name, overwrite=overwrite_shots):
       screenshot_by_step[step_num] = shot_name
       steps.append(
         ParsedStep(
@@ -280,28 +350,66 @@ def build_human_episode_assets(
 
   score = gold_manifest.get("score")
   result_raw = "" if score is None else f"{score:g} (OSWorld-Human guided replay)"
+  success = gold_manifest.get("success")
   assets = {
     "episode_id": episode_id,
-    "success": gold_manifest.get("success"),
+    "success": success,
     "result_raw": result_raw,
     "steps": steps,
     "screenshot_by_step": screenshot_by_step,
     "select_turn": None,
+    "replay_status": REPLAY_GOLD if success else REPLAY_FAILED,
+    "log_tail": read_log_tail(gold_dir),
   }
+  _write_human_steps(episode_dir, assets)
+  return assets
+
+
+def build_human_stub_assets(
+  gold_dir: Path,
+  episode_dir: Path,
+  *,
+  episode_id: str,
+) -> dict[str, Any]:
+  """Assets for a guided replay that never finished (no manifest, no trace).
+
+  These are the chronic multi_apps timeouts: the run dir holds only
+  ``replay.log`` and partial screenshots. The episode page carries no steps —
+  just the log tail, so the replay can still be audited rather than silently
+  dropped from the packet.
+  """
+  episode_dir.mkdir(parents=True, exist_ok=True)
+  assets = {
+    "episode_id": episode_id,
+    "success": None,
+    "result_raw": "",
+    "steps": [],
+    "screenshot_by_step": {},
+    "select_turn": None,
+    "replay_status": REPLAY_INCOMPLETE,
+    "log_tail": read_log_tail(gold_dir),
+  }
+  _write_human_steps(episode_dir, assets)
+  return assets
+
+
+def _write_human_steps(episode_dir: Path, assets: dict[str, Any]) -> None:
+  """Persist human assets so refresh can re-render without the gold run dir."""
   (episode_dir / HUMAN_STEPS_FILE).write_text(
     json.dumps(
       {
-        "episode_id": episode_id,
+        "episode_id": assets["episode_id"],
         "success": assets["success"],
-        "result_raw": result_raw,
-        "steps": [step.__dict__ for step in steps],
-        "screenshot_by_step": screenshot_by_step,
+        "result_raw": assets["result_raw"],
+        "steps": [step.__dict__ for step in assets["steps"]],
+        "screenshot_by_step": assets["screenshot_by_step"],
+        "replay_status": assets["replay_status"],
+        "log_tail": assets["log_tail"],
       },
       indent=2,
     ),
     encoding="utf-8",
   )
-  return assets
 
 
 def _assets_from_episode_dir(episode_dir: Path, episode_id: str) -> dict[str, Any]:
@@ -309,13 +417,17 @@ def _assets_from_episode_dir(episode_dir: Path, episode_id: str) -> dict[str, An
   human_path = episode_dir / HUMAN_STEPS_FILE
   if human_path.exists():
     saved = json.loads(human_path.read_text(encoding="utf-8"))
+    success = saved.get("success")
     return {
       "episode_id": episode_id,
-      "success": saved.get("success"),
+      "success": success,
       "result_raw": saved.get("result_raw", ""),
       "steps": [ParsedStep(**row) for row in saved.get("steps", [])],
       "screenshot_by_step": {int(k): v for k, v in saved.get("screenshot_by_step", {}).items()},
       "select_turn": None,
+      "replay_status": saved.get("replay_status")
+      or (REPLAY_GOLD if success else REPLAY_FAILED),
+      "log_tail": saved.get("log_tail", ""),
     }
 
   traj_path = episode_dir / "traj.jsonl"
@@ -453,6 +565,9 @@ def refresh_review_packet_html(
         offline_judges=ep.get("offline_judges") or {},
         label_key=label_key,
         taxonomy_leaves=taxonomy_leaves,
+        replay_status=assets.get("replay_status", ""),
+        log_tail=assets.get("log_tail", ""),
+        replay_audit_categories=list(REPLAY_AUDIT_CATEGORIES),
         api_base="",
         default_annotator="abdoul",
       ),
@@ -532,8 +647,12 @@ def build_review_packet(
       episode_dir.mkdir(parents=True, exist_ok=True)
 
       gold_dir = ep.get("gold_dir")
-      if gold_dir:
+      if gold_dir and (Path(gold_dir) / "trace.jsonl").exists():
         assets = build_human_episode_assets(
+          Path(gold_dir), episode_dir, episode_id=episode_id
+        )
+      elif gold_dir:
+        assets = build_human_stub_assets(
           Path(gold_dir), episode_dir, episode_id=episode_id
         )
       else:
@@ -631,6 +750,9 @@ def build_review_packet(
         offline_judges=ep.get("offline_judges") or {},
         label_key=label_key,
         taxonomy_leaves=taxonomy_leaves,
+        replay_status=assets.get("replay_status", ""),
+        log_tail=assets.get("log_tail", ""),
+        replay_audit_categories=list(REPLAY_AUDIT_CATEGORIES),
         api_base="",
         default_annotator="abdoul",
       )

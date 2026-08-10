@@ -29,9 +29,18 @@
         <option value="{{ d }}">{{ d }}</option>
         {% endfor %}
       </select>
+      <select id="f-replay" class="annotator-select" title="guided replay outcome">
+        <option value="">any replay</option>
+        <option value="gold">replay gold</option>
+        <option value="failed">replay failed</option>
+        <option value="incomplete">replay incomplete</option>
+        <option value="none">no replay</option>
+      </select>
       <button type="button" class="qf" data-f="a3b-fail">A3B ✗</button>
       <button type="button" class="qf" data-f="7b-fail">7B ✗</button>
       <button type="button" class="qf" data-f="human-pass">Human ✓</button>
+      <button type="button" class="qf" data-f="audited" title="you left a replay audit note">audited</button>
+      <button type="button" class="qf" data-f="unaudited" title="no replay audit note from you">unaudited</button>
       <button type="button" class="qf" data-f="unlabeled">unlabeled</button>
       <button type="button" class="qf" data-f="labeled">labeled</button>
       <button type="button" class="qf" data-f="judges-disagree" title="offline judges give different primary modes">judges differ</button>
@@ -68,11 +77,14 @@
       {% set human = group.models.get('human', {}) %}
       {% set instr = instructions.get(group.task_id, '') if instructions is defined else '' %}
       <tr data-domain="{{ group.domain }}"
+          data-task-id="{{ group.task_id }}"
           data-a3b="{{ 'pass' if a3b.success is sameas true else 'fail' if a3b.success is sameas false else 'unknown' }}"
           data-7b="{{ 'pass' if b7.success is sameas true else 'fail' if b7.success is sameas false else 'unknown' }}"
           data-human="{{ 'pass' if human.success is sameas true else 'fail' if human.success is sameas false else 'unknown' }}"
+          data-replay="{{ group.replay_status or 'none' }}"
           data-judges-disagree="{{ '1' if group.judges_disagree else '0' }}"
           data-batch="{{ '1' if group.in_label_batch else '0' }}"
+          data-audit="0"
           data-search="{{ (group.task_id ~ ' ' ~ instr) | lower }}">
         <td class="domain-cell">{{ group.domain }}</td>
         <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
@@ -96,7 +108,8 @@
         <td class="links">
           {% if a3b.href %}<a href="{{ a3b.href }}"><span class="dot {{ 'pass' if a3b.success is sameas true else 'fail' if a3b.success is sameas false else 'none' }}"></span>A3B</a>{% endif %}
           {% if b7.href %}<a href="{{ b7.href }}"><span class="dot {{ 'pass' if b7.success is sameas true else 'fail' if b7.success is sameas false else 'none' }}"></span>7B</a>{% endif %}
-          {% if human.href %}<a href="{{ human.href }}"><span class="dot {{ 'pass' if human.success is sameas true else 'fail' if human.success is sameas false else 'none' }}"></span>Human</a>{% endif %}
+          {% if human.href %}<a href="{{ human.href }}" title="guided replay: {{ group.replay_status or 'unknown' }}"><span class="dot r-{{ group.replay_status or 'none' }}"></span>Human</a>{% endif %}
+          <span class="audit-chip" title="your replay audit category"></span>
         </td>
       </tr>
       {% endfor %}
@@ -122,6 +135,7 @@
       const rows = Array.from(document.querySelectorAll("tbody tr"));
       const search = document.getElementById("f-search");
       const domainSel = document.getElementById("f-domain");
+      const replaySel = document.getElementById("f-replay");
       const countEl = document.getElementById("f-count");
       const chips = Array.from(document.querySelectorAll(".qf"));
       const active = new Set();
@@ -129,11 +143,15 @@
       function apply() {
         const q = search.value.trim().toLowerCase();
         const dom = domainSel.value;
+        const replay = replaySel.value;
         let shown = 0;
         for (const row of rows) {
           let ok = true;
           if (q && !(row.dataset.search || "").includes(q)) ok = false;
           if (ok && dom && row.dataset.domain !== dom) ok = false;
+          if (ok && replay && row.dataset.replay !== replay) ok = false;
+          if (ok && active.has("audited") && row.dataset.audit !== "1") ok = false;
+          if (ok && active.has("unaudited") && row.dataset.audit === "1") ok = false;
           if (ok && active.has("a3b-fail") && row.dataset.a3b !== "fail") ok = false;
           if (ok && active.has("7b-fail") && row.getAttribute("data-7b") !== "fail") ok = false;
           if (ok && active.has("human-pass") && row.dataset.human !== "pass") ok = false;
@@ -149,6 +167,9 @@
 
       search.addEventListener("input", apply);
       domainSel.addEventListener("change", apply);
+      replaySel.addEventListener("change", apply);
+      // review.js fills data-audit asynchronously from the server summary.
+      document.addEventListener("review:audit-loaded", apply);
       for (const chip of chips) {
         chip.addEventListener("click", () => {
           const f = chip.dataset.f;

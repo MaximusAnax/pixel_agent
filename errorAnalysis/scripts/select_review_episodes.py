@@ -10,6 +10,7 @@ from pathlib import Path
 
 from cua_failure_analysis.review.selection import (
   load_offline_judge,
+  load_task_domains,
   select_paired_all_episodes,
   select_paired_pilot_episodes,
   select_review_episodes,
@@ -42,6 +43,13 @@ def main() -> None:
     type=Path,
     default=None,
     help="OSWorld-Human guided replay root (gold/<task_id>/) to pair as a 'human' trace",
+  )
+  p.add_argument(
+    "--task-list",
+    type=Path,
+    default=None,
+    help="domain/task_id per line (e.g. osworld_env/run/all_tasks.txt); supplies "
+    "domains for guided replays whose task is absent from the zips",
   )
   p.add_argument(
     "--select-turn-7b",
@@ -97,6 +105,7 @@ def main() -> None:
       gold_root=args.gold_root,
       select_turns=select_turns,
       offline_judges=offline_judges or None,
+      task_domains=load_task_domains(args.task_list) if args.task_list else None,
     )
   elif args.mode == "paired-pilot":
     if len(args.run_dirs) != 2:

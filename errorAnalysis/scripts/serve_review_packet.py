@@ -21,10 +21,14 @@ sys.path.insert(0, str(ROOT / "src"))
 from cua_failure_analysis.review.annotations import (  # noqa: E402
   ANNOTATIONS_FILENAME,
   REGISTERED_ANNOTATORS,
+  REPLAY_AUDIT_CATEGORIES,
   annotations_summary,
   get_annotator_labels,
+  get_replay_audit,
   load_annotations,
+  replay_audit_summary,
   save_annotator_labels,
+  save_replay_audit,
   save_single_episode,
   validate_annotator_id,
 )
@@ -174,6 +178,28 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
       )
       return
 
+    if parsed.path == "/api/replay_audit/summary":
+      self._json_response(200, {"summary": replay_audit_summary(self._load())})
+      return
+
+    if parsed.path == "/api/replay_audit":
+      qs = parse_qs(parsed.query)
+      annotator = (qs.get("annotator") or [self.annotator_id])[0]
+      try:
+        validate_annotator_id(annotator)
+      except ValueError as exc:
+        self.send_error(400, str(exc))
+        return
+      self._json_response(
+        200,
+        {
+          "annotator": annotator,
+          "replay_audit": get_replay_audit(self._load(), annotator),
+          "categories": list(REPLAY_AUDIT_CATEGORIES),
+        },
+      )
+      return
+
     static_path = self._resolve_static_path(parsed.path)
     if static_path is not None:
       try:
@@ -187,7 +213,7 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
     return super().do_GET()
 
   def do_POST(self) -> None:  # noqa: N802
-    if self.path != "/api/labels":
+    if self.path not in ("/api/labels", "/api/replay_audit"):
       self.send_error(404)
       return
 
@@ -208,6 +234,21 @@ class ReviewPacketHandler(SimpleHTTPRequestHandler):
 
     path = self._annotations_path()
     packet_id = self.packet_dir.name
+
+    if self.path == "/api/replay_audit":
+      task_id = str(payload.get("task_id") or "")
+      entry = payload.get("entry")
+      if not task_id or not isinstance(entry, dict):
+        self.send_error(400, "Expected task_id and entry object")
+        return
+      try:
+        save_replay_audit(path, annotator, task_id, entry, packet_id=packet_id)
+      except ValueError as exc:
+        self.send_error(400, str(exc))
+        return
+      self._push_babel()
+      self._json_response(200, {"ok": True, "annotator": annotator, "task_id": task_id})
+      return
 
     if "episode_key" in payload and "entry" in payload:
       save_single_episode(

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import json
 import threading
 import time
 from functools import partial
@@ -19,6 +21,71 @@ def _load_serve_module():
   mod = importlib.util.module_from_spec(spec)
   spec.loader.exec_module(mod)
   return mod
+
+
+@contextlib.contextmanager
+def _running_server(mod, packet_dir: Path, annotator: str = "raghav"):
+  handler = partial(mod.ReviewPacketHandler, directory=str(packet_dir.resolve()))
+  mod.ReviewPacketHandler.packet_dir = packet_dir
+  mod.ReviewPacketHandler.annotator_id = annotator
+  mod.ReviewPacketHandler.babel_sync = False
+  server = mod.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+  thread = threading.Thread(target=server.serve_forever, daemon=True)
+  thread.start()
+  time.sleep(0.1)
+  try:
+    yield server.server_address[1]
+  finally:
+    server.shutdown()
+
+
+def _request(port: int, method: str, path: str, payload: dict | None = None):
+  conn = HTTPConnection("127.0.0.1", port)
+  body = json.dumps(payload).encode("utf-8") if payload is not None else None
+  headers = {"Content-Type": "application/json"} if payload is not None else {}
+  conn.request(method, path, body=body, headers=headers)
+  resp = conn.getresponse()
+  raw = resp.read()
+  return resp.status, (json.loads(raw) if raw and resp.status < 400 else raw)
+
+
+def test_replay_audit_round_trip(tmp_path: Path):
+  mod = _load_serve_module()
+  packet_dir = tmp_path / "test_packet"
+  packet_dir.mkdir(parents=True)
+  (packet_dir / "index.html").write_text("<html></html>", encoding="utf-8")
+
+  with _running_server(mod, packet_dir) as port:
+    status, _ = _request(
+      port,
+      "POST",
+      "/api/replay_audit",
+      {"annotator": "raghav", "task_id": "uuid", "entry": {"category": "ui-drift", "note": "n"}},
+    )
+    assert status == 200
+
+    status, data = _request(port, "GET", "/api/replay_audit?annotator=raghav")
+    assert status == 200
+    assert data["replay_audit"]["uuid"]["category"] == "ui-drift"
+    assert "grounding-miss" in data["categories"]
+
+    status, data = _request(port, "GET", "/api/replay_audit/summary")
+    assert status == 200
+    assert data["summary"]["raghav"] == {"uuid": "ui-drift"}
+    assert data["summary"]["abdoul"] == {}
+
+    # An agent-taxonomy leaf is not a valid replay-audit category.
+    status, _ = _request(
+      port,
+      "POST",
+      "/api/replay_audit",
+      {"annotator": "raghav", "task_id": "uuid", "entry": {"category": "Reasoning Drift"}},
+    )
+    assert status == 400
+
+  saved = json.loads((packet_dir / "annotations.json").read_text(encoding="utf-8"))
+  assert saved["annotators"]["raghav"]["replay_audit"]["uuid"]["note"] == "n"
+  assert saved["annotators"]["raghav"]["labels"] == {}
 
 
 def test_parse_byte_range():

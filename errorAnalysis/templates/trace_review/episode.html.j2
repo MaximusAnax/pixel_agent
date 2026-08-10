@@ -20,7 +20,8 @@
   <header class="panel ep-header">
     <div class="ep-titlebar">
       <span class="model-tag m-{{ model }}">{{ model | upper }}{% if model == 'human' %} replay{% endif %}</span>
-      {% if success %}<span class="pill pill-pass">pass</span>
+      {% if replay_status %}<span class="pill pill-replay r-{{ replay_status }}">{{ replay_status }}</span>
+      {% elif success %}<span class="pill pill-pass">pass</span>
       {% elif success is none %}<span class="pill">unknown</span>
       {% else %}<span class="pill pill-fail">FAIL</span>{% endif %}
       <span class="pill">{{ steps | length }} steps</span>
@@ -33,6 +34,41 @@
     {% if result_raw %}<p class="meta">evaluator: {{ result_raw }}</p>{% endif %}
   </header>
 
+  {% if model == 'human' %}
+  <section class="panel audit-panel">
+    <h2>Replay audit (why this guided replay did not reach gold)</h2>
+    <p class="hint">Data-quality note about <em>our</em> gold pipeline — separate from the agent
+      failure taxonomy below, and stored per task, not per episode.</p>
+
+    <div class="toolbar">
+      <label>Category
+        <select id="audit-category" class="annotator-select">
+          <option value="">— none —</option>
+          {% for cat in replay_audit_categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <span id="audit-partner-badge" class="partner-badge"></span>
+    </div>
+    <label class="block">Note
+      <textarea id="audit-note" rows="3" placeholder="e.g. menu bar drifted; grounding hit the adjacent item…"></textarea>
+    </label>
+    <div class="toolbar">
+      <button type="button" id="btn-audit-save" class="btn btn-primary">Save audit note</button>
+      <span id="audit-status"></span>
+    </div>
+  </section>
+
+  {% if log_tail %}
+  <section class="panel">
+    <h2>replay.log (tail)</h2>
+    <pre class="codeblock logtail">{{ log_tail }}</pre>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if model != 'human' %}
   <section class="panel judge-panel">
     <h2>Judge / pipeline attribution (provisional)</h2>
     <div class="kv"><span class="k">modes (priority)</span><span>{{ judge_modes_ordered | join(' → ') or '—' }}</span></div>
@@ -47,6 +83,7 @@
     </details>
     {% endif %}
   </section>
+  {% endif %}
 
   {% if offline_judges %}
   <section class="panel offline-panel">
@@ -134,6 +171,13 @@
 
   <section class="panel">
     <h2>Step timeline ({{ steps | length }} steps) — click step # to set root step</h2>
+    {% if model == 'human' and steps %}
+    <p class="hint">The red crosshair marks the pixel the grounding model returned for that step.</p>
+    {% endif %}
+    {% if not steps %}
+    <p class="hint">This replay produced no trace — it was killed before writing one (typically a
+      &gt;1200&nbsp;s timeout). The replay log above is all the evidence there is.</p>
+    {% endif %}
     {% for step in steps %}
     <article class="step{% if step.is_t_star %} t-star{% endif %}" data-step="{{ step.step_num }}">
       <div class="step-head">
@@ -181,6 +225,7 @@
       page: "episode",
       packetId: {{ packet_id | tojson }},
       labelKey: {{ label_key | tojson }},
+      auditKey: {{ (task_id if model == 'human' else '') | tojson }},
       storageKeyBase: "taxonomy_discovery_{{ packet_id | replace('-', '_') }}",
       registeredAnnotators: ["abdoul", "raghav"],
       annotator: {{ default_annotator | tojson }},

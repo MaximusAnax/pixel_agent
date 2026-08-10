@@ -253,6 +253,101 @@
       : `Partner (${partner}): —`;
   }
 
+  /* ---- Replay audit (human guided-replay pages, keyed by task_id) ---- */
+
+  async function fetchReplayAudit(annotator) {
+    if (!apiBase) return null;
+    try {
+      const res = await fetch(
+        `${apiBase}/api/replay_audit?annotator=${encodeURIComponent(annotator)}`
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.replay_audit || {};
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchReplayAuditSummary() {
+    if (!apiBase) return null;
+    try {
+      const res = await fetch(`${apiBase}/api/replay_audit/summary`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.summary || {};
+    } catch {
+      return null;
+    }
+  }
+
+  function showAuditStatus(msg, ok) {
+    const el = document.getElementById("audit-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.className = ok ? "save-ok" : "save-err";
+  }
+
+  async function loadAuditPanel() {
+    if (!cfg.auditKey) return;
+    const catEl = document.getElementById("audit-category");
+    const noteEl = document.getElementById("audit-note");
+    if (!catEl || !noteEl) return;
+    const audit = await fetchReplayAudit(currentAnnotator());
+    const entry = (audit || {})[cfg.auditKey] || {};
+    catEl.value = entry.category || "";
+    noteEl.value = entry.note || "";
+
+    const partner = partnerAnnotator();
+    const badge = document.getElementById("audit-partner-badge");
+    if (badge && partner) {
+      const summary = await fetchReplayAuditSummary();
+      const theirs = summary?.[partner]?.[cfg.auditKey];
+      badge.textContent = `Partner (${partner}): ${theirs || "—"}`;
+    }
+  }
+
+  async function saveAuditNote() {
+    if (!cfg.auditKey) return;
+    const category = document.getElementById("audit-category")?.value || "";
+    const note = document.getElementById("audit-note")?.value?.trim() || "";
+    if (!apiBase) {
+      showAuditStatus("Audit notes need the serve script (no browser fallback)", false);
+      return;
+    }
+    try {
+      const res = await fetch(`${apiBase}/api/replay_audit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          annotator: currentAnnotator(),
+          task_id: cfg.auditKey,
+          entry: { category, note },
+        }),
+      });
+      showAuditStatus(
+        res.ok ? `Saved as ${currentAnnotator()}` : "Save failed",
+        res.ok
+      );
+    } catch {
+      showAuditStatus("Save failed", false);
+    }
+  }
+
+  function applyAuditSummaryToIndex(summary) {
+    const mine = currentAnnotator();
+    document.querySelectorAll("tr[data-task-id]").forEach((row) => {
+      const taskId = row.dataset.taskId;
+      const category = summary?.[mine]?.[taskId] || "";
+      row.dataset.audit = category ? "1" : "0";
+      const cell = row.querySelector(".audit-chip");
+      if (cell) {
+        cell.textContent = category;
+        cell.classList.toggle("has-audit", !!category);
+      }
+    });
+  }
+
   function applySummaryToIndex(summary) {
     document.querySelectorAll("[data-label-key][data-annotator]").forEach((cell) => {
       const key = cell.dataset.labelKey;
@@ -282,6 +377,10 @@
       if (cfg.page === "index") {
         const summary = await fetchSummary();
         if (summary) applySummaryToIndex(summary);
+        const audit = await fetchReplayAuditSummary();
+        if (audit) applyAuditSummaryToIndex(audit);
+      } else {
+        await loadAuditPanel();
       }
     });
   }
@@ -321,6 +420,9 @@
       });
     }
 
+    loadAuditPanel();
+    document.getElementById("btn-audit-save")?.addEventListener("click", saveAuditNote);
+
     document.getElementById("btn-save")?.addEventListener("click", saveLabels);
     document.getElementById("btn-export")?.addEventListener("click", exportLabels);
     document.getElementById("import-file")?.addEventListener("change", (e) => {
@@ -347,6 +449,13 @@
       const all = loadAll();
       const fallback = { [currentAnnotator()]: all };
       applySummaryToIndex(fallback);
+    }
+
+    const audit = await fetchReplayAuditSummary();
+    if (audit) {
+      applyAuditSummaryToIndex(audit);
+      // Filters read data-audit, which only exists once the summary lands.
+      document.dispatchEvent(new CustomEvent("review:audit-loaded"));
     }
   }
 

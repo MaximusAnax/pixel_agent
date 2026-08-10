@@ -223,6 +223,37 @@ Then they should see your labels on the index (read-only under your annotator co
 
 ---
 
+## Replay audit (guided replay data quality)
+
+Human (`human/…`) episode pages carry a second panel — **Replay audit** — that
+answers a different question from the taxonomy label:
+
+| Panel | Question | Vocabulary | Stored under |
+|---|---|---|---|
+| Your taxonomy discovery label | why did the **agent** fail? | `failureTaxonomy.md` leaves (frozen) | `annotators.<you>.labels[<model>/<episode>]` |
+| Replay audit | why did **our guided replay** not reach gold? | `ui-drift`, `grounding-miss`, `human-steps-wrong`, `evaluator-strict`, `setup-fail`, `timeout`, `infra`, `infeasible-ok`, `unsure` | `annotators.<you>.replay_audit[<task_id>]` |
+
+Audit notes are keyed by **task id** (one replay per task), are per annotator,
+and merge through the same git snapshot sync as taxonomy labels. They never feed
+the agreement report. Saving one requires the serve script — unlike taxonomy
+labels there is no localStorage fallback.
+
+On the index, the **replay** dropdown filters by `gold` / `failed` /
+`incomplete` / `no replay`, and the `audited` / `unaudited` chips filter by
+whether *you* left a note. Incomplete replays (killed before writing a trace)
+have no steps — only the `replay.log` tail on their page.
+
+This replaces the standalone `gold_audit` viewer (`build_audit_viewer.py` +
+`serve_audit.py` in `goldTrajectories/`). Import its old notes once with:
+
+```bash
+python scripts/migrate_audit_labels.py <packet_id> \
+  --audit-labels /data/group_data/mattlab/raghavg3/osworld_env/gold_audit/audit_labels.json \
+  --annotator raghav
+```
+
+---
+
 ## After both label a batch
 
 ```bash

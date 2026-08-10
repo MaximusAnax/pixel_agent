@@ -409,3 +409,36 @@ select {
 #lb-next { right: 0; }
 #lb-cap { position: fixed; bottom: 16px; left: 0; right: 0; text-align: center; color: #fff; font-size: 0.85rem; }
 #lb-close { position: fixed; top: 14px; right: 20px; font-size: 26px; color: #fff; cursor: pointer; }
+
+/* ---- Replay audit (guided-replay data quality, ported from the gold audit viewer) ---- */
+:root {
+  --replay-gold: #d6a93a;
+  --replay-failed: #f0556b;
+  --replay-incomplete: #9a7ad6;
+}
+.pill-replay { text-transform: lowercase; font-weight: 600; }
+.pill-replay.r-gold { color: var(--replay-gold); border-color: var(--replay-gold); }
+.pill-replay.r-failed { color: var(--replay-failed); border-color: var(--replay-failed); }
+.pill-replay.r-incomplete { color: var(--replay-incomplete); border-color: var(--replay-incomplete); }
+.dot.r-gold { background: var(--replay-gold); }
+.dot.r-failed { background: var(--replay-failed); }
+.dot.r-incomplete { background: var(--replay-incomplete); }
+.dot.r-none { background: #3a4150; }
+.audit-panel { border-left: 2px solid var(--replay-gold); }
+.audit-chip {
+  display: none;
+  margin-left: 0.35rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  color: var(--replay-gold);
+  background: rgba(214, 169, 58, 0.13);
+  white-space: nowrap;
+}
+.audit-chip.has-audit { display: inline-block; }
+.logtail {
+  max-height: 22rem;
+  overflow: auto;
+  font-size: 0.78rem;
+  color: var(--muted);
+}

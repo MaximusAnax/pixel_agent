@@ -11,6 +11,8 @@ import pytest
 
 from cua_failure_analysis.review.labels import build_discovery_row, judge_modes_ordered
 from cua_failure_analysis.review.packet import (
+  build_human_episode_assets,
+  build_human_stub_assets,
   build_review_packet,
   episode_slug,
   parse_traj_steps,
@@ -288,6 +290,114 @@ def test_build_review_packet_with_human(sample_zip: Path, tmp_path: Path):
   refresh_review_packet_html(out, template_dir=TEMPLATE_DIR)
   refreshed = (human_dir / "episode.html").read_text(encoding="utf-8")
   assert "settings button" in refreshed
+
+
+def _write_incomplete_gold_run(root: Path, task_id: str) -> Path:
+  """A replay killed before it wrote a manifest/trace: log + screenshots only."""
+  d = root / task_id
+  (d / "screenshots").mkdir(parents=True)
+  (d / "replay.log").write_text(
+    "\n".join(f"line {i}" for i in range(200)) + "\nTIMEOUT after 1200s\n", encoding="utf-8"
+  )
+  return d
+
+
+def test_human_screenshot_gets_grounded_crosshair(tmp_path: Path):
+  PIL = pytest.importorskip("PIL.Image")
+  gold_root = tmp_path / "gold"
+  gold_dir = _write_gold_run(gold_root, "030eeff7-b492-4218-b312-701ec99ee0cc")
+  episode_dir = tmp_path / "ep"
+  assets = build_human_episode_assets(gold_dir, episode_dir, episode_id=EPISODE_ID)
+
+  assert assets["replay_status"] == "gold"
+  assert assets["steps"][0].coords == [12, 34]
+  # The source screenshot is uniformly white; the marker must add red pixels.
+  img = PIL.open(episode_dir / "step_1_before.jpg").convert("RGB")
+  reds = [px for px in img.getdata() if px[0] > 150 and px[1] < 120 and px[2] < 120]
+  assert reds, "no crosshair drawn on the grounded pixel"
+  # The unmarked final screenshot stays clean.
+  final = PIL.open(episode_dir / "step_2_final.jpg").convert("RGB")
+  assert not [px for px in final.getdata() if px[0] > 150 and px[1] < 120 and px[2] < 120]
+
+
+def test_incomplete_replay_builds_stub_with_log_tail(tmp_path: Path):
+  gold_root = tmp_path / "gold"
+  gold_dir = _write_incomplete_gold_run(gold_root, "030eeff7-b492-4218-b312-701ec99ee0cc")
+  episode_dir = tmp_path / "ep"
+  assets = build_human_stub_assets(gold_dir, episode_dir, episode_id=EPISODE_ID)
+
+  assert assets["replay_status"] == "incomplete"
+  assert assets["steps"] == []
+  assert "TIMEOUT after 1200s" in assets["log_tail"]
+  assert len(assets["log_tail"].splitlines()) == 40  # tail, not the whole log
+  assert (episode_dir / "human_steps.json").exists()
+
+
+def test_paired_all_covers_incomplete_and_gold_only_replays(sample_zip: Path, tmp_path: Path):
+  """The packet must span the whole sweep: replays with no trace, and replays
+  whose task never appears in the HF zips."""
+  gold_root = tmp_path / "gold"
+  _write_incomplete_gold_run(gold_root, "030eeff7-b492-4218-b312-701ec99ee0cc")
+  _write_gold_run(gold_root, "aaaaaaaa-0000-0000-0000-000000000000")
+
+  episodes, groups = select_paired_all_episodes(
+    {"a3b": sample_zip, "7b": sample_zip},
+    gold_root=gold_root,
+    task_domains={"aaaaaaaa-0000-0000-0000-000000000000": "gimp"},
+  )
+  by_task = {g["task_id"]: g for g in groups}
+  assert len(groups) == 2
+
+  zip_task = by_task["030eeff7-b492-4218-b312-701ec99ee0cc"]
+  assert zip_task["replay_status"] == "incomplete"
+  assert set(zip_task["models"]) == {"a3b", "7b", "human"}
+
+  gold_only = by_task["aaaaaaaa-0000-0000-0000-000000000000"]
+  assert gold_only["replay_status"] == "gold"
+  assert set(gold_only["models"]) == {"human"}
+  assert gold_only["domain"] == "gimp"
+  assert set(gold_only["missing_models"]) == {"a3b", "7b"}
+
+  human_eps = [ep for ep in episodes if ep["model"] == "human"]
+  assert len(human_eps) == 2
+  assert {ep["replay_status"] for ep in human_eps} == {"incomplete", "gold"}
+
+
+def test_build_review_packet_renders_incomplete_replay(sample_zip: Path, tmp_path: Path):
+  pytest.importorskip("jinja2")
+  gold_root = tmp_path / "gold"
+  _write_incomplete_gold_run(gold_root, "030eeff7-b492-4218-b312-701ec99ee0cc")
+  episodes, groups = select_paired_all_episodes(
+    {"a3b": sample_zip, "7b": sample_zip}, gold_root=gold_root
+  )
+  manifest_path = tmp_path / "manifest.json"
+  write_manifest(
+    manifest_path, episodes, packet_id="incomplete_test", task_groups=groups,
+    selection_mode="paired-all",
+  )
+  out = build_review_packet(
+    manifest_path,
+    zip_paths={"a3b": sample_zip, "7b": sample_zip},
+    output_dir=tmp_path / "packet",
+    template_dir=TEMPLATE_DIR,
+  )
+
+  human_html = (out / "human" / EPISODE_SLUG / "episode.html").read_text(encoding="utf-8")
+  assert "Replay audit" in human_html
+  assert "TIMEOUT after 1200s" in human_html
+  assert "ui-drift" in human_html and "grounding-miss" in human_html
+  assert "produced no trace" in human_html
+  # Judge panel is meaningless for a replay and must not render there.
+  assert "Judge / pipeline attribution" not in human_html
+
+  a3b_html = (out / "a3b" / EPISODE_SLUG / "episode.html").read_text(encoding="utf-8")
+  assert "Judge / pipeline attribution" in a3b_html
+  assert "Replay audit" not in a3b_html
+
+  index = (out / "index.html").read_text(encoding="utf-8")
+  assert 'data-replay="incomplete"' in index
+  assert 'data-task-id="030eeff7-b492-4218-b312-701ec99ee0cc"' in index
+  assert "replay incomplete" in index
 
 
 def _write_offline_judge(path: Path, mode: str) -> Path:

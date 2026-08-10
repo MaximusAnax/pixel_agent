@@ -34,9 +34,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_DIR = ROOT / "annotations"
 
 
-def _labels_count(data: dict) -> dict[str, int]:
+def _labels_count(data: dict) -> dict[str, str]:
   return {
-    aid: len(block.get("labels") or {})
+    aid: f"{len(block.get('labels') or {})} labels, "
+    f"{len(block.get('replay_audit') or {})} replay notes"
     for aid, block in (data.get("annotators") or {}).items()
   }
 

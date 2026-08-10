@@ -26,3 +26,6 @@ ops/meetings/**/*.wav
 ops/meetings/**/*.webm
 ops/config/meetings.env
 ops/config/gdoc-service-account.json
+
+# Claude Code local session state (worktrees, settings).
+.claude/
