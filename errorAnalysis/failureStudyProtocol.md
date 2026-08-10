@@ -160,24 +160,47 @@ Identify the earliest step where either:
 - OSWorld evaluator would fail if the run stopped there, or
 - The agent's action diverges from a viable path (programmatic heuristics + optional human demo from OSWorld-Human)
 
+### Trace step semantics (OpenCUA / similar)
+
+Per step in `traj.jsonl`-style logs, treat these as **distinct**:
+
+| Field | Meaning |
+|---|---|
+| **Observation (before action)** | Screenshot at step *k* = UI state when choosing action *k* |
+| **Executed action (trajectory)** | What the runtime ran on the VM (often absolute pixels) |
+| **Model code (CoT)** | Code block in the model response (often normalized 0–1 coords) |
+| **Stated intent (CoT)** | Natural-language `## Action:` (or equivalent) section |
+
+Post-action visual state is the **next** step’s observation (no separate post-image in typical HF zips). A programmatic `grounding_mismatch` flag may mark when executed vs proposed coords diverge beyond tolerance after normalization — evidence for Click Region Error / Location Hallucination / Fine-Grained Manipulation, not a taxonomy leaf.
+
 ### VLM judge input bundle (step `t*` only)
 
-- Task instruction + evaluator description
-- Screenshot at `t*` with predicted click/action overlay
-- Agent CoT / action JSON at `t*`
+Required context for attribution (annotation-ready / `osworld_v1` and later):
+
+- **Canonical task instruction** from OSWorld task JSON (not only the agent-visible / traj-truncated string)
+- **OSWorld evaluator bundle:** outcome (`result.txt`), `evaluator` rules, and a **per-func** summary of what the metric checks (do not dump all OSWorld metrics)
+- **Model observation** at `t*` (screenshot) with predicted click/action overlay when available
+- **Executed action** (trajectory) vs **model code (CoT)** vs **stated intent** at `t*`
 - Previous 2–3 steps (compressed)
-- Evaluator failure message / failed assertion
+- Evaluator failure message / failed assertion when available (else binary score + eval bundle)
 - Taxonomy decision tree for confusable pairs
+- **Human reference path (non-binding):** full OSWorld-Human / Human Agent sequence — each human step’s action text **plus** observation screenshot when Human Agent artifacts exist
+
+**Human reference contract:** The human sequence is **one viable path**, not the only valid path. Do **not** require step-wise alignment to the agent trace, and do **not** penalize agent actions that diverge from the human path if they still progress toward OSWorld success criteria. Prefer labeling agent failure modes over “didn’t match human.”
+
+**Provisional vs gold:** Versioned judge labels (`judge_context_version`) are provisional reference during discovery. Human labels in `annotations.json` are gold-in-progress. Calibrate the judge against adjudicated gold in Phase D — not during the first enriched rejudge.
 
 **Do not** judge from trajectory text alone. OSWorld success is execution-based, not reference-trajectory matching.
+
+**Timing:** Provisional multimodal rejudge (`osworld_v1`) waits until Human Agent screenshots are ready for the episode (`oracle_status` ready or partial). Never overwrite prior judge outputs — write a new version.
 
 ### Judge output schema
 
 ```json
 {
-  "primary_mode": "leaf_name",
-  "secondary_modes": ["leaf_name"],
+  "modes_ordered": ["leaf_name", "additional_applicable_leaf"],
   "propagated": false,
+  "meta_labels": [],
   "tier_used": "programmatic|a11y|judge",
   "evidence_cot_span": "string",
   "confidence": 0.0,
@@ -185,19 +208,26 @@ Identify the earliest step where either:
 }
 ```
 
+Compatibility note: `primary_mode` / `secondary_modes` are retained as derived
+fields in tooling (`primary_mode == modes_ordered[0]`) so earlier one-primary
+records remain loadable.
+
 ### Models
+
+*(Updated 2026-08-10 per `docs/plans/2026-08-10-frozen-doc-corrections.md`.)*
 
 | Role | Model | Serving |
 |---|---|---|
-| Ultra-small agent | Qwen3.5-VL-0.8B | vLLM on PSC Bridges-2 |
-| Trained small CUA baseline | OpenCUA-7B | vLLM on Bridges (`--trust-remote-code`) |
+| Agents under analysis | **OpenCUA A3B and OpenCUA-7B** | HF pre-generated trajectories (paired pilot); vLLM (`--trust-remote-code`) for new rollouts |
 | Optional mid baseline | OpenCUA-32B or Qwen3.5-VL-9B | vLLM, tensor parallel if needed |
-| Judge (draft) | Qwen3.5-VL-9B+ | Separate vLLM job on Bridges |
-| Judge (validation) | Frontier API or ≥32B | For calibration against human gold set |
+| Judge (provisional) | **`claude-sonnet-4-6`** | Anthropic API; labels versioned via `judge_context_version` |
+| Judge (validation) | Frontier API or ≥32B | For calibration against human gold set (Phase D) |
 
 ---
 
 ## Phase D — Validation for publication (weeks 5–8)
+
+**Prerequisite:** Annotation-ready pilot packet + discovery labeling by `abdoul` / `raghav`. Phase D is **after** human gold exists — not the current milestone.
 
 ### Human gold set
 
@@ -209,16 +239,17 @@ Identify the earliest step where either:
 ### Judge calibration
 
 - **5+ anchor examples per leaf** in judge prompt
-- Report judge-vs-human agreement per leaf
-- Ablations: judge size, with/without CoT, with/without reference trajectory
+- Report judge-vs-human agreement per leaf (compare pre-context vs `osworld_v1` vs gold-calibrated)
+- Ablations: judge size, with/without CoT, with/without human reference images
 
 ### Reportable outcomes
 
-1. Prevalence of each leaf at `t*`, per model, with confidence intervals
+1. Prevalence of each leaf at `t*`, per model, with confidence intervals (**human gold**, not provisional judge alone)
 2. Co-occurrence matrix among leaves
 3. Fraction of Long-Horizon / Action Looping failures that are `propagated`
 4. Hidden Operation Blindness rate vs grounding rate on OSWorld
 5. Cross-Application Context Loss rate on `cross_app`-tagged tasks only
+6. `evaluator_mismatch` rate
 
 ---
 
@@ -256,8 +287,9 @@ Judge labeling: first failure step only on failed runs (~200–800 instances), n
 
 ## Compute infrastructure
 
-**Primary:** PSC Bridges-2 (active allocation)  
-**Secondary:** CMU Babel (account pending — request in parallel, non-blocking)
+**HF trajectory analysis (primary):** CMU Babel — provisioned; shared lab tree at
+`/data/group_data/mattlab/pixel_agent/`  
+**vLLM serving / new rollouts:** PSC Bridges-2 (active allocation, `cis260099p`)
 
 OSWorld + vLLM uses a **split architecture**: GPU inference on HPC; OSWorld VMs on KVM-capable node, local machine, or AWS per group policy.
 
@@ -305,7 +337,10 @@ interact -A CHARGE_ID -p GPU-shared --gres=gpu:1 -t 4:00:00
 # Inside allocation
 module load anaconda3  # or group conda module
 conda activate <your_env>
-pip install 'vllm>=0.12.0'
+# vLLM 0.12.0+ / 0.23 wheels are built against CUDA 13 and fail on Bridges'
+# CUDA 12.6 (libcudart.so.13 ImportError). Lab standard: 0.11.0 + Python 3.11
+# conda env + `module load cuda/12.6.1`.
+pip install vllm==0.11.0
 
 vllm serve xlangai/OpenCUA-7B \
   --trust-remote-code \
@@ -354,16 +389,13 @@ Bridges charges **Service Units (SUs)** by node type and wall time. For core stu
 
 Docs: [Bridges-2 User Guide](https://www.psc.edu/resources/bridges-2/user-guide/)
 
-### CMU Babel (secondary — pending)
+### CMU Babel (provisioned — primary for HF trajectory analysis)
 
-Account not yet provisioned. When ready:
-
-1. LTI intranet → HPC Cluster User Account Request (`babel`)
-2. Safety quiz on [hpc.cs.cmu.edu](https://hpc.cs.cmu.edu/)
-3. SSH: `login.babel.cs.cmu.edu`
-4. Same split architecture and vLLM commands as Bridges
-
-Use Babel for overflow GPU or if lab standardizes workflows there.
+Provisioned (Andrew IDs). SSH: `login.babel.cs.cmu.edu`. Phase 1 HF
+trajectory analysis runs here; shared lab work (code clone, outputs, review
+packets, annotations) lives under `/data/group_data/mattlab/pixel_agent/`.
+Runbooks: `docs/babel_hf_orchestration.md`, `docs/babel_account_checklist.md`.
+Same split architecture and vLLM commands as Bridges.
 
 ### OSWorld VM strategy (confirm with advisor)
 
@@ -397,7 +429,7 @@ $PROJECT/cua-failure-analysis/
 
 - Bridges charge ID (`-A`) and SU budget for core study?
 - OSWorld VMs: Bridges KVM, AWS, or local?
-- Group conda/container with `vllm>=0.12.0` + OSWorld deps?
+- Group conda/container with `vllm==0.11.0` + OSWorld deps? *(0.12.0+ incompatible with Bridges CUDA 12.6)*
 - Network path from VM host to Bridges GPU node for API calls?
 
 ---
@@ -408,17 +440,17 @@ $PROJECT/cua-failure-analysis/
 |---|---|---|
 | A — Taxonomy hardening | 1–2 | Decision rules in failureTaxonomy.md; rubric ready |
 | B — Instrumentation | 2–3 | Trace JSON emitted; Tier-1 detectors run on pilot traces |
-| C — Attribution | 3–5 | Failed runs get `t*` + primary label (hybrid pipeline) |
-| D — Validation | 5–8 | κ and prevalence tables per model; judge calibrated |
+| **C′ — Annotation-ready** | **Now** | OSWorld context + Human Agent screenshots in UI/judge; mockup-approved dual-trace packet; provisional `osworld_v1` |
+| C — Attribution (scaled) | 3–5 | Failed runs get `t*` + primary label (hybrid pipeline) |
+| D — Validation | 5–8 | κ and prevalence tables per model; judge calibrated vs **human gold** |
 | E — Controlled tracks | 4–8 (parallel) | Separate tables per track |
 
 ---
 
 ## Immediate next steps
 
-1. **Bridges:** SSH, `projects`, `my_quotas`; GPU-shared vLLM smoke test
-2. **Advisor:** OSWorld VM strategy (KVM vs AWS/local) + charge ID
-3. **AgentNetBench** pilot on Bridges
-4. **Pre-register** 100-task stratified list
-5. **Babel:** Submit account request (non-blocking)
-6. **30-task pilot** → begin human gold labeling
+1. Phase 0 grounding freeze + Abdoul sign-off (`docs/GROUNDING_MANIFEST.md`)
+2. Annotation-ready infrastructure (vendor metadata, UI mockups, Human Agent, `osworld_v1` rejudge)
+3. Discovery labeling on pilot packet (`abdoul` + `raghav`)
+4. Agreement diagnostics → Phase D gold set + judge calibration
+5. Core 100-task prevalence (after calibration)

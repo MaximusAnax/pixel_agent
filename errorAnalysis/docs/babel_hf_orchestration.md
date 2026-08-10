@@ -7,15 +7,44 @@ trajectory zips to the laptop.
 ## Architecture
 
 ```text
-Local pixelAgent repo
-  -> rsync code/config to Babel /home/andiongu/cua-failure-analysis
-  -> submit Slurm job
-  -> Babel checks /data/datasets and /data/user_data/andiongu
-  -> selected HF zip is read or downloaded remotely
-  -> job extracts bounded samples into /scratch or /data/user_data work dir
-  -> compact outputs are written under /data/user_data/andiongu
+Local pixelAgent repo (git push)
+  -> sync_shared_repo.sh pull on Babel compute
+  -> shared clone at /data/group_data/mattlab/pixel_agent/pixelAgent
+  -> submit Slurm job from errorAnalysis/
+  -> HF zips in per-user /data/group_data/mattlab/$USER (or user_data)
+  -> compact outputs under /data/group_data/mattlab/pixel_agent/outputs/<run_id>
+  -> stage_outputs_to_home.sh mirrors to ~/cua-failure-analysis/data/babel_outputs
   -> local machine syncs JSONL/CSV/MD summaries only
 ```
+
+## Shared mattlab project root
+
+Abdoul and Raghav share one Babel project tree under **`/data/group_data/mattlab/pixel_agent/`**:
+
+| Path | Purpose |
+|---|---|
+| `pixelAgent/` | Full git clone (canonical code on Babel) |
+| `outputs/` | Shared analysis run artifacts |
+| `review_packets/` | HTML trace review packets |
+| `review_annotations/` | Multi-annotator `annotations.json` |
+| `.venv/` | Shared Python environment |
+| `BABEL_SETUP.md` | Init checklist (written by `init_shared_project.sh`) |
+
+**One-time init** (either person, from laptop):
+
+```bash
+source config/babel.env
+scripts/babel/init_shared_project.sh
+```
+
+**Before each submit or packet build:**
+
+```bash
+git push   # from pixelAgent repo root
+cd errorAnalysis && scripts/babel/sync_shared_repo.sh pull
+```
+
+Per-user only: `config/babel.env` secrets on laptop; copy API keys to `~/cua-failure-analysis/config/babel.env` or `~/.pixel_agent/babel.env` on Babel for judge calls.
 
 ## Files
 
@@ -23,11 +52,14 @@ Local pixelAgent repo
 |---|---|
 | `config/babel.env.example` | Babel login, storage, Slurm, HF cache defaults |
 | `config/hf_osworld_packages.yaml` | Curated package inventory for modern models |
-| `scripts/babel/submit_hf_analysis.sh` | Local helper that syncs code and submits Slurm |
+| `scripts/babel/init_shared_project.sh` | One-time shared repo + venv setup on mattlab group space |
+| `scripts/babel/sync_shared_repo.sh` | `git pull` shared clone on compute |
+| `scripts/babel/submit_hf_analysis.sh` | Pull shared repo and submit Slurm job |
 | `scripts/babel/analyze_hf_osworld.sbatch` | Remote Slurm job wrapper |
-| `scripts/babel/setup_env.sh` | One-time Python environment setup on Babel (persists across syncs) |
-| `scripts/babel/stage_outputs_to_home.sh` | Copy compact outputs from compute storage to home (login-visible) |
+| `scripts/babel/setup_env.sh` | Python environment setup (shared `.venv` or legacy home) |
+| `scripts/babel/stage_outputs_to_home.sh` | Copy compact outputs from group storage to home mirror |
 | `scripts/babel/sync_outputs.sh` | Pulls compact outputs back locally |
+| `scripts/babel/publish_outputs_to_shared.sh` | Copy legacy/home runs → shared `outputs/` (before packet build) |
 | `scripts/babel/wait_for_run.sh` | Polls until summary.md exists or Slurm job fails |
 | `scripts/hf_osworld_analyze.py` | Remote zip inventory and best-effort analyzer |
 | `hermes/SOUL.md` | Hermes operating contract for Phase 1 |
@@ -47,20 +79,22 @@ export BABEL_ACCOUNT=<account>
 export BABEL_QOS=<qos>
 ```
 
-After the first code sync, create the remote Python environment (once per Babel
-account; preserved across future submits because `submit_hf_analysis.sh` excludes
-`.venv` from rsync):
+After init, the shared Python environment lives at
+`/data/group_data/mattlab/pixel_agent/.venv` (created by `init_shared_project.sh`).
+
+Legacy per-user home layout (`~/cua-failure-analysis/.venv`) is no longer used for
+submits when the shared mattlab paths are configured in `babel.env`.
 
 ```bash
-ssh andiongu@login.babel.cs.cmu.edu
-cd /home/andiongu/cua-failure-analysis
-scripts/babel/setup_env.sh
+# One-time shared setup (from laptop):
+source config/babel.env
+scripts/babel/init_shared_project.sh
 ```
 
-The first `submit_hf_analysis.sh` run syncs code even if the venv is not ready yet;
-it exits before queuing Slurm and prints setup instructions. After `setup_env.sh`,
-submits use `/home/andiongu/cua-failure-analysis/.venv/bin/python` exclusively — the
-sbatch wrapper fails fast if that interpreter is missing.
+The first `submit_hf_analysis.sh` run calls `sync_shared_repo.sh pull` and fails fast
+if the shared venv is missing — run `init_shared_project.sh` first, or repair with
+`scripts/babel/bootstrap_shared_venv.sh` if the env landed under `errorAnalysis/.venv`.
+Submits use `${BABEL_SHARED_VENV}/bin/python` on the shared clone.
 
 ## Smoke Test
 
@@ -68,14 +102,16 @@ Run from your local machine:
 
 ```bash
 cd errorAnalysis
+git push   # from pixelAgent repo root
+scripts/babel/sync_shared_repo.sh pull
 scripts/babel/submit_hf_analysis.sh \
   opencua_agent-opencua_a3b-cot_l2-action_history-3image-Ubuntu-15step.zip
 ```
 
-The script prints the run id and the remote output directory:
+The script prints the run id and the shared output directory:
 
 ```text
-/data/user_data/andiongu/cua_failure_analysis/outputs/<run_id>
+/data/group_data/mattlab/pixel_agent/outputs/<run_id>
 ```
 
 After the Slurm job completes:
@@ -104,11 +140,16 @@ Babel storage tiers (from the quickstart guide):
 
 Use:
 
-- `/home/andiongu/cua-failure-analysis` for code, configs, and small logs only.
-- the lab group space (`BABEL_GROUP_DIR`, 8TB) for the HF cache and selected zips
-  when an allocation exists; otherwise `/data/user_data/andiongu/...` (500GB).
-- `/data/user_data/andiongu/cua_failure_analysis/outputs` for reports.
+- `/data/group_data/mattlab/pixel_agent/pixelAgent` for the **shared git clone** and job code path.
+- `/data/group_data/mattlab/pixel_agent/outputs` for **shared analysis outputs** (abdoul + raghav).
+- `/data/group_data/mattlab/$USER` (`BABEL_GROUP_DIR`) for per-user HF cache and zips.
+- `~/cua-failure-analysis/data/` on home for **login-visible mirrors** only (rsync staging).
 - `/scratch` or the configured work root for temporary extraction.
+
+Legacy (pre-shared layout):
+
+- `/home/<user>/cua-failure-analysis` — deprecated as code location; mirrors only.
+- `/data/user_data/<user>/cua_failure_analysis/outputs` — migrate old runs to shared outputs manually if needed.
 
 Avoid:
 

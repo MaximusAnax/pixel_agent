@@ -84,12 +84,14 @@ it by hand.
 
 ### 1. Weekly report in CI (one-time)
 
-`.github/workflows/weekly-report.yml` already runs `weekly_report.py` on a weekly
-cron, opens a discussion issue, and commits the report. To change timing, edit
-the `cron:` (UTC) to land a few hours before your meeting. No secrets needed
-beyond the default `GITHUB_TOKEN`.
+`.github/workflows/weekly-report.yml` runs `weekly_report.py` on a weekly
+cron, opens a discussion issue, and commits the report. Uses `GITHUB_TOKEN` for
+PR/commit data; optional `ANTHROPIC_API_KEY` secret enables LLM narrative
+(Executive summary, Key advancements, Experiment findings). Without the key,
+extractive narrative still runs.
 
 You can also run it on demand from the Actions tab (workflow_dispatch).
+Locally: `python ops/weekly_report.py --no-llm` for offline extractive mode.
 
 ### 2. Transcription (local, per meeting)
 

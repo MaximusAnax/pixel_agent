@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ packet_id }} — Trace Review</title>
+  <link rel="stylesheet" href="review.css">
+</head>
+<body>
+  <div class="layout index-only" id="layout">
+    <aside class="sidebar">
+      <button type="button" class="tasks-toggle" id="tasks-toggle-collapsed" title="Open pilot task list">
+        Pilot tasks
+      </button>
+      <div class="task-nav-panel">
+        <div class="task-nav-head">
+          <h2>Pilot tasks (canonical order)</h2>
+          <button type="button" class="ghost" id="tasks-close" title="Collapse">✕</button>
+        </div>
+        {% for nav in side_nav %}
+        <a class="side-task" href="{{ nav.href }}">
+          <div class="id">{{ nav.domain }} · {{ nav.task_short }}</div>
+          <div class="prompt">{{ nav.instruction_preview or nav.task_id }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header-row">
+        <button type="button" class="ghost" id="open-tasks-btn">← Tasks</button>
+        <h1>Trace review packet · {{ packet_id }}</h1>
+      </div>
+      <p class="meta">
+        {{ n_tasks }} pilot tasks · {{ n_episodes }} traces (A3B + 7B) ·
+        <strong>Label in each episode page</strong>
+      </p>
+
+      <section class="annot-core">
+        <div class="annotator-toolbar">
+          <label class="field">Annotator
+            <select id="annotator-select" class="annotator-select"></select>
+          </label>
+          <span id="annotator-banner" class="annotator-banner"></span>
+          <button type="button" class="primary" id="btn-export-all">Export my labels (JSON)</button>
+          <label class="btn-file ghost">Import labels<input type="file" id="import-file" accept=".json"></label>
+        </div>
+        <p class="hint">Serve: <code>python scripts/serve_review_packet.py {{ packet_id }} --annotator abdoul --babel-sync</code></p>
+      </section>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Task</th>
+            <th>Oracle</th>
+            <th>Judge A3B</th>
+            <th>Judge 7B</th>
+            <th>abdoul (A3B)</th>
+            <th>abdoul (7B)</th>
+            <th>raghav (A3B)</th>
+            <th>raghav (7B)</th>
+            <th>Open</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for group in task_groups %}
+          <tr>
+            <td>{{ group.domain }}</td>
+            <td><code title="{{ group.task_id }}">{{ group.task_id[:8] }}…</code></td>
+            <td>
+              {% set ost = group.oracle_status or 'pending' %}
+              {% if ost == 'ready' %}<span class="badge ok">ready</span>
+              {% elif ost == 'partial' %}<span class="badge warn">partial</span>
+              {% elif ost == 'failed' %}<span class="badge fail">failed</span>
+              {% else %}<span class="badge pending">pending</span>{% endif %}
+            </td>
+            {% set a3b = group.models.get('a3b', {}) %}
+            {% set b7 = group.models.get('7b', {}) %}
+            <td>{{ a3b.provisional_primary or '—' }} {% if a3b.t_star is not none %}@ {{ a3b.t_star }}{% endif %}</td>
+            <td>{{ b7.provisional_primary or '—' }} {% if b7.t_star is not none %}@ {{ b7.t_star }}{% endif %}</td>
+            <td>
+              <span class="human-status" data-annotator="abdoul" data-label-key="a3b/{{ a3b.episode_id | replace('/', '__') if a3b.episode_id else '' }}">—</span>
+            </td>
+            <td>
+              <span class="human-status" data-annotator="abdoul" data-label-key="7b/{{ b7.episode_id | replace('/', '__') if b7.episode_id else '' }}">—</span>
+            </td>
+            <td>
+              <span class="human-status" data-annotator="raghav" data-label-key="a3b/{{ a3b.episode_id | replace('/', '__') if a3b.episode_id else '' }}">—</span>
+            </td>
+            <td>
+              <span class="human-status" data-annotator="raghav" data-label-key="7b/{{ b7.episode_id | replace('/', '__') if b7.episode_id else '' }}">—</span>
+            </td>
+            <td class="links">
+              {% if a3b.href %}<a href="{{ a3b.href }}">A3B</a>{% endif %}
+              {% if b7.href %}<a href="{{ b7.href }}">7B</a>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="provisional">
+        Judge labels are provisional. Human reference is non-binding.
+        Assign ordered failure modes (with per-mode reasoning) on each episode page.
+      </p>
+    </main>
+  </div>
+
+  <script>
+    window.REVIEW_CONFIG = {
+      page: "index",
+      packetId: {{ packet_id | tojson }},
+      storageKeyBase: "taxonomy_discovery_{{ packet_id | replace('-', '_') }}",
+      registeredAnnotators: ["abdoul", "raghav"],
+      annotator: {{ default_annotator | tojson }},
+      apiBase: {{ api_base | tojson }}
+    };
+  </script>
+  <script src="review.js"></script>
+</body>
+</html>

@@ -123,24 +123,44 @@ def parse_sections(md_text: str) -> dict[str, list[str]]:
 # --------------------------------------------------------------------------- #
 # Extractive (no-LLM) synthesis
 # --------------------------------------------------------------------------- #
-def render_report_digest(report_path: Path | None) -> list[str]:
-    if not report_path:
-        return ["_No weekly report found. Run `python ops/weekly_report.py`._"]
+def extract_report_section(report_path: Path, section_prefix: str) -> list[str]:
+    """Pull bullet lines from a report H2 section (case-insensitive prefix match)."""
     lines = report_path.read_text(errors="replace").splitlines()
-    glance: list[str] = []
+    out: list[str] = []
     capture = False
+    prefix = section_prefix.lower()
     for line in lines:
-        if line.startswith("## At a glance"):
-            capture = True
+        if line.startswith("## "):
+            title = line[3:].strip().lower()
+            capture = title.startswith(prefix)
             continue
         if capture:
             if line.startswith("## "):
                 break
-            if line.strip().startswith("-"):
-                glance.append(line.strip())
-    digest = [f"From **{report_path.name}**:"]
-    digest.extend(glance or ["_(report had no 'At a glance' section)_"])
-    return digest
+            stripped = line.strip()
+            if stripped.startswith(("-", "*")) or stripped.startswith("###"):
+                out.append(stripped)
+    return out
+
+
+def render_report_digest(report_path: Path | None, *, limit: int = 10) -> list[str]:
+    if not report_path:
+        return ["_No weekly report found. Run `python ops/weekly_report.py`._"]
+    for section in (
+        "Executive summary",
+        "Key advancements",
+        "Experiment findings",
+        "At a glance",
+        "Metrics at a glance",
+    ):
+        bullets = extract_report_section(report_path, section)
+        if bullets:
+            digest = [f"From **{report_path.name}** ({section}):"]
+            digest.extend(bullets[:limit])
+            if len(bullets) > limit:
+                digest.append(f"- … (+{len(bullets) - limit} more)")
+            return digest
+    return [f"From **{report_path.name}**: _(no digestible sections found)_"]
 
 
 def extractive_state(report_path: Path | None, meetings: list[Path], today: dt.date) -> str:

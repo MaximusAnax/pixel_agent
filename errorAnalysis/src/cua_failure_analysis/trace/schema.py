@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class A11yElement(BaseModel):
@@ -43,17 +43,53 @@ class RunManifest(BaseModel):
   instruction: str = ""
   task_tags: list[str] = Field(default_factory=list)
   eval_message: str = ""
+  # OSWorld context (populated when vendored metadata is available)
+  canonical_instruction: str = ""
+  eval_bundle: str = ""
+  human_reference_actions: list[str] = Field(default_factory=list)
+  human_reference_grouped: list[list[str]] = Field(default_factory=list)
+  osworld_task_path: str = ""
+  domain: str = ""
 
 
 class AttributionResult(BaseModel):
-  primary_mode: str
+  """Judge/detector attribution for one failed run.
+
+  All-applicable labeling policy (ratified 2026-08-10): ``modes_ordered`` lists
+  **every** applicable leaf at ``t_star``, most-central-first. ``primary_mode``
+  and ``secondary_modes`` are kept in sync for backward compatibility
+  (``primary_mode == modes_ordered[0]``); old single-primary records load
+  unchanged and gain a derived ``modes_ordered``.
+  """
+
+  primary_mode: str = "Unresolved"
   secondary_modes: list[str] = Field(default_factory=list)
+  modes_ordered: list[str] = Field(default_factory=list)
   propagated: bool = False
   meta_labels: list[str] = Field(default_factory=list)
   tier_used: str = "programmatic"
   evidence_cot_span: str = ""
   confidence: float = 0.0
   t_star: int = 0
+
+  @model_validator(mode="after")
+  def _sync_mode_fields(self) -> "AttributionResult":
+    if self.modes_ordered:
+      deduped: list[str] = []
+      for m in self.modes_ordered:
+        if m and m not in deduped:
+          deduped.append(m)
+      self.modes_ordered = deduped
+      if not self.primary_mode or self.primary_mode == "Unresolved":
+        self.primary_mode = deduped[0]
+      if not self.secondary_modes:
+        self.secondary_modes = [m for m in deduped if m != self.primary_mode]
+    elif self.primary_mode and self.primary_mode != "Unresolved":
+      self.modes_ordered = [
+        self.primary_mode,
+        *[m for m in self.secondary_modes if m and m != self.primary_mode],
+      ]
+    return self
 
 
 class TraceLogger:

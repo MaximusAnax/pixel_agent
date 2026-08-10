@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 from cua_failure_analysis.taxonomy import ALL_LEAVES
 
 DECISION_ORDER = """
-Global decision order at t*:
+Disambiguation order at t* (for choosing between confusable leaves and finding
+the most central mode — it does NOT limit how many modes you list):
 1. Action Looping if same action repeated >=3 times without state change
 2. Spatial Reasoning Error if relational instruction + landmark in CoT + wrong relative click
 3. Click Region Error if CoT names T and click near but outside T bbox
@@ -34,14 +36,34 @@ def build_system_prompt(anchors_yaml: Path | None = None) -> str:
 
   return f"""You are an expert annotator for computer-use agent failure modes.
 
-Classify the failure at step t* using EXACTLY ONE primary label from this taxonomy:
+Identify EVERY failure mode that applies at step t*, from this taxonomy
+(all-applicable policy — list each mode the evidence at t* supports, ordered
+most-central/root-cause first):
 {LEAF_LIST}
 
 {DECISION_ORDER}
 
 Rules:
-- Use screenshot + CoT evidence only; do not assume reference trajectories are the only valid path.
-- Assign secondary labels only if multiple modes clearly co-occur at the same step.
+- Eval context (OSWorld evaluator bundle) is ground truth for **what OSWorld checks**.
+  The failure-mode label is about **agent behavior at t***.
+- If the agent appears to meet eval criteria on available evidence but OSWorld marked
+  fail, suggest `evaluator_mismatch` in `meta_labels`.
+- Human reference (text + observation images) is **NON-BINDING** — a viable path, not
+  the only valid path. Do **not** overfit: if the agent's actions diverge from the human
+  sequence but still progress toward OSWorld success criteria, that can be correct.
+  Prefer labeling agent failure modes over "didn't match human."
+  Do not require step-wise alignment between human and agent traces (lengths/order often differ).
+- **Grounding comparison:** OpenCUA logs two representations per step —
+  **model code (CoT)** uses normalized coords (0–1); **executed action (trajectory)**
+  uses absolute pixels. They usually describe the same intent after conversion.
+  When they **diverge beyond coordinate rounding**, treat as grounding evidence:
+  prefer Click Region Error, Location Hallucination, or Fine-Grained Manipulation Failure
+  depending on screenshot + stated intent. When model code targets element A in CoT but
+  executed click lands on B, cite both in `evidence_cot_span`.
+- Use screenshot + CoT evidence; do not assume reference trajectories are the only valid path.
+- List every mode that applies at t* in `modes_ordered`, most-central-first. Do not
+  pad: include a mode only when the evidence at t* supports it. One mode is a valid
+  answer when only one applies.
 - Set propagated=true only if this step is downstream of an earlier root error.
 - Output valid JSON only.
 
@@ -55,29 +77,83 @@ def build_user_prompt(
   action_json: str,
   eval_message: str,
   previous_summary: str,
+  *,
+  canonical_instruction: str = "",
+  eval_bundle: str = "",
+  executed_action: str = "",
+  model_code: str = "",
+  stated_intent: str = "",
+  grounding_mismatch: bool | None = None,
+  human_reference_text: str = "",
 ) -> str:
-  return f"""Task instruction:
-{instruction}
+  """Build the judge user prompt.
 
-Chain-of-thought at t*:
+  Prefer structured action fields when provided; fall back to ``action_json``.
+  """
+  canon = (canonical_instruction or instruction or "").strip()
+  bundle = (eval_bundle or eval_message or "").strip() or "(none)"
+  human_block = (human_reference_text or "").strip() or "(none — text-only or oracle not ready)"
+
+  if executed_action or model_code or stated_intent:
+    mismatch_str = (
+      "unknown" if grounding_mismatch is None else str(bool(grounding_mismatch))
+    )
+    action_block = f"""Executed action (trajectory — what ran on VM):
+{executed_action or "(none)"}
+
+Model code (CoT — what model proposed):
+{model_code or "(none)"}
+
+Stated intent (CoT Action section):
+{stated_intent or "(none)"}
+
+Grounding pre-check: {mismatch_str} (programmatic: proposed vs executed coords)
+Coordinate note: model uses normalized 0-1; trajectory uses pixels (1920x1080 assumed unless known)"""
+  else:
+    action_block = f"""Action at t*:
+{action_json}"""
+
+  return f"""Canonical task instruction:
+{canon}
+
+OSWorld evaluator bundle:
+{bundle}
+
+Human reference path (NON-BINDING — one viable solution, not required):
+{human_block}
+Note: agent path length/order may differ; do not require step-wise alignment.
+Human observation images (if any) are attached separately before the model observation.
+
+{action_block}
+
+Chain-of-thought (reasoning) at t*:
 {cot}
-
-Action at t*:
-{action_json}
-
-Evaluator message:
-{eval_message}
 
 Previous steps (compressed):
 {previous_summary}
 
-Return JSON:
+Respond with ONLY the following JSON object and nothing else. Do not write any
+reasoning, preamble, or explanation outside the JSON. Put your evidence inside
+`evidence_cot_span`. `modes_ordered` MUST contain one or more of the exact leaf
+names above, ordered most-central-first (the root-cause mode first).
 {{
-  "primary_mode": "<exact leaf name>",
-  "secondary_modes": [],
+  "modes_ordered": ["<exact leaf name>", "<additional applicable leaf names>"],
   "propagated": false,
   "meta_labels": [],
   "evidence_cot_span": "<quote or brief evidence>",
   "confidence": 0.0
 }}
 """
+
+
+def format_human_reference_text(human_reference_steps: list[dict[str, Any]] | None) -> str:
+  """Render human steps as text for the prompt (images attached separately)."""
+  if not human_reference_steps:
+    return ""
+  lines: list[str] = []
+  for i, row in enumerate(human_reference_steps, start=1):
+    action = str(row.get("action_text") or row.get("action") or "").strip()
+    has_img = bool(row.get("image_path"))
+    img_note = " [image attached]" if has_img else ""
+    lines.append(f"  h={i}: {action}{img_note}")
+  return "\n".join(lines)

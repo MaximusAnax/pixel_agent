@@ -6,11 +6,41 @@ import base64
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from openai import OpenAI
 
-from cua_failure_analysis.judge.prompts import build_system_prompt, build_user_prompt
+from cua_failure_analysis.judge.prompts import (
+  build_system_prompt,
+  build_user_prompt,
+  format_human_reference_text,
+)
 from cua_failure_analysis.trace.schema import AttributionResult, TraceStep
+
+
+def attribution_from_parsed(parsed: dict, t_star: int) -> AttributionResult:
+  """Build an AttributionResult from parsed judge JSON.
+
+  Prefers the all-applicable ``modes_ordered`` list (most-central-first);
+  falls back to legacy ``primary_mode``/``secondary_modes`` responses so older
+  transcripts and models that ignore the new template still parse.
+  """
+  modes = [str(m) for m in (parsed.get("modes_ordered") or []) if m]
+  if not modes:
+    primary = str(parsed.get("primary_mode") or "").strip()
+    if primary:
+      modes = [primary, *[str(m) for m in parsed.get("secondary_modes", []) if m]]
+  return AttributionResult(
+    modes_ordered=modes,
+    primary_mode=modes[0] if modes else "Unresolved",
+    secondary_modes=[m for m in modes[1:]],
+    propagated=bool(parsed.get("propagated", False)),
+    meta_labels=parsed.get("meta_labels", []),
+    tier_used="judge",
+    evidence_cot_span=parsed.get("evidence_cot_span", ""),
+    confidence=float(parsed.get("confidence", 0.0)),
+    t_star=t_star,
+  )
 
 
 @dataclass
@@ -38,7 +68,13 @@ class VLMJudge:
       return None
     data = Path(path).read_bytes()
     b64 = base64.standard_b64encode(data).decode("ascii")
-    return f"data:image/png;base64,{b64}"
+    suffix = Path(path).suffix.lower()
+    mime = "image/png"
+    if suffix in {".jpg", ".jpeg"}:
+      mime = "image/jpeg"
+    elif suffix == ".webp":
+      mime = "image/webp"
+    return f"data:{mime};base64,{b64}"
 
   def classify(
     self,
@@ -46,20 +82,36 @@ class VLMJudge:
     instruction: str,
     previous_steps: list[TraceStep],
     eval_message: str = "",
+    *,
+    canonical_instruction: str = "",
+    eval_bundle: str = "",
+    human_reference_steps: list[dict[str, Any]] | None = None,
   ) -> AttributionResult:
     prev_summary = "\n".join(
       f"step {s.step}: {s.action.get('type', 'action')} cot={s.cot[:120]}..."
       for s in previous_steps
     )
+    action = step.action or {}
     user_text = build_user_prompt(
       instruction=instruction,
       cot=step.cot,
-      action_json=json.dumps(step.action),
+      action_json=json.dumps(action),
       eval_message=eval_message,
       previous_summary=prev_summary or "(none)",
+      canonical_instruction=canonical_instruction or instruction,
+      eval_bundle=eval_bundle or eval_message,
+      executed_action=str(action.get("raw_code") or ""),
+      model_code=str(action.get("model_code") or ""),
+      stated_intent=str(action.get("stated_intent") or action.get("action_section") or ""),
+      grounding_mismatch=action.get("grounding_mismatch"),
+      human_reference_text=format_human_reference_text(human_reference_steps),
     )
 
     content: list[dict] = [{"type": "text", "text": user_text}]
+    for row in human_reference_steps or []:
+      img = self._encode_image(row.get("image_path"))
+      if img:
+        content.append({"type": "image_url", "image_url": {"url": img}})
     img = self._encode_image(step.screenshot_path)
     if img:
       content.append({"type": "image_url", "image_url": {"url": img}})
@@ -75,25 +127,59 @@ class VLMJudge:
     )
     raw = response.choices[0].message.content or "{}"
     parsed = self._parse_json(raw)
-    return AttributionResult(
-      primary_mode=parsed.get("primary_mode", "Unresolved"),
-      secondary_modes=parsed.get("secondary_modes", []),
-      propagated=bool(parsed.get("propagated", False)),
-      meta_labels=parsed.get("meta_labels", []),
-      tier_used="judge",
-      evidence_cot_span=parsed.get("evidence_cot_span", ""),
-      confidence=float(parsed.get("confidence", 0.0)),
-      t_star=step.step,
-    )
+    return attribution_from_parsed(parsed, t_star=step.step)
 
   @staticmethod
   def _parse_json(raw: str) -> dict:
-    raw = raw.strip()
-    if raw.startswith("```"):
-      raw = raw.split("```")[1]
-      if raw.startswith("json"):
-        raw = raw[4:]
+    text = raw.strip()
+    # Strip a leading ```json fence when the whole response is fenced.
+    if text.startswith("```"):
+      fenced = text.split("```")
+      if len(fenced) >= 2:
+        text = fenced[1]
+        if text.startswith("json"):
+          text = text[4:]
+    text = text.strip()
     try:
-      return json.loads(raw)
+      return json.loads(text)
     except json.JSONDecodeError:
-      return {"primary_mode": "Unresolved", "evidence_cot_span": raw[:200]}
+      pass
+    # The model often emits reasoning prose before/around the JSON object.
+    # Recover the JSON by parsing the first balanced-brace object in the text.
+    obj = _extract_json_object(raw)
+    if obj is not None:
+      return obj
+    return {"primary_mode": "Unresolved", "evidence_cot_span": raw.strip()[:200]}
+
+
+def _extract_json_object(text: str) -> dict | None:
+  """Return the first balanced {...} object parseable as JSON, else None."""
+  start = text.find("{")
+  while start != -1:
+    depth = 0
+    in_str = False
+    escape = False
+    for i in range(start, len(text)):
+      ch = text[i]
+      if in_str:
+        if escape:
+          escape = False
+        elif ch == "\\":
+          escape = True
+        elif ch == '"':
+          in_str = False
+        continue
+      if ch == '"':
+        in_str = True
+      elif ch == "{":
+        depth += 1
+      elif ch == "}":
+        depth -= 1
+        if depth == 0:
+          candidate = text[start : i + 1]
+          try:
+            return json.loads(candidate)
+          except json.JSONDecodeError:
+            break
+    start = text.find("{", start + 1)
+  return None

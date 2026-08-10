@@ -44,7 +44,7 @@ meeting recording ──▶ transcribe_meeting.py ─▶ meetings/<date>/ ──
 
 | Path | What it is |
 |---|---|
-| `weekly_report.py` | Stdlib + `git`/`gh`. Builds `reports/<ISO-week>.md`. Runs in GitHub Actions. |
+| `weekly_report.py` | Stdlib + `git`/`gh` + optional Anthropic narrative. Builds `reports/<ISO-week>.md`. Runs in GitHub Actions. |
 | `pull_gdoc_notes.py` | Google Docs API → `meetings/<date>/gdoc_notes.md` (raw pull). |
 | `format_meeting_notes.py` | Anthropic → structured `meetings/<date>/notes.md`. |
 | `llm_client.py` | Shared Anthropic (default) / OpenAI LLM client. |
@@ -64,7 +64,8 @@ meeting recording ──▶ transcribe_meeting.py ─▶ meetings/<date>/ ──
 pip install -r ops/requirements.txt
 
 # 1. Pre-meeting report (also runs weekly in CI)
-python ops/weekly_report.py --days 7           # --open-issue to file a GH issue
+python ops/weekly_report.py --days 7           # LLM narrative if ANTHROPIC_API_KEY set
+python ops/weekly_report.py --days 7 --no-llm  # extractive narrative only
 
 # 2. After the meeting — pull shared Google Doc notes
 python ops/pull_gdoc_notes.py --date 2026-06-27 --section-only
@@ -83,14 +84,14 @@ git add ops/reports ops/meetings ops/state AGENTS.md && git commit -m "chore(ops
 | Variable | Used by | Purpose |
 |---|---|---|
 | `GH_TOKEN` / `gh auth` | `weekly_report.py` | List merged PRs, open issues. Auto-set in Actions. |
-| `ANTHROPIC_API_KEY` | LLM scripts | **Required** for formatting. Uses default model `claude-sonnet-4-6`. |
+| `ANTHROPIC_API_KEY` | LLM scripts | Formatting + weekly report narrative + synthesis. Default model `claude-sonnet-4-6`. |
 | `STATE_LLM_MODEL` | LLM scripts | Optional override only. |
 | `STATE_LLM_PROVIDER` | `llm_client.py` | Force `anthropic` or `openai` (optional). |
 | `OPENAI_API_KEY` | LLM scripts | Only if `STATE_LLM_PROVIDER=openai`. |
 | `STATE_LLM_BASE_URL` | OpenAI provider | OpenAI-compatible endpoint. |
 
-LLM steps are optional. Without `ANTHROPIC_API_KEY`, `synthesize_state.py` runs
-extractive mode only; `format_meeting_notes.py` will exit with an error.
+LLM steps are optional. Without `ANTHROPIC_API_KEY`, `weekly_report.py` and
+`synthesize_state.py` use extractive mode; `format_meeting_notes.py` will exit with an error.
 
 ## Design choices (and how to change them)
 

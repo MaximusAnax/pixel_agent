@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockup · Episode · 06fe7178 (dark · decoupled human ref)</title>
+  <style>
+    :root {
+      --bg: #12141a;
+      --bg-elev: #1a1d26;
+      --surface: #222632;
+      --surface-2: #2a3040;
+      --ink: #e8eaef;
+      --muted: #9aa3b5;
+      --line: #343b4d;
+      --accent: #5ec4a8;
+      --accent-dim: #2a5c4f;
+      --warn: #e0a35a;
+      --warn-bg: #3a2c18;
+      --fail: #f07178;
+      --fail-bg: #3a1f24;
+      --ok: #7dcea0;
+      --ok-bg: #1e3a2c;
+      --sidebar-w: 220px;
+      --tasks-collapsed: 44px;
+      --human-collapsed: 44px;
+      --human-expanded: 340px;
+      --radius: 6px;
+      --font: "IBM Plex Sans", "Source Sans 3", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.45;
+    }
+    a { color: var(--accent); }
+    code, pre { font-family: var(--mono); font-size: 0.86em; }
+    button, input, select, textarea {
+      font: inherit;
+      color: var(--ink);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.35rem 0.5rem;
+    }
+    button { cursor: pointer; }
+    button.primary {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+    button.ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--muted);
+    }
+    button.ghost:hover { color: var(--ink); background: var(--surface-2); }
+
+    .mock-banner {
+      background: #0a0b0f;
+      color: var(--muted);
+      padding: 0.5rem 1rem;
+      font-size: 0.82rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .mock-banner code { color: var(--accent); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--human-collapsed);
+      min-height: calc(100vh - 40px);
+      transition: grid-template-columns 0.2s ease;
+    }
+    .layout.tasks-collapsed {
+      grid-template-columns: var(--tasks-collapsed) minmax(0, 1fr) var(--human-collapsed);
+    }
+    .layout.human-open {
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--human-expanded);
+    }
+    .layout.tasks-collapsed.human-open {
+      grid-template-columns: var(--tasks-collapsed) minmax(0, 1fr) var(--human-expanded);
+    }
+
+    /* Left: task nav (collapsible; open by default) */
+    .task-nav {
+      background: var(--bg-elev);
+      border-right: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 40px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .tasks-toggle {
+      writing-mode: vertical-rl;
+      border: none;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0.85rem 0.35rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      border-right: 3px solid var(--accent-dim);
+      display: none;
+    }
+    .layout.tasks-collapsed .tasks-toggle { display: block; }
+    .layout.tasks-collapsed .task-nav-panel { display: none; }
+    .task-nav-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-width: 0;
+      overflow: auto;
+      padding: 0.75rem 0.65rem 1rem;
+    }
+    .task-nav-head {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+    .task-nav-head h2 {
+      margin: 0;
+      flex: 1;
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .side-task {
+      display: block;
+      padding: 0.5rem 0.55rem;
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: inherit;
+      margin-bottom: 0.3rem;
+      border: 1px solid transparent;
+    }
+    .side-task:hover { background: var(--surface); }
+    .side-task.active {
+      background: var(--surface);
+      border-color: var(--line);
+    }
+    .side-task .id { font-family: var(--mono); font-size: 0.76rem; color: var(--accent); }
+    .side-task .prompt {
+      font-size: 0.76rem;
+      color: var(--muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Center: model episode */
+    .main {
+      padding: 1rem 1.25rem 3rem;
+      max-width: 920px;
+      overflow: auto;
+    }
+    .header-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.85rem;
+      align-items: baseline;
+      margin: 0 0 0.65rem;
+    }
+    .header-row h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+    }
+    .badge.fail { background: var(--fail-bg); color: var(--fail); border-color: #5a2a32; }
+    .badge.warn { background: var(--warn-bg); color: var(--warn); border-color: #5a4520; }
+    .badge.ok { background: var(--ok-bg); color: var(--ok); border-color: #2f5a42; }
+    .instruction-line { margin: 0 0 0.9rem; font-size: 0.95rem; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.5rem; }
+
+    details.panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 0.7rem;
+    }
+    details.panel > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 0.65rem 0.85rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    details.panel > summary::-webkit-details-marker { display: none; }
+    details.panel > summary::after { content: "▸"; color: var(--muted); font-weight: 400; }
+    details.panel[open] > summary::after { content: "▾"; }
+    .panel-body { padding: 0 0.85rem 0.85rem; border-top: 1px solid var(--line); }
+    .panel-body pre.bundle {
+      white-space: pre-wrap;
+      background: var(--bg);
+      padding: 0.7rem;
+      border-radius: var(--radius);
+      overflow: auto;
+      max-height: 260px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .annot-core {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      margin-bottom: 0.7rem;
+    }
+    .annot-core h2 { margin: 0 0 0.5rem; font-size: 0.92rem; }
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 0.5rem;
+      align-items: end;
+    }
+    label.field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    label.field.grow { flex: 1 1 220px; min-width: 180px; }
+    label.field.required span.req {
+      color: var(--warn);
+      font-weight: 600;
+      margin-left: 0.2rem;
+    }
+    .mode-list {
+      list-style: none;
+      margin: 0.35rem 0 0.65rem;
+      padding: 0;
+      display: grid;
+      gap: 0.45rem;
+    }
+    .mode-item {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.5rem 0.6rem;
+    }
+    .mode-item-head {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.88rem;
+      margin-bottom: 0.35rem;
+    }
+    .mode-item-head .rank {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+    }
+    .mode-item-head .name { flex: 1; font-weight: 600; }
+    .mode-reason {
+      width: 100%;
+      min-height: 2.6rem;
+      resize: vertical;
+      font-size: 0.84rem;
+    }
+    details.nested { margin-top: 0.4rem; }
+    details.nested > summary {
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .timeline-tools {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1rem 0 0.5rem;
+      align-items: center;
+    }
+    .timeline-tools h2 { margin: 0; font-size: 1rem; flex: 1; }
+
+    details.step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 0.45rem;
+    }
+    details.step.t-star {
+      border-color: #6a5230;
+      box-shadow: inset 3px 0 0 var(--warn);
+    }
+    details.step > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 0.5rem 0.65rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    details.step > summary::-webkit-details-marker { display: none; }
+    .step-num { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; }
+    .step-summary-main { min-width: 0; }
+    .step-summary-main .line {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.85rem;
+    }
+    .step-summary-main .sub {
+      font-size: 0.74rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .step-chips { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-end; }
+    .step-body {
+      border-top: 1px solid var(--line);
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.55rem;
+    }
+    .shot {
+      width: 100%;
+      max-width: 640px;
+      aspect-ratio: 16 / 10;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, #1e2838, #2a2430 55%, #1a222c);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: zoom-in;
+      position: relative;
+      overflow: hidden;
+    }
+    .shot::before {
+      content: "";
+      position: absolute;
+      inset: 12% 8%;
+      border: 1px dashed rgba(232, 234, 239, 0.15);
+      border-radius: 2px;
+    }
+    .shot.human {
+      background: linear-gradient(145deg, #243028, #2a2838 60%, #1e2430);
+      max-width: none;
+    }
+    .label-block { font-size: 0.82rem; }
+    .label-block strong {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .label-block pre {
+      margin: 0;
+      white-space: pre-wrap;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.4rem 0.5rem;
+    }
+    .coord-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+    .post-link { font-size: 0.78rem; color: var(--muted); }
+
+    /* Right: human reference drawer (collapsed by default) */
+    .human-drawer {
+      background: var(--bg-elev);
+      border-left: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 40px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .human-toggle {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      border: none;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0.85rem 0.35rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      border-left: 3px solid var(--accent-dim);
+    }
+    .layout.human-open .human-toggle { display: none; }
+    .human-panel {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      min-width: 0;
+    }
+    .layout.human-open .human-panel { display: flex; }
+    .human-panel-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.75rem 0.7rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .human-panel-head h2 {
+      margin: 0;
+      font-size: 0.85rem;
+      flex: 1;
+    }
+    .human-panel-body {
+      padding: 0.65rem;
+      overflow: auto;
+      flex: 1;
+    }
+    .human-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0 0 0.75rem;
+      padding: 0.45rem 0.5rem;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    .human-step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.55rem;
+      margin-bottom: 0.5rem;
+    }
+    .human-step .h-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      z-index: 50;
+      place-items: center;
+      padding: 1.5rem;
+    }
+    .lightbox.open { display: grid; }
+    .lightbox .frame {
+      max-width: min(1100px, 96vw);
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background: #1a1d26;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+    }
+    .lightbox .close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+
+    @media (max-width: 960px) {
+      .layout,
+      .layout.human-open,
+      .layout.tasks-collapsed,
+      .layout.tasks-collapsed.human-open {
+        grid-template-columns: 1fr;
+      }
+      .task-nav, .human-drawer {
+        position: static;
+        height: auto;
+      }
+      .tasks-toggle, .human-toggle {
+        writing-mode: horizontal-tb;
+        transform: none;
+        height: auto;
+        padding: 0.65rem;
+      }
+      .layout.tasks-collapsed .tasks-toggle { display: block; }
+      .layout:not(.tasks-collapsed) .tasks-toggle { display: none; }
+      .layout:not(.human-open) .human-panel { display: none; }
+      .layout.human-open .human-toggle { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">
+    STATIC MOCKUP v2.2 (APPROVED) — dark · collapsible task nav · human drawer ·
+    <strong>reasoning required</strong> per failure label. Example <code>06fe7178</code>.
+    Production Jinja: <code>templates/trace_review/</code>.
+  </div>
+
+  <div class="layout" id="layout">
+    <aside class="task-nav" aria-label="Task sidebar">
+      <button type="button" class="tasks-toggle" id="tasks-toggle-collapsed" title="Open pilot task list">
+        Pilot tasks · chrome/06fe7178
+      </button>
+      <div class="task-nav-panel">
+        <div class="task-nav-head">
+          <h2>Pilot tasks</h2>
+          <button type="button" class="ghost" id="tasks-close" title="Collapse task list">✕</button>
+        </div>
+        <a class="side-task" href="trace_review_shell_v2.html">
+          <div class="id">chrome · bb5e4c0d</div>
+          <div class="prompt">Can you help me clean up my computer…</div>
+        </a>
+        <a class="side-task" href="trace_review_shell_v2.html">
+          <div class="id">chrome · 7b6c7e24</div>
+          <div class="prompt">Find the page about…</div>
+        </a>
+        <a class="side-task active" href="#">
+          <div class="id">chrome · 06fe7178</div>
+          <div class="prompt">Bring back the last tab I shut down</div>
+        </a>
+        <p class="hint" style="padding:0.35rem">Collapse this list while labeling to free space.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header-row">
+        <button type="button" class="ghost" id="open-tasks-btn" title="Open pilot task list">← Tasks</button>
+        <h1>OPENCUA-A3B · chrome/06fe7178…</h1>
+        <span class="badge fail">OSWorld fail · raw=0.0</span>
+        <span class="badge ok">oracle: ready (mock)</span>
+        <span class="badge warn">⚠ action mismatch @ step 2</span>
+        <button type="button" class="ghost" id="open-human-btn" title="Open human reference">Human ref (1 step) →</button>
+      </div>
+      <p class="instruction-line">
+        <strong>Instruction:</strong>
+        Can you make my computer bring back the last tab I shut down?
+      </p>
+      <p class="hint">
+        Model timeline is agent-only. Human trajectory is in the right drawer (collapsed by default).
+        Collapse the left task list while focusing on this trace.
+      </p>
+
+      <details class="panel">
+        <summary><span>Task context (eval, setup)</span><span></span></summary>
+        <div class="panel-body">
+          <pre class="bundle">OSWorld outcome: fail (result.txt=0.0)
+Canonical instruction: Can you make my computer bring back the last tab I shut down?
+Setup (summary):
+- launch: google-chrome --remote-debugging-port=1337
+- chrome_open_tabs: lonelyplanet, airbnb, tripadvisor
+- chrome_close_tabs: tripadvisor
+Success criteria: open tabs must include those three URLs
+Evaluator function: is_expected_tabs
+Getter: open_tabs_info → get_open_tabs_info
+
+Human text actions are in the Human reference drawer (not duplicated here).</pre>
+        </div>
+      </details>
+
+      <section class="annot-core">
+        <h2>Your taxonomy discovery label</h2>
+        <p class="hint">
+          Each failure mode needs a short reasoning note (why this leaf at this root step).
+          Priority order: 1 = primary root cause.
+        </p>
+        <div class="form-row">
+          <label class="field">Root failure step
+            <input type="number" value="2" min="1" id="root-step">
+          </label>
+          <label class="field">Confidence
+            <input type="number" value="0.8" min="0" max="1" step="0.05">
+          </label>
+          <label class="field">Add failure mode
+            <select id="add-mode-select">
+              <option value="Click Region Error">Click Region Error</option>
+              <option value="Location Hallucination">Location Hallucination</option>
+              <option value="Reasoning Drift">Reasoning Drift</option>
+              <option value="Goal Hallucination">Goal Hallucination</option>
+            </select>
+          </label>
+          <button type="button" class="primary" id="add-mode-btn">Add mode</button>
+          <button type="button" class="primary" id="btn-save">Save label</button>
+        </div>
+        <label class="field required grow" style="width:100%; margin-bottom:0.55rem">
+          Reasoning for new mode <span class="req">required</span>
+          <textarea id="new-mode-reason" class="mode-reason" rows="2"
+            placeholder="Brief why this leaf applies (e.g. executed click missed the menu entry the CoT named)…"></textarea>
+        </label>
+        <ol class="mode-list" id="human-modes-list">
+          <li class="mode-item">
+            <div class="mode-item-head">
+              <span class="rank">#1</span>
+              <span class="name">Click Region Error</span>
+              <button type="button" class="ghost">↑</button>
+              <button type="button" class="ghost">↓</button>
+              <button type="button" class="ghost">×</button>
+            </div>
+            <label class="field required" style="width:100%">
+              Why this label? <span class="req">required</span>
+              <textarea class="mode-reason" rows="2">CoT aimed at recently-closed entry (y≈0.12) but executed click landed much lower (y=364) — grounding mismatch on the intended target.</textarea>
+            </label>
+          </li>
+        </ol>
+        <label class="field required" style="width:100%; margin-bottom:0.55rem">
+          Overall reasoning (root step + mode order) <span class="req">required</span>
+          <textarea id="human-reasoning" rows="3"
+            placeholder="Summarize why this root step and priority order…"></textarea>
+        </label>
+        <details class="nested">
+          <summary>Advanced annotation fields</summary>
+          <div class="form-row" style="margin-top:0.5rem">
+            <label><input type="checkbox"> Propagated</label>
+            <label><input type="checkbox"> Evaluator mismatch</label>
+          </div>
+          <label class="field" style="width:100%">Taxonomy friction
+            <textarea rows="2" placeholder="Optional notes…"></textarea>
+          </label>
+        </details>
+        <p class="hint" id="save-status" style="margin-top:0.5rem"></p>
+      </section>
+
+      <details class="panel">
+        <summary><span>Judge / pipeline attribution (provisional · osworld_v1 mock)</span><span></span></summary>
+        <div class="panel-body">
+          <p><strong>Modes:</strong> Click Region Error · <strong>t*:</strong> 2 · <strong>confidence:</strong> 0.72</p>
+          <p class="hint">Provisional reference only — not gold.</p>
+          <pre class="bundle">Model proposed click near menu entry; executed click landed lower after coord conversion — grounding mismatch. Human used Ctrl+Shift+T (non-binding alternate path; do not overfit).</pre>
+        </div>
+      </details>
+
+      <div class="timeline-tools">
+        <h2>Model step timeline (3 steps)</h2>
+        <button type="button" class="ghost" id="expand-all">Expand all</button>
+        <button type="button" class="ghost" id="collapse-all">Collapse all</button>
+      </div>
+
+      <details class="step" id="step-1">
+        <summary>
+          <span class="step-num">Step 1 <button type="button" class="ghost set-root" data-step="1">set as root</button></span>
+          <div class="step-summary-main">
+            <div class="line"><strong>Executed:</strong> pyautogui.click(920, 48)</div>
+            <div class="sub">Intent: Click the Chrome menu to find recently closed tabs</div>
+          </div>
+          <div class="step-chips"></div>
+        </summary>
+        <div class="step-body">
+          <div class="shot" data-lightbox="Model obs · step 1 (before action)">Observation (before action) · placeholder</div>
+          <div class="label-block">
+            <strong>Executed action (trajectory) — what ran on the VM</strong>
+            <pre>pyautogui.click(920, 48)</pre>
+          </div>
+          <div class="label-block">
+            <strong>Model code (CoT) — normalized coords</strong>
+            <pre>pyautogui.click(x=0.479, y=0.044)</pre>
+            <div class="coord-note">≈ (920, 48) at 1920×1080 — within tolerance of executed</div>
+          </div>
+          <div class="label-block">
+            <strong>Stated intent (CoT)</strong>
+            <pre>Click the Chrome menu to find recently closed tabs</pre>
+          </div>
+          <details class="nested">
+            <summary>Reasoning (## Thought:)</summary>
+            <pre style="white-space:pre-wrap;font-size:0.8rem;background:var(--bg);border:1px solid var(--line);padding:0.5rem;border-radius:4px;">The user closed a tab. I should reopen it via the Chrome UI…</pre>
+          </details>
+          <p class="post-link">State after action → <a href="#step-2">Step 2 observation</a></p>
+        </div>
+      </details>
+
+      <details class="step t-star" id="step-2" open>
+        <summary>
+          <span class="step-num">Step 2 <button type="button" class="ghost set-root" data-step="2">set as root</button></span>
+          <div class="step-summary-main">
+            <div class="line"><strong>Executed:</strong> pyautogui.click(1576, 364)</div>
+            <div class="sub">Intent: Click the recently closed tab entry near the top of the menu</div>
+          </div>
+          <div class="step-chips">
+            <span class="badge warn">⚠ action mismatch</span>
+            <span class="badge">pipeline t*</span>
+          </div>
+        </summary>
+        <div class="step-body">
+          <div class="shot" data-lightbox="Model obs · step 2 (before action)">Observation (before action) · placeholder</div>
+          <div class="label-block">
+            <strong>Executed action (trajectory) — what ran on the VM</strong>
+            <pre>pyautogui.click(1576, 364)</pre>
+          </div>
+          <div class="label-block">
+            <strong>Model code (CoT) — normalized coords</strong>
+            <pre>pyautogui.click(x=0.821, y=0.120)</pre>
+            <div class="coord-note">≈ (1576, 130) at 1920×1080 — diverges from executed (1576, 364) → mismatch</div>
+          </div>
+          <div class="label-block">
+            <strong>Stated intent (CoT)</strong>
+            <pre>Click the recently closed tab entry near the top of the menu</pre>
+          </div>
+          <details class="nested">
+            <summary>Reasoning (## Thought:)</summary>
+            <pre style="white-space:pre-wrap;font-size:0.8rem;background:var(--bg);border:1px solid var(--line);padding:0.5rem;border-radius:4px;">I see a menu. I will click the Tripadvisor entry…</pre>
+          </details>
+          <p class="post-link">State after action → <a href="#step-3">Step 3 observation</a></p>
+        </div>
+      </details>
+
+      <details class="step" id="step-3">
+        <summary>
+          <span class="step-num">Step 3 <button type="button" class="ghost set-root" data-step="3">set as root</button></span>
+          <div class="step-summary-main">
+            <div class="line"><strong>Executed:</strong> DONE</div>
+            <div class="sub">Intent: Task complete</div>
+          </div>
+          <div class="step-chips"></div>
+        </summary>
+        <div class="step-body">
+          <div class="shot" data-lightbox="Model obs · step 3 (before action)">Observation (before action) · placeholder</div>
+          <div class="label-block">
+            <strong>Executed action (trajectory)</strong>
+            <pre>DONE</pre>
+          </div>
+          <div class="label-block">
+            <strong>Model code (CoT)</strong>
+            <pre># done</pre>
+          </div>
+        </div>
+      </details>
+    </main>
+
+    <aside class="human-drawer" aria-label="Human reference trajectory">
+      <button type="button" class="human-toggle" id="human-toggle-collapsed" title="Open human reference">
+        Human reference · 1 step · NON-BINDING
+      </button>
+      <div class="human-panel">
+        <div class="human-panel-head">
+          <h2>Human reference<br><span style="font-weight:400;color:var(--muted);font-size:0.78rem">full trajectory · 1 step</span></h2>
+          <button type="button" class="ghost" id="human-close" title="Collapse">✕</button>
+        </div>
+        <div class="human-panel-body">
+          <p class="human-note">
+            Viable path only — not required. Agent may take a longer/different path and still be correct.
+            No alignment to model step indices. This example: human finishes in 1 step; model has 3.
+          </p>
+          <article class="human-step">
+            <div class="h-num">h=1 · deterministic</div>
+            <div class="shot human" data-lightbox="Human obs · h=1 (before action)">Human observation (before action) · placeholder</div>
+            <div class="label-block" style="margin-top:0.45rem">
+              <strong>Action text</strong>
+              <pre>`HOTKEY` Ctrl+Shift+T</pre>
+            </div>
+          </article>
+          <p class="hint" style="margin-top:0.75rem">
+            Longer tasks (e.g. calc) may have 10–20+ human steps here while the model has a different count — still shown in full in this drawer only.
+          </p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <button type="button" class="close" id="lightbox-close">Esc / close</button>
+    <div class="frame" id="lightbox-frame">Screenshot</div>
+  </div>
+
+  <script>
+    const layout = document.getElementById("layout");
+    function openHuman() { layout.classList.add("human-open"); }
+    function closeHuman() { layout.classList.remove("human-open"); }
+    function openTasks() { layout.classList.remove("tasks-collapsed"); }
+    function closeTasks() { layout.classList.add("tasks-collapsed"); }
+    document.getElementById("human-toggle-collapsed").addEventListener("click", openHuman);
+    document.getElementById("open-human-btn").addEventListener("click", openHuman);
+    document.getElementById("human-close").addEventListener("click", closeHuman);
+    document.getElementById("tasks-toggle-collapsed").addEventListener("click", openTasks);
+    document.getElementById("open-tasks-btn").addEventListener("click", openTasks);
+    document.getElementById("tasks-close").addEventListener("click", closeTasks);
+
+    document.querySelectorAll(".set-root").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById("root-step").value = btn.dataset.step;
+      });
+    });
+    document.getElementById("expand-all").addEventListener("click", () => {
+      document.querySelectorAll("details.step").forEach((d) => { d.open = true; });
+    });
+    document.getElementById("collapse-all").addEventListener("click", () => {
+      document.querySelectorAll("details.step").forEach((d) => { d.open = false; });
+    });
+
+    function renumberModes() {
+      document.querySelectorAll("#human-modes-list .mode-item").forEach((item, i) => {
+        const rank = item.querySelector(".rank");
+        if (rank) rank.textContent = `#${i + 1}`;
+      });
+    }
+
+    document.getElementById("add-mode-btn").addEventListener("click", () => {
+      const select = document.getElementById("add-mode-select");
+      const reasonEl = document.getElementById("new-mode-reason");
+      const reason = reasonEl.value.trim();
+      const status = document.getElementById("save-status");
+      if (!reason) {
+        status.textContent = "Add a short reasoning note before adding a failure mode.";
+        status.style.color = "var(--warn)";
+        reasonEl.focus();
+        return;
+      }
+      const li = document.createElement("li");
+      li.className = "mode-item";
+      li.innerHTML = `
+        <div class="mode-item-head">
+          <span class="rank">#?</span>
+          <span class="name"></span>
+          <button type="button" class="ghost move-up">↑</button>
+          <button type="button" class="ghost move-down">↓</button>
+          <button type="button" class="ghost remove">×</button>
+        </div>
+        <label class="field required" style="width:100%">
+          Why this label? <span class="req">required</span>
+          <textarea class="mode-reason" rows="2"></textarea>
+        </label>`;
+      li.querySelector(".name").textContent = select.value;
+      li.querySelector("textarea").value = reason;
+      document.getElementById("human-modes-list").appendChild(li);
+      reasonEl.value = "";
+      status.textContent = "";
+      renumberModes();
+    });
+
+    document.getElementById("human-modes-list").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const item = btn.closest(".mode-item");
+      if (!item) return;
+      if (btn.classList.contains("remove") || btn.textContent === "×") {
+        item.remove();
+        renumberModes();
+      } else if (btn.classList.contains("move-up") || btn.textContent === "↑") {
+        const prev = item.previousElementSibling;
+        if (prev) item.parentNode.insertBefore(item, prev);
+        renumberModes();
+      } else if (btn.classList.contains("move-down") || btn.textContent === "↓") {
+        const next = item.nextElementSibling;
+        if (next) item.parentNode.insertBefore(next, item);
+        renumberModes();
+      }
+    });
+
+    document.getElementById("btn-save").addEventListener("click", () => {
+      const status = document.getElementById("save-status");
+      const overall = document.getElementById("human-reasoning").value.trim();
+      const modes = [...document.querySelectorAll("#human-modes-list .mode-item")];
+      if (!modes.length) {
+        status.textContent = "Add at least one failure mode with reasoning.";
+        status.style.color = "var(--warn)";
+        return;
+      }
+      for (const item of modes) {
+        const note = item.querySelector("textarea")?.value.trim();
+        if (!note) {
+          status.textContent = "Each failure mode needs a short reasoning description.";
+          status.style.color = "var(--warn)";
+          return;
+        }
+      }
+      if (!overall) {
+        status.textContent = "Add overall reasoning (root step + mode order) before saving.";
+        status.style.color = "var(--warn)";
+        document.getElementById("human-reasoning").focus();
+        return;
+      }
+      status.textContent = "Saved (mock) — reasoning captured per mode + overall.";
+      status.style.color = "var(--ok)";
+    });
+
+    const lb = document.getElementById("lightbox");
+    const frame = document.getElementById("lightbox-frame");
+    document.querySelectorAll(".shot").forEach((el) => {
+      el.addEventListener("click", () => {
+        frame.textContent = el.dataset.lightbox || "Screenshot";
+        lb.classList.add("open");
+      });
+    });
+    function closeLb() { lb.classList.remove("open"); }
+    document.getElementById("lightbox-close").addEventListener("click", closeLb);
+    lb.addEventListener("click", (e) => { if (e.target === lb) closeLb(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (lb.classList.contains("open")) closeLb();
+        else if (layout.classList.contains("human-open")) closeHuman();
+      }
+    });
+  </script>
+</body>
+</html>

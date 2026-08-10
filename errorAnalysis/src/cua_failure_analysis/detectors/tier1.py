@@ -183,8 +183,16 @@ def run_tier1_at_step(
   t_star_idx: int,
   instruction: str,
   total_steps: int,
+  include_weak: bool = False,
 ) -> DetectorResult | None:
-  """Apply global decision order at step index t_star_idx."""
+  """Apply the global decision order at step index ``t_star_idx``.
+
+  The weak Long-Horizon detector is a late-step heuristic, not a root-cause
+  signal. Per failureStudyProtocol.md it stays diagnostic only: by default it is
+  excluded so that late failures with no strong programmatic match fall through
+  to the VLM judge instead of being auto-labeled Long-Horizon Memory Failure.
+  Pass ``include_weak=True`` to opt back into the heuristic.
+  """
   step = steps[t_star_idx]
   prefix = steps[: t_star_idx + 1]
 
@@ -204,8 +212,9 @@ def run_tier1_at_step(
   if text:
     return text
 
-  late = detect_long_horizon_weak(step, total_steps)
-  if late:
-    return late
+  if include_weak:
+    late = detect_long_horizon_weak(step, total_steps)
+    if late:
+      return late
 
   return None

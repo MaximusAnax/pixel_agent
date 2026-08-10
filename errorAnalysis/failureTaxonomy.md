@@ -49,18 +49,29 @@ These failures stem from the agent's inability to maintain a coherent strategy, 
 ### Scope
 
 - Label at the **first failure step** `t*` (earliest step where the run is irrecoverable or evaluator fails).
-- Assign exactly **one primary** root-cause leaf per `t*`.
-- Optionally assign **secondary** leaves when multiple modes clearly co-occur at the same step.
+- Assign **every applicable leaf** at `t*` as an ordered list (`modes_ordered`), **most-central-first** — the root-cause mode first. One leaf is a valid answer when only one applies; do not pad. *(All-applicable policy ratified 2026-08-10, per `docs/plans/2026-08-10-frozen-doc-corrections.md` at the repo root; supersedes the earlier one-primary + optional-secondary policy.)*
+- The first element plays the role the earlier policy called "primary"; tooling may derive a primary from position 0 for backward compatibility.
 - Apply meta-label **`propagated_failure`** when the labeled step is a downstream consequence of an error at `t' < t*` (common for Action Looping and Long-Horizon Memory Failure).
 
 ### Meta-labels (orthogonal to leaves)
 
 | Meta-label | When to use |
 |---|---|
-| `evaluator_mismatch` | Action is reasonable per human rubric but OSWorld script marks failure |
+| `evaluator_mismatch` | Action is reasonable per human rubric / available evidence but OSWorld script marks failure (use when eval criteria appear met or the failure is an evaluator artifact, not an agent mistake) |
 | `propagated_failure` | Failure at `t*` caused by earlier root error |
 
+### Annotator vs judge (boundaries)
+
+- **Human annotators** (`abdoul`, `raghav`) write gold-in-progress labels to `annotations.json`. Their labels are the scientific target for discovery and Phase D.
+- **VLM judge** writes versioned provisional labels (`judge_context_version`). Treat as reference during discovery — **not** gold. Do not revise this taxonomy from provisional judge disagreement alone.
+- When OpenCUA (or similar) logs both **CoT model code** and **executed trajectory** actions, compare them after coordinate normalization. Divergence supports grounding leaves (Click Region Error, Location Hallucination, Fine-Grained Manipulation Failure) using screenshot + stated intent; it is **not** a new leaf.
+- **Human reference trajectories** (OSWorld-Human text + Human Agent screenshots) are a viable path for cross-reference — **not** a required path. Do not label “failure” solely because the agent diverged from the human sequence.
+
 ### Global decision order (apply before leaf-specific rules)
+
+> This order disambiguates confusable pairs and identifies the most central mode
+> (position 0 of `modes_ordered`); it does **not** limit how many leaves may be
+> assigned.
 
 1. If same action repeated ≥3 times without eval state change → **Action Looping** (unless `propagated_failure` from earlier step).
 2. If instruction uses relative spatial terms ("left of", "above") and landmark is correct in CoT but click is wrong relative to landmark → **Spatial Reasoning Error**.
