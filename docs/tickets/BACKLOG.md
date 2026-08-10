@@ -20,6 +20,7 @@ PXA-002 (judge prompt) ──┐
 PXA-005 (Human Agent)  ──┼→ PXA-007 (osworld_v1 rejudge) → PXA-008 (packet rebuild) → PXA-009 (discovery labeling) → PXA-010 (agreement)
 PXA-006 (cost gate)    ──┘                                        ↑                          ↑
 PXA-003 (modes_ordered ruling) ───────────────────────────────────┘                          │
+PXA-021 (hide judge labels)    ───────────────────────────────────┘                          │
 PXA-001 (agreement.py fix) ──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -182,9 +183,7 @@ the UI, save a test label, verify Babel sync round-trip, then delete test labels
 
 The payload. 60 traces (30 tasks × A3B + 7B), labeled independently by both
 annotators: all applicable modes + failing-step integer. No peeking at each
-other's labels; judge labels visible per current packet design (flag if that
-should change — seeing judge labels could anchor annotators; the packet currently
-shows them).
+other's labels; judge labels hidden until save per PXA-021 (ruled 2026-08-10).
 
 **AC:** both annotators complete on all 60; annotations synced; independence
 preserved.
@@ -321,6 +320,55 @@ connector already covers agent sessions, so this is convenience only.
 corrections, 3 strengtheners. Checklist: `docs/reviews/sura-report-review-2026-08-10.md`.
 
 ---
+
+
+### PXA-021 — Hide judge labels during independent annotation
+**P0 · S · Owner: Abdoul · Status: open · Blocks: PXA-008**
+
+Ruled 2026-08-10: judge's provisional labels must be **hidden** (or collapsed
+behind an explicit click, default-off) in the review UI until the annotator has
+saved their own labels for that trace — otherwise the judge anchors human labels
+and human–judge agreement stops being independent validation.
+
+Implementation notes: judge modes reach the UI via `packet_manifest.json` →
+`review/packet.py` (`judge_modes_ordered`) → `templates/trace_review/*.j2` +
+`review.js`. Gate rendering on `annotations[annotator][key]` existing. **Not
+implemented in this pass deliberately** — the trace-review UI is mid-refactor in
+the `2a0ebb5` WIP; land it with that refactor to avoid churn.
+
+**AC:** annotator loading an unlabeled trace sees no judge modes; after saving,
+judge modes become visible for comparison; dry run (PXA-008) verifies both states.
+
+### PXA-022 — Benchmark-novelty research (from meeting TODO)
+**P1 · M (mostly agent time) · Owner: Abdoul · Status: ready — prompt prepared**
+
+The standing meeting TODO: read the space of benchmarks beyond OSWorld and
+determine whether existing error analysis there renders our reference-conditioned
+judge non-novel. Partially covered by the 2026-07-03 OSWorld-Human literature
+report (OSWorld-Human citation graph + judge benchmarks); the uncovered half is
+error analyses on *other* benchmarks (WebArena, TheAgentCompany, AndroidWorld,
+Mind2Web family, GAIA, OSWorld v2 frontier-lab breakdowns, …).
+
+**A paste-ready deep-research prompt is prepared:**
+[`prompts/PXA-022-benchmark-novelty-research.md`](prompts/PXA-022-benchmark-novelty-research.md)
+— self-contained, encodes what the July report already established, names the
+benchmark list, and specifies the deliverable (table + verdict + borrow list).
+
+**AC:** verdict paragraph exists (novelty intact / threatened / dead, with the
+precise remaining delta); table filed in the compendium (05-literature); result
+feeds the SURA-paper related-work rewrite (PXA-020 item 1.2).
+
+### PXA-023 — Weekly report undercounts off-branch work
+**P2 · S · Owner: Abdoul (or Claude) · Status: open**
+
+`ops/weekly_report.py` counts commits on the checked-out branch only. W28/W29
+reported zero commits and zero runs during the busiest stretch of the project
+(the work was on `feat/continuing-failure-analysis`). Fix: aggregate across
+branches (`git log --all --remotes` with dedup, or per-branch sections), and
+state in the report header which refs were scanned.
+
+**AC:** a week with work only on a feature branch produces a non-empty report;
+report names the refs it covered.
 
 ## Deferred — explicitly not now
 
