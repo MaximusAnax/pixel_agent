@@ -8,7 +8,15 @@ from typing import Any
 
 
 def judge_modes_ordered(ep: dict[str, Any]) -> list[str]:
+  # All-applicable policy (2026-08-10): judge output carries an explicit
+  # modes_ordered list (most-central-first). Prefer it when present.
   modes: list[str] = []
+  for m in ep.get("modes_ordered") or ep.get("judge_modes_ordered") or []:
+    if m and str(m) not in modes:
+      modes.append(str(m))
+  if modes:
+    return modes
+  # Legacy one-primary records: derive the ordered list.
   primary = ep.get("provisional_primary") or ep.get("judge_primary")
   if primary:
     modes.append(str(primary))

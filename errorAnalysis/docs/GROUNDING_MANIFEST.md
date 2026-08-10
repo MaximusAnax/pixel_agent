@@ -40,3 +40,11 @@ Operational / runbook docs are **not** frozen: e.g. `trace_review_labeling.md`,
 
 - [x] **Abdoul** confirms Phase 0 revisions and freezes the list above _(2026-07-10)_
 - [x] Manifest set to `status: frozen`, `frozen_by: abdoul`
+- [x] **Exception (Abdoul, 2026-08-10):** root `AGENTS.md` — compendium pointer
+  ("Start here" section + Structure table row), outside the managed
+  `PROJECT_STATE` block.
+- [x] **Amendment (Abdoul, 2026-08-10):** corrections batch applied per
+  `docs/plans/2026-08-10-frozen-doc-corrections.md` (repo root) — all-applicable
+  labeling policy in `failureTaxonomy.md`; model tables, vLLM 0.11.0, Babel
+  status, and judge output schema in `failureStudyProtocol.md` /
+  `failureAnalysisFinalPlan.md`.
