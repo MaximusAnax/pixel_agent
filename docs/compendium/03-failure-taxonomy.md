@@ -120,11 +120,18 @@ All three were observed directly in the UI-TARS-72B / OSWorld-Human run. They ar
 
 - Label at the **first failure step** `t*` — the earliest step where the run is
   irrecoverable or the evaluator fails.
-- Assign exactly **one primary** root-cause leaf per `t*`. Secondary leaves
-  optional when modes clearly co-occur at the same step.
-  - ⚠️ The team has since agreed the judge should **select all applicable modes**
-    instead. Reconcile before the pilot annotation run, or human and judge labels
-    will not be comparable.
+- **Assign every applicable leaf** at `t*`. ✅ **Decided 2026-08-10 (Abdoul):
+  all-applicable, not one-primary.**
+  - The frozen `failureTaxonomy.md` still reads "exactly one primary root-cause
+    leaf per `t*`, secondary leaves optional." That text is now superseded by the
+    decision but **not yet edited** — it is a frozen grounding doc. See the
+    migration checklist below.
+  - De-facto convention already in the review path: human labels are stored as
+    `modes_ordered`, an ordered list, and `labels.py` exports
+    `modes_ordered[0]` as `<annotator>_primary`. **Decide whether that order is
+    meaningful.** If it is a rank, annotators must be told to order deliberately;
+    if it is just click order, stop deriving a "primary" from it — otherwise the
+    exported primary is an artifact of UI interaction order.
 - Apply `propagated_failure` when `t*` is downstream of a root error at `t' < t*`
   — common for Action Looping and Long-Horizon Memory Failure.
 - Apply `evaluator_mismatch` when the action is reasonable per the human rubric
@@ -149,6 +156,36 @@ These sit inside the frozen taxonomy and govern how labels may be used:
 - **Human reference trajectories** are a viable path for cross-reference — **not a
   required path.** Do not label "failure" solely because the agent diverged from the
   human sequence.
+
+### Migration checklist — all-applicable labeling
+
+Decided 2026-08-10. Until every row is done, human and judge labels are **not
+comparable** and any agreement number is meaningless.
+
+| # | What | File | Frozen? | Status |
+|---|---|---|---|---|
+| 1 | Labeling policy: "exactly one primary" → "every applicable leaf" | `failureTaxonomy.md` | **Yes** | ⬜ needs approved edit |
+| 2 | Judge prompt says *"Classify the failure at step t\* using EXACTLY ONE primary label"* and *"assign secondary labels only if multiple modes clearly co-occur"* | `src/cua_failure_analysis/judge/prompts.py` (L38, L61) | No | ⬜ |
+| 3 | Judge output schema `{primary_mode, secondary_modes[]}` — keep as ordered pair, or flatten to a set? | `judge/prompts.py` L132-135, protocol doc | mixed | ⬜ decide |
+| 4 | **`per_leaf_kappa` compares a single label per record** (`r.get(annotator_a) == leaf`, default `label_key="primary_mode"`). Under multi-label it silently measures only the primary — wrong numbers, no error | `src/cua_failure_analysis/labeling/agreement.py` | No | ⬜ **highest risk** |
+| 5 | `judge_vs_human_agreement` does exact single-label equality — needs per-leaf binary, or a set metric (Jaccard / exact-set-match) | `labeling/agreement.py` | No | ⬜ |
+| 6 | Is `modes_ordered` position meaningful? `labels.py` exports element 0 as `_primary` | `review/labels.py` | No | ⬜ decide |
+| 7 | Bump `judge_context_version` when the prompt changes — the existing 16 provisional labels were produced under one-primary | run config | No | ⬜ |
+
+**Good news on the statistic.** Per-leaf Cohen's κ is *better behaved* under
+multi-label than under one-primary: each leaf becomes an independent binary
+presence decision per trace, which is exactly what `per_leaf_kappa` already claims
+to do ("one-vs-rest binary labels"). The function just needs set membership
+(`leaf in modes`) instead of equality (`== leaf`). The κ ≥ 0.6 target survives
+unchanged.
+
+**What the decision order is now for.** Under one-primary, the global decision
+order below was a tie-breaker choosing between competing leaves. Under
+all-applicable it no longer arbitrates — but it still matters for
+`propagated_failure` attribution (which step is root vs. downstream) and for the
+confusable-pair guidance that keeps annotators from applying near-synonymous leaves
+inconsistently. Keep it; reframe it as disambiguation guidance rather than a
+selection funnel.
 
 ### Global decision order (apply before leaf-specific rules)
 

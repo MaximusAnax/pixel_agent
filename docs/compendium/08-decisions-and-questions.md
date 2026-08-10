@@ -42,7 +42,7 @@ Also encoded in `failureTaxonomy.md` at the freeze:
 | 11 | **Focus models: OpenCUA, Kimi, Sonnet 4.5+** — not older models | — |
 | 12 | **Different models for agent and judge** | Originally Qwen3.5-VL 0.8B / 9B; **now OpenCUA A3B/7B agent + `claude-sonnet-4-6` judge** (commit `ebfb470`) |
 | 13 | **Serve OpenCUA with vLLM** | — |
-| 14 | **Judge selects all applicable failure modes** rather than primary/secondary | ⚠️ Still conflicts with `failureTaxonomy.md`'s one-primary policy — see below |
+| 14 | **All-applicable labeling** — annotators and judge select *every* applicable failure mode at `t*`, not one primary + optional secondaries | ✅ **Ratified 2026-08-10 (Abdoul).** Frozen `failureTaxonomy.md` still says one-primary; migration checklist in [`03-failure-taxonomy.md`](03-failure-taxonomy.md) |
 | 15 | **Both annotators label the same pilot set independently** | Independence is the point |
 | 16 | **Pilot gold-label criteria**: HumanAgent succeeded ∧ A3B failed ∧ 7B failed ∧ judge produced a conclusion | Isolates cases where diagnosis is meaningful |
 | 17 | **Consolidate the two HTML annotation viewers into one** | Done |
@@ -60,10 +60,16 @@ Also encoded in `failureTaxonomy.md` at the freeze:
 - **Throughput.** 16 of 361 episodes labeled (4.4%). Scaling labeling throughput is
   named in the weekly report as the immediate next milestone before any result can
   be called representative.
-- **One primary label, or all-applicable?** Decision 14 vs. the frozen taxonomy's
-  one-primary policy. Must be settled **before** the discovery labeling batch, or
-  human and judge labels will not be comparable. This is the one live contradiction
-  inside the frozen doc set.
+- ~~One primary label, or all-applicable?~~ **Settled 2026-08-10: all-applicable.**
+  Now an implementation task, not an open question — but the 7-row migration
+  checklist in [`03-failure-taxonomy.md`](03-failure-taxonomy.md) must be finished
+  **before** the discovery labeling batch. Two items in it produce silently wrong
+  numbers rather than errors (`per_leaf_kappa` and `judge_vs_human_agreement` both
+  still assume a single label per record).
+- **Is `modes_ordered` position meaningful?** `review/labels.py` exports
+  `modes_ordered[0]` as each annotator's `_primary`. Under all-applicable, either
+  that order is a deliberate rank (tell annotators) or it is click order (stop
+  exporting a primary from it).
 
 ### Research-blocking
 

@@ -67,9 +67,16 @@ screenshots, an agent issues GUI actions; OSWorld's execution-based evaluator
 returns a binary score. Metric: aggregate success rate.
 
 **Level 2 — our derived task.** Given a failed agent trajectory, the task
-specification, and the human reference, select the applicable failure mode(s) from
-the taxonomy. Metric: inter-annotator agreement (human–human as upper bound,
-human–judge as the calibration target), per-leaf.
+specification, and the human reference, select **every applicable** failure mode
+from the taxonomy — ratified 2026-08-10, superseding the frozen taxonomy's
+one-primary policy. Metric: per-leaf inter-annotator agreement (human–human as
+upper bound, human–judge as the calibration target), each leaf treated as an
+independent binary presence decision.
+
+> ⚠️ The judge prompt and the agreement code still assume one primary label. See
+> the migration checklist in [`03-failure-taxonomy.md`](03-failure-taxonomy.md) —
+> it must be finished before discovery labeling, or agreement numbers will be
+> wrong without being obviously wrong.
 
 ## The judge input bundle
 
