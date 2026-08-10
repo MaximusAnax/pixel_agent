@@ -72,23 +72,57 @@ def _load_credentials(sa_file: Path):
     )
 
 
+def _text_from_content(content: list[dict]) -> str:
+    """Extract text from a Docs body content list, including tables.
+
+    The meeting doc lays out its sections as tables (Attendees / Notes cells),
+    so skipping table elements silently drops most of the meeting record.
+    """
+    parts: list[str] = []
+    for element in content:
+        para = element.get("paragraph")
+        if para:
+            for el in para.get("elements", []):
+                tr = el.get("textRun")
+                if tr and tr.get("content"):
+                    parts.append(tr["content"])
+            continue
+        table = element.get("table")
+        if table:
+            for row in table.get("tableRows", []):
+                for cell in row.get("tableCells", []):
+                    parts.append(_text_from_content(cell.get("content", [])))
+    return "".join(parts)
+
+
 def fetch_doc_text(doc_id: str, sa_file: Path) -> tuple[str, str]:
     from googleapiclient.discovery import build
 
     creds = _load_credentials(sa_file)
     service = build("docs", "v1", credentials=creds, cache_discovery=False)
-    doc = service.documents().get(documentId=doc_id).execute()
+    # includeTabsContent is required or the API returns only the first tab —
+    # the meeting doc has an "Everyone" tab and a "Raghav + Abdoul" tab.
+    doc = (
+        service.documents()
+        .get(documentId=doc_id, includeTabsContent=True)
+        .execute()
+    )
     title = doc.get("title", doc_id)
-    body = doc.get("body", {}).get("content", [])
     parts: list[str] = []
-    for element in body:
-        para = element.get("paragraph")
-        if not para:
-            continue
-        for el in para.get("elements", []):
-            tr = el.get("textRun")
-            if tr and tr.get("content"):
-                parts.append(tr["content"])
+
+    def walk_tabs(tabs: list[dict]) -> None:
+        for tab in tabs:
+            tab_title = tab.get("tabProperties", {}).get("title", "")
+            content = tab.get("documentTab", {}).get("body", {}).get("content", [])
+            parts.append(f"\n\n## Tab: {tab_title}\n\n")
+            parts.append(_text_from_content(content))
+            walk_tabs(tab.get("childTabs") or [])
+
+    tabs = doc.get("tabs") or []
+    if tabs:
+        walk_tabs(tabs)
+    else:  # docs without tabs keep the legacy shape
+        parts.append(_text_from_content(doc.get("body", {}).get("content", [])))
     return title, "".join(parts).strip()
 
 

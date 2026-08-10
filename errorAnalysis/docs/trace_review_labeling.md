@@ -13,6 +13,23 @@ Multi-annotator workflow for **taxonomy discovery** on paired pilot traces (30 t
 
 Always pass your ID to `--annotator`. Saves only touch your namespace in `annotations.json`.
 
+## Labeling policy (ratified 2026-08-10)
+
+- **All-applicable:** select **every** failure mode the evidence at the failing
+  step supports — not one primary plus optional secondaries. One mode is a valid
+  answer when only one applies; do not pad.
+- **Order is a deliberate rank:** list modes **most-central-first** — the mode you
+  would call the root cause goes first. The export derives each annotator's
+  `_primary` from position 0 of `modes_ordered`, so order deliberately rather than
+  in click order.
+- The judge follows the same policy (`modes_ordered` in its output schema). Its
+  labels remain provisional reference — never let them anchor yours.
+
+> The frozen `failureTaxonomy.md` still describes the older one-primary policy;
+> its correction is batched into the next approved plan
+> (`docs/plans/2026-08-10-frozen-doc-corrections.md` at the repo root). This
+> section is the operative instruction for annotators until then.
+
 ## Active packet
 
 | Field | Value |

@@ -10,7 +10,8 @@ import yaml
 from cua_failure_analysis.taxonomy import ALL_LEAVES
 
 DECISION_ORDER = """
-Global decision order at t*:
+Disambiguation order at t* (for choosing between confusable leaves and finding
+the most central mode — it does NOT limit how many modes you list):
 1. Action Looping if same action repeated >=3 times without state change
 2. Spatial Reasoning Error if relational instruction + landmark in CoT + wrong relative click
 3. Click Region Error if CoT names T and click near but outside T bbox
@@ -35,7 +36,9 @@ def build_system_prompt(anchors_yaml: Path | None = None) -> str:
 
   return f"""You are an expert annotator for computer-use agent failure modes.
 
-Classify the failure at step t* using EXACTLY ONE primary label from this taxonomy:
+Identify EVERY failure mode that applies at step t*, from this taxonomy
+(all-applicable policy — list each mode the evidence at t* supports, ordered
+most-central/root-cause first):
 {LEAF_LIST}
 
 {DECISION_ORDER}
@@ -58,7 +61,9 @@ Rules:
   depending on screenshot + stated intent. When model code targets element A in CoT but
   executed click lands on B, cite both in `evidence_cot_span`.
 - Use screenshot + CoT evidence; do not assume reference trajectories are the only valid path.
-- Assign secondary labels only if multiple modes clearly co-occur at the same step.
+- List every mode that applies at t* in `modes_ordered`, most-central-first. Do not
+  pad: include a mode only when the evidence at t* supports it. One mode is a valid
+  answer when only one applies.
 - Set propagated=true only if this step is downstream of an earlier root error.
 - Output valid JSON only.
 
@@ -129,10 +134,10 @@ Previous steps (compressed):
 
 Respond with ONLY the following JSON object and nothing else. Do not write any
 reasoning, preamble, or explanation outside the JSON. Put your evidence inside
-`evidence_cot_span`. `primary_mode` MUST be one of the exact leaf names above.
+`evidence_cot_span`. `modes_ordered` MUST contain one or more of the exact leaf
+names above, ordered most-central-first (the root-cause mode first).
 {{
-  "primary_mode": "<exact leaf name>",
-  "secondary_modes": [],
+  "modes_ordered": ["<exact leaf name>", "<additional applicable leaf names>"],
   "propagated": false,
   "meta_labels": [],
   "evidence_cot_span": "<quote or brief evidence>",

@@ -165,12 +165,12 @@ comparable** and any agreement number is meaningless.
 | # | What | File | Frozen? | Status |
 |---|---|---|---|---|
 | 1 | Labeling policy: "exactly one primary" → "every applicable leaf" | `failureTaxonomy.md` | **Yes** | ⬜ needs approved edit |
-| 2 | Judge prompt says *"Classify the failure at step t\* using EXACTLY ONE primary label"* and *"assign secondary labels only if multiple modes clearly co-occur"* | `src/cua_failure_analysis/judge/prompts.py` (L38, L61) | No | ⬜ |
-| 3 | Judge output schema `{primary_mode, secondary_modes[]}` — keep as ordered pair, or flatten to a set? | `judge/prompts.py` L132-135, protocol doc | mixed | ⬜ decide |
-| 4 | **`per_leaf_kappa` compares a single label per record** (`r.get(annotator_a) == leaf`, default `label_key="primary_mode"`). Under multi-label it silently measures only the primary — wrong numbers, no error | `src/cua_failure_analysis/labeling/agreement.py` | No | ⬜ **highest risk** |
-| 5 | `judge_vs_human_agreement` does exact single-label equality — needs per-leaf binary, or a set metric (Jaccard / exact-set-match) | `labeling/agreement.py` | No | ⬜ |
-| 6 | Is `modes_ordered` position meaningful? `labels.py` exports element 0 as `_primary` | `review/labels.py` | No | ⬜ decide |
-| 7 | Bump `judge_context_version` when the prompt changes — the existing 16 provisional labels were produced under one-primary | run config | No | ⬜ |
+| 2 | Judge prompt says one-primary | `src/cua_failure_analysis/judge/prompts.py` | No | ✅ 2026-08-10 — asks for `modes_ordered`, all applicable, most-central-first |
+| 3 | Judge output schema | `judge/prompts.py`, `trace/schema.py` | mixed | ✅ 2026-08-10 — `modes_ordered` list; legacy primary/secondary kept as synced compat fields; protocol-doc edit drafted in PXA-004 |
+| 4 | `per_leaf_kappa` compared a single label per record | `src/cua_failure_analysis/labeling/agreement.py` | No | ✅ 2026-08-10 — membership-based one-vs-rest κ; regression-tested |
+| 5 | `judge_vs_human_agreement` single-label equality | `labeling/agreement.py` | No | ✅ 2026-08-10 — exact-set-match + mean Jaccard + per-leaf κ + set-level κ |
+| 6 | `modes_ordered` position semantics | `review/labels.py`, `trace_review_labeling.md` | No | ✅ 2026-08-10 — **deliberate rank, most-central-first**; annotator instructions updated |
+| 7 | `judge_context_version` separation from the 16 one-primary labels | run config | No | ✅ moot — `osworld_v1` had not run; it is natively all-applicable, so the version boundary already separates regimes |
 
 **Good news on the statistic.** Per-leaf Cohen's κ is *better behaved* under
 multi-label than under one-primary: each leaf becomes an independent binary

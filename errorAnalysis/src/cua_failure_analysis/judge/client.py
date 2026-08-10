@@ -18,6 +18,31 @@ from cua_failure_analysis.judge.prompts import (
 from cua_failure_analysis.trace.schema import AttributionResult, TraceStep
 
 
+def attribution_from_parsed(parsed: dict, t_star: int) -> AttributionResult:
+  """Build an AttributionResult from parsed judge JSON.
+
+  Prefers the all-applicable ``modes_ordered`` list (most-central-first);
+  falls back to legacy ``primary_mode``/``secondary_modes`` responses so older
+  transcripts and models that ignore the new template still parse.
+  """
+  modes = [str(m) for m in (parsed.get("modes_ordered") or []) if m]
+  if not modes:
+    primary = str(parsed.get("primary_mode") or "").strip()
+    if primary:
+      modes = [primary, *[str(m) for m in parsed.get("secondary_modes", []) if m]]
+  return AttributionResult(
+    modes_ordered=modes,
+    primary_mode=modes[0] if modes else "Unresolved",
+    secondary_modes=[m for m in modes[1:]],
+    propagated=bool(parsed.get("propagated", False)),
+    meta_labels=parsed.get("meta_labels", []),
+    tier_used="judge",
+    evidence_cot_span=parsed.get("evidence_cot_span", ""),
+    confidence=float(parsed.get("confidence", 0.0)),
+    t_star=t_star,
+  )
+
+
 @dataclass
 class VLMJudgeConfig:
   base_url: str = "http://localhost:8000/v1"
@@ -102,16 +127,7 @@ class VLMJudge:
     )
     raw = response.choices[0].message.content or "{}"
     parsed = self._parse_json(raw)
-    return AttributionResult(
-      primary_mode=parsed.get("primary_mode", "Unresolved"),
-      secondary_modes=parsed.get("secondary_modes", []),
-      propagated=bool(parsed.get("propagated", False)),
-      meta_labels=parsed.get("meta_labels", []),
-      tier_used="judge",
-      evidence_cot_span=parsed.get("evidence_cot_span", ""),
-      confidence=float(parsed.get("confidence", 0.0)),
-      t_star=step.step,
-    )
+    return attribution_from_parsed(parsed, t_star=step.step)
 
   @staticmethod
   def _parse_json(raw: str) -> dict:

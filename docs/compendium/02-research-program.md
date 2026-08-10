@@ -73,10 +73,10 @@ one-primary policy. Metric: per-leaf inter-annotator agreement (human–human as
 upper bound, human–judge as the calibration target), each leaf treated as an
 independent binary presence decision.
 
-> ⚠️ The judge prompt and the agreement code still assume one primary label. See
-> the migration checklist in [`03-failure-taxonomy.md`](03-failure-taxonomy.md) —
-> it must be finished before discovery labeling, or agreement numbers will be
-> wrong without being obviously wrong.
+> ✅ Code migration landed 2026-08-10: judge prompt/schema emit `modes_ordered`
+> and the agreement metrics are membership-based. Remaining: the frozen-doc text
+> updates, batched in `docs/plans/2026-08-10-frozen-doc-corrections.md`
+> (awaiting sign-off). Checklist: [`03-failure-taxonomy.md`](03-failure-taxonomy.md).
 
 ## The judge input bundle
 

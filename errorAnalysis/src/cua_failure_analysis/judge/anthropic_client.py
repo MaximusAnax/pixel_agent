@@ -10,7 +10,7 @@ from typing import Any
 
 from anthropic import Anthropic
 
-from cua_failure_analysis.judge.client import VLMJudge
+from cua_failure_analysis.judge.client import VLMJudge, attribution_from_parsed
 from cua_failure_analysis.judge.prompts import (
   build_system_prompt,
   build_user_prompt,
@@ -137,13 +137,4 @@ class AnthropicJudge:
       if getattr(block, "type", None) == "text":
         raw += block.text
     parsed = VLMJudge._parse_json(raw)
-    return AttributionResult(
-      primary_mode=parsed.get("primary_mode", "Unresolved"),
-      secondary_modes=parsed.get("secondary_modes", []),
-      propagated=bool(parsed.get("propagated", False)),
-      meta_labels=parsed.get("meta_labels", []),
-      tier_used="judge",
-      evidence_cot_span=parsed.get("evidence_cot_span", ""),
-      confidence=float(parsed.get("confidence", 0.0)),
-      t_star=step.step,
-    )
+    return attribution_from_parsed(parsed, t_star=step.step)

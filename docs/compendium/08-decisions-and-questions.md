@@ -112,8 +112,16 @@ Also encoded in `failureTaxonomy.md` at the freeze:
 
 ## Action items
 
+> **2026-08-10 cleanup (Abdoul):** every June carry-over item below that is not
+> part of the current milestone was ruled **dead** — SSH key + cron monitoring,
+> Babel/Bridges guide write-ups, the 3-paper-ideas assignment, SURA
+> re-application, `Skill.md`, and the trajectory data-format item (superseded by
+> the packet + `annotations.json`). "Sign off Phase 0" was already done
+> (manifest, 2026-07-10). Live work is tracked in
+> [`docs/tickets/BACKLOG.md`](../tickets/BACKLOG.md).
+
 **Abdoul**
-- Sign off Phase 0 / `GROUNDING_MANIFEST.md`
+- ~~Sign off Phase 0 / `GROUNDING_MANIFEST.md`~~ ✅ done 2026-07-10
 - After sign-off, start the post–Phase 0 plan: vendor metadata → mockups → Human
   Agent → `osworld_v1`
 - Compute the frontier-model token cost estimate; apply the $25 gate
