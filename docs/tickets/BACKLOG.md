@@ -370,6 +370,76 @@ state in the report header which refs were scanned.
 **AC:** a week with work only on a feature branch produces a non-empty report;
 report names the refs it covered.
 
+### PXA-024 — Frontier-model Human Agent run (ceiling experiment, Luna-class)
+**P1 · M · Owner: Abdoul · Status: open · Independent of Raghav's PXA-005**
+
+The meeting-TODO experiment, option (B) of the A/B/C fork: run OSWorld with a
+**frontier model that follows the OSWorld-Human reference steps** and measure how
+many tasks pass. Raghav's UI-TARS-72B version scored **60/361** and became the
+pivot evidence; this rerun swaps the grounding model for a frontier API model
+(Abdoul's pick — e.g. **Luna 5.6**) to decompose that number.
+
+**Why this decomposes the 60/361.** The guided run has three failure sources:
+(a) grounding model can't turn a human step into correct coordinates,
+(b) OSWorld-Human instruction gaps (missing "press Enter" class),
+(c) environment bugs (VM init, premature-action timing). A frontier grounder
+mostly eliminates (a) — so the new pass rate bounds the benchmark-artifact +
+instruction-gap share directly, and every remaining failure is a clean specimen
+for PXA-011/012. If the number *doesn't* move much, that is equally informative:
+the ceiling is capped by the benchmark, not the model.
+
+**How Raghav's run worked (context).** His runner is **not in this repo** — by
+design. The `2a0ebb5` refactor ("partner oracle handoff") reduced this repo's
+role to loaders + the rejudge gate (`attribution/pipeline.py::
+{resolve_oracle_dir, load_human_reference_steps}`, CI-tested in
+`tests/test_oracle_handoff.py`). He ran OSWorld as a benchmark environment with
+an agent that follows OSWorld-Human's `human-ground-truth` steps, UI-TARS-72B
+(vLLM-served) resolving steps to coordinates; artifacts are expected to land at
+`ORACLE_ROOT=/data/group_data/mattlab/pixel_agent/<partner>/oracle` (still TBD).
+You do **not** need his runner — see below.
+
+**Independent implementation path (all assets already in-repo):**
+1. **Human steps:** `osworld/human_ref.py::load_human_reference` serves
+   `single_action` + `grouped_action` sequences from the vendored pin
+   `config/osworld/7a17d3a_deff1a7/` — no HF or Drive dependency.
+2. **Executor tiers** (`docs/oracle_agent.md`): deterministic steps
+   (`HOTKEY`/`TYPING`/`PRESS`) need **no model at all**; semi (`CLICK` cell G1)
+   is parse + UI automation; only **grounded** steps (`CLICK` the pivot-table
+   icon) call the frontier model: human step text + current screenshot → coords.
+   Cache every grounding call (`grounding_cache.jsonl`) so retries are free.
+3. **Environment:** OSWorld Docker/VM per the standing Babel/Bridges decision;
+   the frontier model is API-based, so **no GPU serving job is needed** — the
+   only cluster resource is the VM host. (`docs/osworld_vm_strategy.md` still
+   lists local/AWS options — that doc predates the cluster-only decision.)
+4. **Scoring:** OSWorld's own evaluator per task; vendored eval bundles
+   (`osworld/eval_bundle.py`) give per-task semantics for failure triage.
+
+**Emit the artifact contract and this run does double duty.** Write
+`human_traj.json` + per-step `human_step_N_obs.png` + `grounding_cache.jsonl` +
+`oracle_status` per task, in the exact schema `tests/test_oracle_handoff.py`
+locks (nested `<domain>/<task_id>/` layout, `action`/`image_path` aliases
+accepted). Then pointing `ORACLE_ROOT` at your output tree can satisfy the
+PXA-007 rejudge gate **without waiting on the partner path** — the ceiling
+experiment and the oracle-screenshot supply become the same run.
+
+**Protocol:**
+1. **Pilot on the 30 pilot tasks first** (same set as
+   `pilot_taxonomy_paired_20260703`) — measures API cost burn AND widens the
+   gold-candidate pool (Decision 13 requires *HumanAgent succeeded*).
+2. **Cost-gate before the full 361**: ~9 human steps/task × 1 screenshot per
+   grounded step at frontier image-token prices will plausibly exceed **$25** —
+   estimate first (extend `scripts/estimate_judge_cost.py`'s pattern), and per
+   the standing rule check with Matt if over.
+3. Full run; **log the exact task list** — this resolves PXA-013 (369 vs 361)
+   as a side effect.
+4. Per-failure quick triage: benchmark-artifact vs instruction-gap vs model,
+   feeding PXA-011/PXA-012.
+
+**AC:** pilot pass rate + full-run pass rate recorded in compendium 04-evidence
+with model, date, and task list; cost gate documented; per-failure triage
+categories counted; artifacts in contract schema on the mattlab tree;
+(bonus) `ORACLE_ROOT` usable by `rejudge_pilot.py`.
+
 ## Deferred — explicitly not now
 
 | Item | Why deferred |

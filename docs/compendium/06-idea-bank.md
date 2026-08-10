@@ -29,7 +29,9 @@ how much farther do we get with: **(A)** a frontier model, **(B)** a frontier mo
 that sees the human trajectories, **(C)** a favorite local model?
 
 > (B) is the important one. It is the ceiling experiment, and the UI-TARS-72B
-> 60/361 result is a first, alarming datapoint on it.
+> 60/361 result is a first, alarming datapoint on it. **Ticketed 2026-08-10 as
+> PXA-024 (Abdoul, frontier grounder — e.g. Luna 5.6); see
+> [`docs/tickets/BACKLOG.md`](../tickets/BACKLOG.md).**
 
 ---
 
