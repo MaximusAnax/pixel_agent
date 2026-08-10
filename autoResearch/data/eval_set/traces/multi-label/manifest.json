@@ -1,0 +1,10 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Click Done to save",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "multi-label",
+  "task_tags": [],
+  "total_steps": 3
+}

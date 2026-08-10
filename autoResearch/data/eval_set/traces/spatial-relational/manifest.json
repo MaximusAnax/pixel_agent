@@ -1,0 +1,12 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Click the button to the left of the logo",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "spatial-relational",
+  "task_tags": [
+    "relational"
+  ],
+  "total_steps": 1
+}

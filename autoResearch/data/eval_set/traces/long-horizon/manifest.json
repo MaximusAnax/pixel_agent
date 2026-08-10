@@ -1,0 +1,10 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Rename all 10 files",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "long-horizon",
+  "task_tags": [],
+  "total_steps": 12
+}

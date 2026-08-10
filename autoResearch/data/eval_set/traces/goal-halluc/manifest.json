@@ -1,0 +1,10 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Delete the temp folder",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "goal-halluc",
+  "task_tags": [],
+  "total_steps": 1
+}

@@ -1,0 +1,10 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Export via the right-side panel",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "hidden-op",
+  "task_tags": [],
+  "total_steps": 1
+}

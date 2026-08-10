@@ -1,0 +1,10 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Press Done to continue",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "click-medium-miss-h",
+  "task_tags": [],
+  "total_steps": 1
+}

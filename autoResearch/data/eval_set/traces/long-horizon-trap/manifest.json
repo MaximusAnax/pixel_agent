@@ -1,0 +1,10 @@
+{
+  "eval_message": "evaluator: target state not reached",
+  "instruction": "Submit the request form",
+  "model_id": "fixture",
+  "seed": 0,
+  "success": false,
+  "task_id": "long-horizon-trap",
+  "task_tags": [],
+  "total_steps": 12
+}

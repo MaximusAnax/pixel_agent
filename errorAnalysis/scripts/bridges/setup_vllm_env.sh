@@ -9,7 +9,7 @@
 set -euo pipefail
 
 ENV_NAME="${ENV_NAME:-cua-vllm}"
-VLLM_PIN="${VLLM_PIN:-0.12.0}"
+VLLM_PIN="${VLLM_PIN:-0.11.0}"
 
 echo "=== Loading Bridges CUDA module ==="
 # Prefer explicit 12.6; fall back to default cuda module

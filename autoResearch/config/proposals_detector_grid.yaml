@@ -1,0 +1,8 @@
+# P0 grid over Tier-1 detector thresholds (54 combos). Free and offline.
+# Values bracket the tier1.py defaults; see data/eval_set/README.md for which
+# fixture cases each knob can win or lose.
+grid:
+  detectors.min_repeat: [2, 3]
+  detectors.near_margin_ratio: [1.5, 3.0, 5.0]
+  detectors.far_threshold_px: [40.0, 80.0, 120.0]
+  detectors.long_horizon_threshold_ratio: [0.7, 0.85, 0.95]

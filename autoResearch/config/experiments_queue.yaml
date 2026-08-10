@@ -1,0 +1,25 @@
+# P1 experiment queue: authored hypotheses the loop runs in order.
+# Each entry = one candidate built from baseline + overrides. Agents (Hermes,
+# Claude, Cursor) append here; the loop dedupes by candidate hash, so re-runs
+# are safe. Judge-protocol entries need the judge executor + endpoint.
+queue:
+  - name: v2-full-context
+    notes: "Decision 5 protocol: multi-label + reference traj + score + eval output"
+    overrides:
+      judge: {protocol: v2_multilabel}
+  - name: v2-no-reference
+    notes: "Ablate reference trajectory — does it drive or distract the judge?"
+    overrides:
+      judge: {protocol: v2_multilabel, include_reference_trajectory: false}
+  - name: v2-no-eval-output
+    notes: "Ablate evaluator output — is the judge leaning on it too much?"
+    overrides:
+      judge: {protocol: v2_multilabel, include_eval_output: false}
+  - name: v2-more-history
+    notes: "prev_steps_k 3 -> 6; longer horizon context for looping/memory leaves"
+    overrides:
+      judge: {protocol: v2_multilabel, prev_steps_k: 6}
+  - name: v2-no-screenshot
+    notes: "Text-only judging; tests the 'do CUAs judge worse with screenshots' question"
+    overrides:
+      judge: {protocol: v2_multilabel, include_screenshot: false}

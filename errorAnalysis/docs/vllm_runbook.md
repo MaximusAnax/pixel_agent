@@ -15,7 +15,7 @@ ImportError: libcudart.so.13: cannot open shared object file
 ```bash
 # Inside GPU allocation (interact -A cis260099p -p GPU-shared --gres=gpu:1)
 module load anaconda3
-bash scripts/bridges/setup_vllm_env.sh    # creates cua-vllm, installs vllm==0.12.0
+bash scripts/bridges/setup_vllm_env.sh    # creates cua-vllm, installs vllm==0.11.0 (lab standard, meeting 2026-08-07)
 conda activate cua-vllm
 bash scripts/bridges/diagnose_gpu_env.sh  # optional sanity check
 bash scripts/bridges/vllm_serve_opencua.sh

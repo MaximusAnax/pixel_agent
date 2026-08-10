@@ -68,6 +68,7 @@ particular ideas — not just the current one.
 | ---------------- | ------------------------------------------------------------------------------------------- | ------- | --------------------------------- |
 | `ops/`           | Cross-stage weekly reports, meeting notes ingest, `PROJECT_STATE` / Hermes live context      | Active  | `docs/project_state_automation.md` |
 | `errorAnalysis/` | Phase 1: failure analysis of low-parameter CUA agents on OSWorld, run remotely on CMU Babel | Active  | `errorAnalysis/AGENTS.md`         |
+| `autoResearch/`  | Karpathy-style autoresearch loop calibrating detectors + judge against gold labels           | Proposed (built; pending Abdoul review) | `autoResearch/AGENTS.md`          |
 | *(future)*       | e.g. a new validation track for another CUA idea                              | Planned | `docs/multi_idea_stages.md` when approved |
 
 When a new stage is added: follow **`docs/multi_idea_stages.md`** (checklist for
@@ -81,6 +82,7 @@ or PROJECT_STATE splits until a second idea is actually approved.
 | Idea | Directory | Hermes entry |
 | --- | --- | --- |
 | Phase 1 failure analysis | `errorAnalysis/` | `errorAnalysis/AGENTS.md`, skill `babel-osworld-analysis` |
+| Autoresearch loop (judge/detector calibration) | `autoResearch/` | `autoResearch/AGENTS.md`, skill `autoresearch-loop` |
 
 When a second idea is approved, add a row above and read `docs/multi_idea_stages.md`
 before scaffolding. Root Hermes orchestrates; each idea's subagents run from that

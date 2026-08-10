@@ -1,0 +1,26 @@
+# Frontier-model pricing for judge cost estimation.
+# Prices are USD per million tokens, Anthropic first-party API list rates,
+# as of 2026-08-10 (source: platform.claude.com/docs/en/pricing). Update the
+# as_of date when refreshing. batch_discount applies to the Message Batches
+# API (50% off both input and output) — the natural fit for offline judging.
+as_of: "2026-08-10"
+batch_discount: 0.5
+image_tokens:
+  # Anthropic vision: tokens ~= (width * height) / 750, downscaled so the
+  # long edge <= max_long_edge_px (2576 on Opus 4.7+/Sonnet 5 high-res tiers,
+  # 1568 on Sonnet 4.6 and earlier).
+  pixels_per_token: 750
+  max_long_edge_px: 1568
+models:
+  claude-sonnet-4-6:      # decided judge for the inter-annotator study
+    input_per_mtok: 3.00
+    output_per_mtok: 15.00
+  claude-sonnet-5:
+    input_per_mtok: 3.00   # intro pricing $2/$10 through 2026-08-31
+    output_per_mtok: 15.00
+  claude-haiku-4-5:
+    input_per_mtok: 1.00
+    output_per_mtok: 5.00
+  claude-opus-5:
+    input_per_mtok: 5.00
+    output_per_mtok: 25.00

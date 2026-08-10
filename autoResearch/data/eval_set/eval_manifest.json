@@ -1,0 +1,231 @@
+{
+  "cases": [
+    {
+      "case_id": "looping-clear",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Action Looping (Repetition)"
+      ],
+      "instruction": "Click Done to save",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/looping-clear/trace.jsonl"
+    },
+    {
+      "case_id": "looping-clear-b",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Action Looping (Repetition)"
+      ],
+      "instruction": "Click Done to save",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/looping-clear-b/trace.jsonl"
+    },
+    {
+      "case_id": "looping-two-reps",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Action Looping (Repetition)"
+      ],
+      "instruction": "Click Done to save",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/looping-two-reps/trace.jsonl"
+    },
+    {
+      "case_id": "looping-two-reps-h",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Action Looping (Repetition)"
+      ],
+      "instruction": "Click Done to save",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "holdout",
+      "task_tags": [],
+      "trace": "traces/looping-two-reps-h/trace.jsonl"
+    },
+    {
+      "case_id": "click-near-miss",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Click Region Error"
+      ],
+      "instruction": "Submit the form with Done",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/click-near-miss/trace.jsonl"
+    },
+    {
+      "case_id": "click-medium-miss",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Click Region Error"
+      ],
+      "instruction": "Finish setup by pressing Done",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/click-medium-miss/trace.jsonl"
+    },
+    {
+      "case_id": "click-medium-miss-h",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Click Region Error"
+      ],
+      "instruction": "Press Done to continue",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "holdout",
+      "task_tags": [],
+      "trace": "traces/click-medium-miss-h/trace.jsonl"
+    },
+    {
+      "case_id": "location-halluc",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Location Hallucination"
+      ],
+      "instruction": "Click Done",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/location-halluc/trace.jsonl"
+    },
+    {
+      "case_id": "location-halluc-h",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Location Hallucination"
+      ],
+      "instruction": "Click Done",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "holdout",
+      "task_tags": [],
+      "trace": "traces/location-halluc-h/trace.jsonl"
+    },
+    {
+      "case_id": "text-match-label",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Text Matching Bias"
+      ],
+      "instruction": "Enter your email address",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/text-match-label/trace.jsonl"
+    },
+    {
+      "case_id": "spatial-relational",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Spatial Reasoning Error"
+      ],
+      "instruction": "Click the button to the left of the logo",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [
+        "relational"
+      ],
+      "trace": "traces/spatial-relational/trace.jsonl"
+    },
+    {
+      "case_id": "long-horizon",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Long-Horizon Memory Failure"
+      ],
+      "instruction": "Rename all 10 files",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/long-horizon/trace.jsonl"
+    },
+    {
+      "case_id": "long-horizon-trap-h",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Goal Hallucination"
+      ],
+      "instruction": "Install the extension",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "holdout",
+      "task_tags": [],
+      "trace": "traces/long-horizon-trap-h/trace.jsonl"
+    },
+    {
+      "case_id": "long-horizon-trap",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Goal Hallucination"
+      ],
+      "instruction": "Submit the request form",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/long-horizon-trap/trace.jsonl"
+    },
+    {
+      "case_id": "goal-halluc",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Goal Hallucination"
+      ],
+      "instruction": "Delete the temp folder",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/goal-halluc/trace.jsonl"
+    },
+    {
+      "case_id": "hidden-op",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Hidden Operation Blindness"
+      ],
+      "instruction": "Export via the right-side panel",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "holdout",
+      "task_tags": [],
+      "trace": "traces/hidden-op/trace.jsonl"
+    },
+    {
+      "case_id": "multi-label",
+      "eval_output": "evaluator: target state not reached",
+      "gold_modes": [
+        "Action Looping (Repetition)",
+        "Click Region Error"
+      ],
+      "instruction": "Click Done to save",
+      "osworld_score": 0.0,
+      "reference_summary": "human: 2 steps \u2014 click Done, verify toast",
+      "split": "calibration",
+      "task_tags": [],
+      "trace": "traces/multi-label/trace.jsonl"
+    }
+  ],
+  "content_hash": "20c83ed3cbce3d37",
+  "provenance": "synthetic fixtures \u2014 see README.md; NOT scientific data",
+  "version": 1
+}

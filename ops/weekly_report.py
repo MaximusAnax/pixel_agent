@@ -41,12 +41,13 @@ REPORTS_DIR = OPS_DIR / "reports"
 
 
 def experiment_summary_globs() -> list[Path]:
-    """Any stage's synced run summaries: <stage>/data/babel_outputs/<run_id>/summary.md."""
+    """Any stage's run summaries: <stage>/data/{babel_outputs,loop_outputs}/<run_id>/summary.md."""
     paths: list[Path] = []
-    for summary in REPO_ROOT.glob("*/data/babel_outputs/*/summary.md"):
-        if "external" in summary.parts:
-            continue
-        paths.append(summary)
+    for pattern in ("*/data/babel_outputs/*/summary.md", "*/data/loop_outputs/*/summary.md"):
+        for summary in REPO_ROOT.glob(pattern):
+            if "external" in summary.parts:
+                continue
+            paths.append(summary)
     return sorted(paths)
 
 

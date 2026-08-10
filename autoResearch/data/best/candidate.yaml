@@ -1,0 +1,29 @@
+name: grid-0008[far_threshold_px=40.0,long_horizon_threshold_ratio=0.85,min_repeat=2,near_margin_ratio=5.0]
+notes: tier1.py defaults + judge protocol v1
+schema_version: 1
+detectors:
+  min_repeat: 2
+  near_margin_ratio: 5.0
+  far_threshold_px: 40.0
+  long_horizon_threshold_ratio: 0.85
+  long_horizon_min_total_steps: 10
+  order:
+  - action_looping
+  - spatial_reasoning
+  - click_region_or_location
+  - text_matching_bias
+  - long_horizon
+judge:
+  protocol: v1
+  model: opencua-7b
+  base_url: http://localhost:8000/v1
+  anchors_path: config/judge_anchors.yaml
+  prev_steps_k: 3
+  include_reference_trajectory: true
+  include_osworld_score: true
+  include_eval_output: true
+  include_screenshot: true
+  decision_order: null
+  extra_rules: []
+  max_tokens: 512
+  expected_output_tokens: 256
