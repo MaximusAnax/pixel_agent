@@ -176,9 +176,9 @@ The Phase 0 freeze fixed most of what the earlier draft flagged:
 | Artifact | Problem |
 |---|---|
 | **SURA report** (`PixelAgent_Research.pdf`) | Diverges from the **frozen** taxonomy: uses 3 categories / 14 model leaves vs. the frozen 2 / 16, dropping Hidden Operation Blindness and Cross-Application Context Loss. Also frames the judge as reference-*bound* when the frozen protocol says non-binding. Full list: [`docs/reviews/sura-report-review-2026-08-10.md`](../reviews/sura-report-review-2026-08-10.md) |
-| **One-primary vs all-applicable labeling** | Decision 14 contradicts the frozen labeling policy. Blocks comparable human/judge labels. |
-| `failureStudyProtocol.md` model table | Still lists agent = Qwen3.5-VL-0.8B, judge = Qwen3.5-VL-9B. Reality: OpenCUA A3B/7B + `claude-sonnet-4-6`. **Frozen file — needs an approved plan to fix.** |
-| `failureStudyProtocol.md` compute section | Still says `vllm>=0.12.0` (0.11.0 is the working version) and Babel "account not yet provisioned." **Frozen file.** |
+| ~~One-primary vs all-applicable labeling~~ | ✅ Resolved 2026-08-10: policy ratified, code migrated, frozen taxonomy text updated via approved plan |
+| ~~`failureStudyProtocol.md` model table~~ | ✅ Fixed 2026-08-10 via approved plan `docs/plans/2026-08-10-frozen-doc-corrections.md` |
+| ~~`failureStudyProtocol.md` compute section~~ | ✅ Fixed 2026-08-10 via the same plan (vLLM 0.11.0; Babel provisioned/primary) |
 | `errorAnalysis/data/prevalence.json`, `attributions.jsonl` | `n_failures: 1`. Plumbing tests, not results. Don't quote. |
 | Rolling Google Doc | Sections remain **undated**, so `pull_gdoc_notes.py --section-only` still cannot split meetings after 2026-07-10. |
 

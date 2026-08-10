@@ -1,9 +1,9 @@
 # Plan: frozen-doc corrections batch (PXA-004)
 
-**Status: DRAFT — awaiting Abdoul's sign-off.** Per
+**Status: APPROVED and APPLIED (Abdoul, 2026-08-10).** Per
 `errorAnalysis/docs/GROUNDING_MANIFEST.md`, the files below are frozen; this
 document is the "new approved plan" the manifest requires before they change.
-Nothing here is applied until the sign-off box at the bottom is checked.
+Applied in one commit on `claude/pixelagent-research-compendium-9aaa86` referencing this plan.
 
 Scope: four factual corrections. No leaf additions, no methodology changes —
 those wait for discovery-label evidence.
@@ -84,5 +84,5 @@ Append two lines to the sign-off list:
 
 ## Sign-off
 
-- [ ] **Abdoul** approves the five edits above; upon approval they are applied
-  in a single commit referencing this plan.
+- [x] **Abdoul** approved the five edits (2026-08-10, in session); applied in a
+  single commit referencing this plan.

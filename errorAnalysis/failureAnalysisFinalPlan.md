@@ -86,7 +86,7 @@ Detail: [failureStudyProtocol.md](failureStudyProtocol.md)
 
 Provisional multimodal rejudge (`osworld_v1`) runs **after** Human Agent screenshots are ready and **before** the discovery labeling batch. Never overwrite prior judge outputs — version them.
 
-**Judge output:** `{primary_mode, secondary_modes[], propagated, t_star, tier_used, confidence}`
+**Judge output:** `{modes_ordered[], propagated, meta_labels[], t_star, tier_used, evidence_cot_span, confidence}` — all applicable leaves, most-central-first (all-applicable policy, 2026-08-10); `primary_mode`/`secondary_modes` retained in tooling as derived compatibility fields.
 
 ---
 
@@ -104,13 +104,14 @@ Detail: [failureStudyProtocol.md](failureStudyProtocol.md), implementation plan 
 
 ## Models
 
+*(Updated 2026-08-10 per `docs/plans/2026-08-10-frozen-doc-corrections.md`.)*
+
 | Role | Model | Serving |
 |---|---|---|
-| Ultra-small agent | Qwen3.5-VL-0.8B | vLLM |
-| Trained small CUA | OpenCUA-7B | vLLM (`--trust-remote-code`, ≥0.12.0) |
+| Agents under analysis | **OpenCUA A3B and OpenCUA-7B** | HF pre-generated trajectories (paired pilot); vLLM 0.11.0 (`--trust-remote-code`) for new rollouts |
 | Optional mid | OpenCUA-32B or Qwen3.5-VL-9B | vLLM |
-| Judge (draft) | Qwen3.5-VL-9B+ | vLLM on separate GPU job |
-| Judge (validation) | Frontier API or ≥32B | Calibration only |
+| Judge (provisional) | **`claude-sonnet-4-6`** | Anthropic API; labels versioned via `judge_context_version` |
+| Judge (validation) | Frontier API or ≥32B | Calibration against human gold (Phase D) |
 
 OpenTau is **not used** (robotics VLA training). Use OpenCUA + AgentNetBench.
 
@@ -145,9 +146,11 @@ Use Bridges-2 for **GPU inference** (vLLM agent + judge) and **offline work** (A
 
 **Never run vLLM or heavy jobs on login nodes.**
 
-### Secondary: CMU Babel (pending account)
+### CMU Babel (provisioned — primary for HF trajectory analysis)
 
-Request access via LTI intranet when ready. Use for additional GPU capacity or if lab standardizes on Babel. Same split architecture as Bridges.
+Provisioned (Andrew IDs). Phase 1 HF trajectory analysis runs on Babel; shared
+lab tree at `/data/group_data/mattlab/pixel_agent/`. Bridges remains for vLLM
+serving. Same split architecture as Bridges.
 
 ### OSWorld VMs (likely off-cluster)
 

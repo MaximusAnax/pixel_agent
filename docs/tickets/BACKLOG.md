@@ -28,7 +28,11 @@ PXA-001 (agreement.py fix) ─────────────────�
 ## Epic 0 — Protect work in flight
 
 ### PXA-000 — Commit or stash the 23-file WIP in the main checkout
-**P0 · XS · Owner: Abdoul · Status: open**
+**P0 · XS · Owner: Claude · Status: done (2026-08-10)**
+
+> ✅ Committed as `2a0ebb5` "wip: oracle->handoff refactor in flight" on
+> `feat/continuing-failure-analysis` (tracked changes + new test; .DS_Store junk
+> excluded). Amend or split as you like.
 
 The main checkout has 23 modified/deleted files uncommitted (oracle→handoff
 refactor: `oracle/` modules and `audit_human_actions.py` deleted, review/packet
@@ -111,7 +115,7 @@ gracefully to (b) if annotators ignore it.
 updated; export either documented or removed.
 
 ### PXA-004 — Approved-plan batch edit to the frozen docs
-**P1 · S · Owner: Claude drafts, Abdoul approves · Status: draft ready — awaiting sign-off**
+**P1 · S · Owner: Claude · Status: done (2026-08-10 — approved by Abdoul, applied)**
 
 > Draft: [`docs/plans/2026-08-10-frozen-doc-corrections.md`](../plans/2026-08-10-frozen-doc-corrections.md)
 > — five edits, incl. the judge-schema doc update and the manifest sign-off lines.
@@ -262,7 +266,7 @@ invisible to the whole ops loop.
 **AC:** a pull demonstrably contains second-tab content, or the fix is applied.
 
 ### PXA-017 — Merge the compendium branch
-**P1 · XS · Owner: Abdoul · Status: open**
+**P1 · XS · Owner: Claude · Status: done (2026-08-10)**
 
 `claude/pixelagent-research-compendium-9aaa86` (compendium + review + backlog +
 approved `AGENTS.md` pointer) is local-only. Push and merge into

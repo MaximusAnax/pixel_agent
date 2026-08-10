@@ -198,9 +198,9 @@ Required context for attribution (annotation-ready / `osworld_v1` and later):
 
 ```json
 {
-  "primary_mode": "leaf_name",
-  "secondary_modes": ["leaf_name"],
+  "modes_ordered": ["leaf_name", "additional_applicable_leaf"],
   "propagated": false,
+  "meta_labels": [],
   "tier_used": "programmatic|a11y|judge",
   "evidence_cot_span": "string",
   "confidence": 0.0,
@@ -208,15 +208,20 @@ Required context for attribution (annotation-ready / `osworld_v1` and later):
 }
 ```
 
+Compatibility note: `primary_mode` / `secondary_modes` are retained as derived
+fields in tooling (`primary_mode == modes_ordered[0]`) so earlier one-primary
+records remain loadable.
+
 ### Models
+
+*(Updated 2026-08-10 per `docs/plans/2026-08-10-frozen-doc-corrections.md`.)*
 
 | Role | Model | Serving |
 |---|---|---|
-| Ultra-small agent | Qwen3.5-VL-0.8B | vLLM on PSC Bridges-2 |
-| Trained small CUA baseline | OpenCUA-7B | vLLM on Bridges (`--trust-remote-code`) |
+| Agents under analysis | **OpenCUA A3B and OpenCUA-7B** | HF pre-generated trajectories (paired pilot); vLLM (`--trust-remote-code`) for new rollouts |
 | Optional mid baseline | OpenCUA-32B or Qwen3.5-VL-9B | vLLM, tensor parallel if needed |
-| Judge (draft) | Qwen3.5-VL-9B+ | Separate vLLM job on Bridges |
-| Judge (validation) | Frontier API or ≥32B | For calibration against human gold set |
+| Judge (provisional) | **`claude-sonnet-4-6`** | Anthropic API; labels versioned via `judge_context_version` |
+| Judge (validation) | Frontier API or ≥32B | For calibration against human gold set (Phase D) |
 
 ---
 
@@ -282,8 +287,9 @@ Judge labeling: first failure step only on failed runs (~200–800 instances), n
 
 ## Compute infrastructure
 
-**Primary:** PSC Bridges-2 (active allocation)  
-**Secondary:** CMU Babel (account pending — request in parallel, non-blocking)
+**HF trajectory analysis (primary):** CMU Babel — provisioned; shared lab tree at
+`/data/group_data/mattlab/pixel_agent/`  
+**vLLM serving / new rollouts:** PSC Bridges-2 (active allocation, `cis260099p`)
 
 OSWorld + vLLM uses a **split architecture**: GPU inference on HPC; OSWorld VMs on KVM-capable node, local machine, or AWS per group policy.
 
@@ -331,7 +337,10 @@ interact -A CHARGE_ID -p GPU-shared --gres=gpu:1 -t 4:00:00
 # Inside allocation
 module load anaconda3  # or group conda module
 conda activate <your_env>
-pip install 'vllm>=0.12.0'
+# vLLM 0.12.0+ / 0.23 wheels are built against CUDA 13 and fail on Bridges'
+# CUDA 12.6 (libcudart.so.13 ImportError). Lab standard: 0.11.0 + Python 3.11
+# conda env + `module load cuda/12.6.1`.
+pip install vllm==0.11.0
 
 vllm serve xlangai/OpenCUA-7B \
   --trust-remote-code \
@@ -380,16 +389,13 @@ Bridges charges **Service Units (SUs)** by node type and wall time. For core stu
 
 Docs: [Bridges-2 User Guide](https://www.psc.edu/resources/bridges-2/user-guide/)
 
-### CMU Babel (secondary — pending)
+### CMU Babel (provisioned — primary for HF trajectory analysis)
 
-Account not yet provisioned. When ready:
-
-1. LTI intranet → HPC Cluster User Account Request (`babel`)
-2. Safety quiz on [hpc.cs.cmu.edu](https://hpc.cs.cmu.edu/)
-3. SSH: `login.babel.cs.cmu.edu`
-4. Same split architecture and vLLM commands as Bridges
-
-Use Babel for overflow GPU or if lab standardizes workflows there.
+Provisioned (Andrew IDs). SSH: `login.babel.cs.cmu.edu`. Phase 1 HF
+trajectory analysis runs here; shared lab work (code clone, outputs, review
+packets, annotations) lives under `/data/group_data/mattlab/pixel_agent/`.
+Runbooks: `docs/babel_hf_orchestration.md`, `docs/babel_account_checklist.md`.
+Same split architecture and vLLM commands as Bridges.
 
 ### OSWorld VM strategy (confirm with advisor)
 
@@ -423,7 +429,7 @@ $PROJECT/cua-failure-analysis/
 
 - Bridges charge ID (`-A`) and SU budget for core study?
 - OSWorld VMs: Bridges KVM, AWS, or local?
-- Group conda/container with `vllm>=0.12.0` + OSWorld deps?
+- Group conda/container with `vllm==0.11.0` + OSWorld deps? *(0.12.0+ incompatible with Bridges CUDA 12.6)*
 - Network path from VM host to Bridges GPU node for API calls?
 
 ---

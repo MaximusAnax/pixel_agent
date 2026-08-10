@@ -49,8 +49,8 @@ These failures stem from the agent's inability to maintain a coherent strategy, 
 ### Scope
 
 - Label at the **first failure step** `t*` (earliest step where the run is irrecoverable or evaluator fails).
-- Assign exactly **one primary** root-cause leaf per `t*`.
-- Optionally assign **secondary** leaves when multiple modes clearly co-occur at the same step.
+- Assign **every applicable leaf** at `t*` as an ordered list (`modes_ordered`), **most-central-first** — the root-cause mode first. One leaf is a valid answer when only one applies; do not pad. *(All-applicable policy ratified 2026-08-10, per `docs/plans/2026-08-10-frozen-doc-corrections.md` at the repo root; supersedes the earlier one-primary + optional-secondary policy.)*
+- The first element plays the role the earlier policy called "primary"; tooling may derive a primary from position 0 for backward compatibility.
 - Apply meta-label **`propagated_failure`** when the labeled step is a downstream consequence of an error at `t' < t*` (common for Action Looping and Long-Horizon Memory Failure).
 
 ### Meta-labels (orthogonal to leaves)
@@ -68,6 +68,10 @@ These failures stem from the agent's inability to maintain a coherent strategy, 
 - **Human reference trajectories** (OSWorld-Human text + Human Agent screenshots) are a viable path for cross-reference — **not** a required path. Do not label “failure” solely because the agent diverged from the human sequence.
 
 ### Global decision order (apply before leaf-specific rules)
+
+> This order disambiguates confusable pairs and identifies the most central mode
+> (position 0 of `modes_ordered`); it does **not** limit how many leaves may be
+> assigned.
 
 1. If same action repeated ≥3 times without eval state change → **Action Looping** (unless `propagated_failure` from earlier step).
 2. If instruction uses relative spatial terms ("left of", "above") and landmark is correct in CoT but click is wrong relative to landmark → **Spatial Reasoning Error**.
