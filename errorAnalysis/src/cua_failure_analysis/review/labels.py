@@ -39,6 +39,16 @@ def human_modes_to_csv(modes: list[str] | None) -> str:
   return ";".join(modes)
 
 
+def _format_mode_reasons(reasons: Any) -> str:
+  if not isinstance(reasons, dict) or not reasons:
+    return ""
+  parts = []
+  for key, val in reasons.items():
+    text = str(val or "").replace("|", "/").replace("\n", " ").strip()
+    parts.append(f"{key}={text}")
+  return " | ".join(parts)
+
+
 def _annotator_export_fields(
   human: dict[str, Any] | None,
   *,
@@ -52,6 +62,7 @@ def _annotator_export_fields(
       (human or {}).get("root_step") if (human or {}).get("root_step") is not None else ""
     ),
     f"{prefix}_reasoning": str((human or {}).get("reasoning") or ""),
+    f"{prefix}_mode_reasons": _format_mode_reasons((human or {}).get("mode_reasons")),
     f"{prefix}_confidence": str(
       (human or {}).get("confidence") if (human or {}).get("confidence") is not None else ""
     ),
@@ -120,6 +131,7 @@ def build_discovery_row(
       "primary_revised": human_modes[0] if human_modes else "",
       "secondary_revised": human_modes_to_csv(human_modes[1:]),
       "human_reasoning": str((human or {}).get("reasoning") or ""),
+      "mode_reasons": _format_mode_reasons((human or {}).get("mode_reasons")),
       "human_confidence": str((human or {}).get("confidence") if (human or {}).get("confidence") is not None else ""),
       "is_propagated": str(bool((human or {}).get("is_propagated"))),
       "propagated_from_step": str(
@@ -131,6 +143,7 @@ def build_discovery_row(
       "taxonomy_issue": str((human or {}).get("taxonomy_issue") or ""),
       "candidate_new_leaf": str((human or {}).get("candidate_new_leaf") or ""),
       "notes": str((human or {}).get("notes") or ""),
+      "oracle_status": str(ep.get("oracle_status") or ""),
     }
   )
   return {col: str(row.get(col, "")) for col in columns}

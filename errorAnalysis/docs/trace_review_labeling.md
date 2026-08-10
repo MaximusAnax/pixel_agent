@@ -129,15 +129,29 @@ On the index you will see both annotators' progress. Abdoul's labels are read-on
 
 ### 6. What to do while labeling
 
-- Open a task pair (A3B + 7B for the same `task_id`).
-- Read the instruction and step through the trace (screenshots + model reasoning).
-- Compare **judge labels** (shown in the UI, from `packet_manifest.json`) to what you see.
+UI is **mockup v2.2** (approved): dark layout, collapsible left task list, model
+timeline in the center, human reference in a **collapsed right drawer**.
+
+- Open a task pair (A3B + 7B for the same `task_id`). Collapse the left task list
+  while focusing on one episode.
+- Read **Instruction** + collapsible **Task context** (eval/setup from OSWorld).
+- Open **Human ref** when needed. That path is **non-binding**: different length
+  from the agent timeline is OK — do **not** force step alignment. Agent actions
+  that diverge can still be correct if they progress toward OSWorld success.
+- Step cards show **Executed** vs **Model code (CoT)** vs **Stated intent**, plus
+  mismatch chips when coords diverge.
+- Compare provisional **judge** labels (collapsed panel) to what you see —
+  judge is reference only, not gold.
 - Record:
   - **Modes** (ordered — first = primary failure mode)
-  - **Reasoning** (why this mode at this step)
-  - **Confidence** and **root step** (`t*`)
+  - **Per-mode reasoning** (required for each leaf you add)
+  - **Overall reasoning** (required — why this root step + order)
+  - **Confidence** and **root step**
 - Use **Save**; with `--babel-sync`, labels push to Babel automatically.
 - Do **not** edit `packet_manifest.json` or judge fields.
+
+Index table includes an **Oracle** column (`pending` until partner screenshots
+are wired via `--oracle-root` / `ORACLE_ROOT`).
 
 ### 7. Checklist before you finish onboarding
 
@@ -330,20 +344,69 @@ scripts/babel/sync_outputs.sh 20260626_172919_a3b_pilot_full_v4
 - Saves merge by annotator key — abdoul and raghav never overwrite each other.
 - Push creates a timestamped `.bak` on Babel.
 
-## Schema (annotations.json v2)
+## Schema (annotations.json / export)
+
+Browser export uses `schema_version: 3`. Per-episode label fields:
+
+| Field | Notes |
+|-------|--------|
+| `modes_ordered` | First entry = primary for agreement |
+| `mode_reasons` | `{ "<leaf>": "<why this leaf>" }` — required per mode in UI |
+| `reasoning` | Overall root-step + ordering note (required) |
+| `root_step`, `confidence`, `is_propagated`, … | As before |
+
+Agreement / comparison CSV columns (via `export_discovery_comparison.py` and
+`DISCOVERY_COLUMNS`) include `mode_reasons` / `<annotator>_mode_reasons` and
+`oracle_status` when present on the packet episode. Agreement **reports** on
+gold labels remain a follow-on after the pilot labeling batch.
 
 ```json
 {
   "schema_version": 2,
   "packet_id": "pilot_taxonomy_paired_20260703",
   "annotators": {
-    "abdoul": { "labels": { "a3b/chrome__uuid": { "modes_ordered": ["..."], ... } } },
+    "abdoul": {
+      "labels": {
+        "a3b/chrome__uuid": {
+          "modes_ordered": ["Click Region Error"],
+          "mode_reasons": {"Click Region Error": "..."},
+          "reasoning": "...",
+          "root_step": 2
+        }
+      }
+    },
     "raghav": { "labels": {} }
   }
 }
 ```
 
 Primary mode for agreement = first entry in `modes_ordered`.
+
+---
+
+## Human screenshots (partner handoff)
+
+Partner-owned OSWorld Human Agent artifacts feed the drawer + gated
+`osworld_v1` rejudge. Contract: [oracle_agent.md](oracle_agent.md).
+
+When the Babel path is known:
+
+```bash
+export ORACLE_ROOT=/data/group_data/mattlab/pixel_agent/<partner>/oracle   # TBD
+python scripts/refresh_review_packet_html.py pilot_taxonomy_paired_20260703 \
+  --oracle-root "$ORACLE_ROOT"
+# or rebuild: build_trace_review_packet.py ... --oracle-root "$ORACLE_ROOT"
+```
+
+Provisional rejudge (never overwrites prior labels):
+
+```bash
+# Cost estimate + Abdoul OK first (image tokens)
+python scripts/rejudge_pilot.py --run-dir <run> --oracle-root "$ORACLE_ROOT"
+# → failure_labels_osworld_v1.jsonl
+```
+
+Until artifacts exist, oracle badge stays `pending` and rejudge stays gated.
 
 ---
 
@@ -380,6 +443,8 @@ Re-render HTML from the existing on-disk screenshots (no Babel rebuild):
 
 ```bash
 python scripts/refresh_review_packet_html.py pilot_taxonomy_paired_20260703
+# with partner screenshots once ORACLE_ROOT is set:
+# python scripts/refresh_review_packet_html.py ... --oracle-root "$ORACLE_ROOT"
 ```
 
 Restart `serve_review_packet.py` after refreshing.
@@ -402,4 +467,5 @@ For new environments or disaster recovery, see [babel_hf_orchestration.md](babel
 ## Related docs
 
 - [babel_hf_orchestration.md](babel_hf_orchestration.md) — Babel storage and Slurm
+- [oracle_agent.md](oracle_agent.md) — partner Human Agent artifact contract
 - [AGENTS.md](../../AGENTS.md) — project boundaries

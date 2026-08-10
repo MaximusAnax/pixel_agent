@@ -53,6 +53,13 @@ def main() -> None:
     type=Path,
     default=ROOT / "config" / "stratified_tasks.json",
   )
+  p.add_argument(
+    "--oracle-root",
+    type=Path,
+    default=None,
+    help="Partner Human Agent artifacts root (or set ORACLE_ROOT). "
+    "Layout: <root>/<domain>/<task_id>/human_traj.json",
+  )
   args = p.parse_args()
 
   output_dir = args.output_dir or args.manifest.parent
@@ -85,6 +92,7 @@ def main() -> None:
     template_dir=args.template_dir,
     stratified_tasks=args.stratified_tasks if args.stratified_tasks.exists() else None,
     select_turns=select_turns or None,
+    oracle_root=args.oracle_root,
   )
   print(f"Review packet built: {out / 'index.html'}")
 

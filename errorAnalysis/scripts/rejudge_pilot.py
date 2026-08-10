@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Provisional multimodal rejudge for the pilot (judge_context_version=osworld_v1).
 
-HARD GATE: refuses episodes unless Human Agent oracle_status is ready|partial.
+HARD GATE: refuses episodes unless partner oracle_status is ready|partial.
 Never overwrites prior failure_labels.jsonl — writes a versioned sibling file.
 
-Usage (from errorAnalysis/, after oracle artifacts exist):
+Usage (from errorAnalysis/, after partner artifacts exist):
   python scripts/estimate_judge_cost.py ...   # include human screenshot tokens
-  python scripts/rejudge_pilot.py --run-dir <path> --oracle-root <path>
+  python scripts/rejudge_pilot.py --run-dir <path> --oracle-root "$ORACLE_ROOT"
 """
 
 from __future__ import annotations
@@ -18,7 +18,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from cua_failure_analysis.attribution.pipeline import attribute_run, load_human_reference_steps
+from cua_failure_analysis.attribution.pipeline import (
+  attribute_run,
+  load_human_reference_steps,
+  resolve_oracle_dir,
+)
 from cua_failure_analysis.judge.anthropic_client import AnthropicJudge, AnthropicJudgeConfig
 
 JUDGE_CONTEXT_VERSION = "osworld_v1"
@@ -28,25 +32,15 @@ def _find_traces(run_dir: Path) -> list[Path]:
   return sorted(run_dir.glob("**/trace.jsonl"))
 
 
-def _oracle_for_task(oracle_root: Path, domain: str, task_id: str) -> Path | None:
-  candidate = oracle_root / domain / task_id
-  if (candidate / "human_traj.json").exists():
-    return candidate
-  # Flat layout fallback
-  flat = oracle_root / task_id
-  if (flat / "human_traj.json").exists():
-    return flat
-  return None
-
-
 def main() -> None:
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("--run-dir", type=Path, required=True, help="Analysis run with traces/")
   parser.add_argument(
     "--oracle-root",
     type=Path,
-    required=True,
-    help="Root containing <domain>/<task_id>/human_traj.json (+ obs PNGs)",
+    default=None,
+    help="Root containing <domain>/<task_id>/human_traj.json (+ obs PNGs). "
+    "Defaults to $ORACLE_ROOT when unset.",
   )
   parser.add_argument(
     "--output",
@@ -64,6 +58,13 @@ def main() -> None:
   parser.add_argument("--dry-run", action="store_true")
   parser.add_argument("--model", default="claude-sonnet-4-6")
   args = parser.parse_args()
+
+  oracle_root = args.oracle_root
+  if oracle_root is None:
+    env_root = os.environ.get("ORACLE_ROOT", "").strip()
+    oracle_root = Path(env_root) if env_root else None
+  if oracle_root is None:
+    raise SystemExit("Pass --oracle-root or set ORACLE_ROOT to partner artifact tree")
 
   failed_only = not args.include_success
   out_path = args.output or (args.run_dir / f"failure_labels_{JUDGE_CONTEXT_VERSION}.jsonl")
@@ -95,7 +96,7 @@ def main() -> None:
       continue
     task_id = str(manifest.get("task_id") or trace_path.parent.parent.name)
     domain = str(manifest.get("domain") or trace_path.parent.parent.parent.name)
-    oracle_dir = _oracle_for_task(args.oracle_root, domain, task_id)
+    oracle_dir = resolve_oracle_dir(oracle_root, domain, task_id)
     human_steps, status = load_human_reference_steps(oracle_dir=oracle_dir)
     if status not in {"ready", "partial"}:
       gated += 1
@@ -152,8 +153,8 @@ def main() -> None:
   )
   if gated and written == 0:
     raise SystemExit(
-      "No episodes rejudged — Human Agent screenshots not ready. "
-      "Run oracle pilot first (oracle_status ready|partial)."
+      "No episodes rejudged — partner Human Agent screenshots not ready "
+      "(need oracle_status ready|partial under --oracle-root)."
     )
 
 

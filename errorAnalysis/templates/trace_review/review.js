@@ -57,34 +57,53 @@
     return entry;
   }
 
-  function renderModeList(container, modes) {
-    container.innerHTML = "";
-    modes.forEach((mode, idx) => {
-      const li = document.createElement("li");
-      li.className = "mode-item";
-      li.dataset.mode = mode;
-      li.innerHTML =
-        '<span class="mode-rank">' +
-        (idx + 1) +
-        "</span>" +
-        '<span class="mode-name">' +
-        escapeHtml(mode) +
-        "</span>" +
-        '<button type="button" class="btn-small btn-up" title="Higher priority">↑</button>' +
-        '<button type="button" class="btn-small btn-down" title="Lower priority">↓</button>' +
-        '<button type="button" class="btn-small btn-remove" title="Remove">×</button>';
-      container.appendChild(li);
-    });
-  }
-
   function escapeHtml(s) {
     const d = document.createElement("div");
     d.textContent = s;
     return d.innerHTML;
   }
 
+  function renderModeList(container, modes, reasons) {
+    reasons = reasons || {};
+    container.innerHTML = "";
+    modes.forEach((mode, idx) => {
+      const li = document.createElement("li");
+      li.className = "mode-item";
+      li.dataset.mode = mode;
+      li.innerHTML =
+        '<div class="mode-item-head">' +
+        '<span class="rank">#' +
+        (idx + 1) +
+        "</span>" +
+        '<span class="name">' +
+        escapeHtml(mode) +
+        "</span>" +
+        '<button type="button" class="ghost btn-up" title="Higher priority">↑</button>' +
+        '<button type="button" class="ghost btn-down" title="Lower priority">↓</button>' +
+        '<button type="button" class="ghost btn-remove" title="Remove">×</button>' +
+        "</div>" +
+        '<label class="field required" style="width:100%">' +
+        'Why this label? <span class="req">required</span>' +
+        '<textarea class="mode-reason" rows="2" data-mode-reason="' +
+        escapeHtml(mode) +
+        '">' +
+        escapeHtml(reasons[mode] || "") +
+        "</textarea>" +
+        "</label>";
+      container.appendChild(li);
+    });
+  }
+
   function readModes(container) {
     return [...container.querySelectorAll(".mode-item")].map((li) => li.dataset.mode);
+  }
+
+  function readModeReasons(container) {
+    const out = {};
+    container.querySelectorAll("textarea[data-mode-reason]").forEach((ta) => {
+      out[ta.dataset.modeReason] = ta.value.trim();
+    });
+    return out;
   }
 
   function readForm() {
@@ -92,6 +111,7 @@
     return {
       root_step: parseInt(document.getElementById("root-step")?.value, 10) || null,
       modes_ordered: modesEl ? readModes(modesEl) : [],
+      mode_reasons: modesEl ? readModeReasons(modesEl) : {},
       reasoning: document.getElementById("human-reasoning")?.value?.trim() || "",
       confidence: parseFloat(document.getElementById("human-confidence")?.value) || null,
       is_propagated: document.getElementById("is-propagated")?.checked || false,
@@ -122,7 +142,7 @@
     const em = document.getElementById("evaluator-mismatch");
     if (em) em.checked = !!entry.evaluator_mismatch;
     const modesEl = document.getElementById("human-modes-list");
-    if (modesEl) renderModeList(modesEl, entry.modes_ordered || []);
+    if (modesEl) renderModeList(modesEl, entry.modes_ordered || [], entry.mode_reasons || {});
   }
 
   function showStatus(msg, ok) {
@@ -130,6 +150,21 @@
     if (!el) return;
     el.textContent = msg;
     el.className = ok ? "save-ok" : "save-err";
+  }
+
+  function validateBeforeSave(entry) {
+    if (!entry.modes_ordered.length) {
+      return "Add at least one failure mode";
+    }
+    if (!entry.reasoning) {
+      return "Overall reasoning is required";
+    }
+    for (const mode of entry.modes_ordered) {
+      if (!(entry.mode_reasons?.[mode] || "").trim()) {
+        return `Reasoning required for: ${mode}`;
+      }
+    }
+    return "";
   }
 
   async function fetchServerLabels(annotator) {
@@ -184,6 +219,11 @@
 
   async function saveLabels() {
     const entry = readForm();
+    const err = validateBeforeSave(entry);
+    if (err) {
+      showStatus(err, false);
+      return;
+    }
     setEntry(entry);
     const ok = await persistServer(entry);
     showStatus(
@@ -196,7 +236,7 @@
 
   function exportLabels() {
     const payload = {
-      schema_version: 2,
+      schema_version: 3,
       packet_id: packetId,
       annotator: currentAnnotator(),
       exported_at: new Date().toISOString(),
@@ -245,9 +285,7 @@
     if (!partner || !badge || !cfg.labelKey) return;
     const summary = await fetchSummary();
     const mode = summary?.[partner]?.[cfg.labelKey];
-    badge.textContent = mode
-      ? `Partner (${partner}): ${mode}`
-      : `Partner (${partner}): —`;
+    badge.textContent = mode ? `Partner (${partner}): ${mode}` : `Partner (${partner}): —`;
   }
 
   function applySummaryToIndex(summary) {
@@ -283,22 +321,67 @@
     });
   }
 
+  function initLayoutToggles() {
+    const layout = document.getElementById("layout");
+    if (!layout) return;
+    const collapseTasks = () => layout.classList.add("tasks-collapsed");
+    const expandTasks = () => layout.classList.remove("tasks-collapsed");
+    const openHuman = () => layout.classList.add("human-open");
+    const closeHuman = () => layout.classList.remove("human-open");
+
+    document.getElementById("tasks-close")?.addEventListener("click", collapseTasks);
+    document.getElementById("tasks-toggle-collapsed")?.addEventListener("click", expandTasks);
+    document.getElementById("open-tasks-btn")?.addEventListener("click", expandTasks);
+    document.getElementById("open-human-btn")?.addEventListener("click", openHuman);
+    document.getElementById("human-toggle-collapsed")?.addEventListener("click", openHuman);
+    document.getElementById("human-close")?.addEventListener("click", closeHuman);
+  }
+
+  function initLightbox() {
+    const box = document.getElementById("lightbox");
+    const img = document.getElementById("lightbox-img");
+    if (!box || !img) return;
+    document.querySelectorAll("img[data-lightbox]").forEach((el) => {
+      el.addEventListener("click", () => {
+        img.src = el.src;
+        box.classList.add("open");
+      });
+    });
+    const close = () => box.classList.remove("open");
+    document.getElementById("lightbox-close")?.addEventListener("click", close);
+    box.addEventListener("click", (e) => {
+      if (e.target === box) close();
+    });
+  }
+
   function initEpisodePage() {
     initAnnotatorPicker();
+    initLayoutToggles();
+    initLightbox();
     hydrateFromServer().then(() => fillForm(getEntry()));
     showPartnerLabelOnEpisode();
 
     const modesEl = document.getElementById("human-modes-list");
     const addSelect = document.getElementById("add-mode-select");
     const addBtn = document.getElementById("add-mode-btn");
+    const newReason = document.getElementById("new-mode-reason");
 
     if (addBtn && addSelect && modesEl) {
       addBtn.addEventListener("click", () => {
         const mode = addSelect.value;
         if (!mode) return;
+        const reason = (newReason?.value || "").trim();
+        if (!reason) {
+          showStatus("Reasoning for new mode is required", false);
+          return;
+        }
         const modes = readModes(modesEl);
+        const reasons = readModeReasons(modesEl);
         if (!modes.includes(mode)) modes.push(mode);
-        renderModeList(modesEl, modes);
+        reasons[mode] = reason;
+        renderModeList(modesEl, modes, reasons);
+        if (newReason) newReason.value = "";
+        addSelect.value = "";
       });
       modesEl.addEventListener("click", (e) => {
         const btn = e.target.closest("button");
@@ -306,17 +389,39 @@
         const li = btn.closest(".mode-item");
         if (!li) return;
         let modes = readModes(modesEl);
+        const reasons = readModeReasons(modesEl);
         const idx = modes.indexOf(li.dataset.mode);
         if (btn.classList.contains("btn-remove")) {
           modes.splice(idx, 1);
+          delete reasons[li.dataset.mode];
         } else if (btn.classList.contains("btn-up") && idx > 0) {
           [modes[idx - 1], modes[idx]] = [modes[idx], modes[idx - 1]];
         } else if (btn.classList.contains("btn-down") && idx < modes.length - 1) {
           [modes[idx + 1], modes[idx]] = [modes[idx], modes[idx + 1]];
         }
-        renderModeList(modesEl, modes);
+        renderModeList(modesEl, modes, reasons);
       });
     }
+
+    document.querySelectorAll(".set-root-step").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const step = btn.dataset.step;
+        if (step) document.getElementById("root-step").value = step;
+      });
+    });
+
+    document.getElementById("expand-all")?.addEventListener("click", () => {
+      document.querySelectorAll("details.step").forEach((el) => {
+        el.open = true;
+      });
+    });
+    document.getElementById("collapse-all")?.addEventListener("click", () => {
+      document.querySelectorAll("details.step").forEach((el) => {
+        el.open = false;
+      });
+    });
 
     document.getElementById("btn-save")?.addEventListener("click", saveLabels);
     document.getElementById("btn-export")?.addEventListener("click", exportLabels);
@@ -331,6 +436,7 @@
 
   async function initIndexPage() {
     initAnnotatorPicker();
+    initLayoutToggles();
     document.getElementById("btn-export-all")?.addEventListener("click", exportLabels);
     document.getElementById("import-file")?.addEventListener("change", (e) => {
       if (e.target.files[0]) importLabels(e.target.files[0]);

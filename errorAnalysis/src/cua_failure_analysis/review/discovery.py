@@ -15,6 +15,7 @@ DISCOVERY_EXTRA_COLUMNS = [
   "primary_revised",
   "secondary_revised",
   "human_reasoning",
+  "mode_reasons",
   "human_confidence",
   "judge_t_star",
   "judge_modes_ordered",
@@ -29,6 +30,8 @@ DISCOVERY_EXTRA_COLUMNS = [
   "provisional_primary",
   "provisional_evidence",
   "tier_used",
+  "oracle_status",
+  "notes",
 ]
 
 DISCOVERY_COLUMNS = [
@@ -41,6 +44,7 @@ COMPARISON_ANNOTATOR_SUFFIXES = [
   "primary",
   "root_step",
   "reasoning",
+  "mode_reasons",
   "confidence",
   "is_propagated",
 ]

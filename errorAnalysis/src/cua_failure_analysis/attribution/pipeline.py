@@ -78,12 +78,30 @@ def _load_manifest(trace_path: Path) -> dict[str, Any]:
     return {}
 
 
+def resolve_oracle_dir(
+  oracle_root: Path | None,
+  domain: str,
+  task_id: str,
+) -> Path | None:
+  """Locate partner oracle artifacts under ``<root>/<domain>/<task_id>`` or flat ``<root>/<task_id>``."""
+  if oracle_root is None:
+    return None
+  root = Path(oracle_root)
+  nested = root / domain / task_id
+  if (nested / "human_traj.json").exists():
+    return nested
+  flat = root / task_id
+  if (flat / "human_traj.json").exists():
+    return flat
+  return None
+
+
 def load_human_reference_steps(
   *,
   oracle_dir: Path | None = None,
   human_traj_path: Path | None = None,
 ) -> tuple[list[dict[str, Any]], str]:
-  """Load Human Agent artifacts for multimodal judge context.
+  """Load partner Human Agent artifacts for UI / multimodal judge context.
 
   Returns (steps, oracle_status) where each step is
   ``{action_text, image_path}`` and status is ready|partial|pending|failed|"".

@@ -23,10 +23,20 @@ def main() -> None:
     help="Subdir under data/review_packets/",
   )
   p.add_argument("--template-dir", type=Path, default=DEFAULT_TEMPLATE_DIR)
+  p.add_argument(
+    "--oracle-root",
+    type=Path,
+    default=None,
+    help="Partner oracle artifact root (or ORACLE_ROOT env)",
+  )
   args = p.parse_args()
 
   packet_dir = ROOT / "data" / "review_packets" / args.packet_id
-  out = refresh_review_packet_html(packet_dir, template_dir=args.template_dir)
+  out = refresh_review_packet_html(
+    packet_dir,
+    template_dir=args.template_dir,
+    oracle_root=args.oracle_root,
+  )
   print(f"Refreshed HTML: {out / 'index.html'}")
 
 

@@ -112,12 +112,79 @@ def test_build_review_packet(sample_zip: Path, tmp_path: Path):
   assert (out / "review.css").exists()
   assert (out / "annotations.json").exists()
   assert "test_packet" in index
-  assert "Judge reasoning" in episode
+  assert "Judge / pipeline attribution" in episode
   assert "Reasoning Drift" in episode and "Goal Hallucination" in episode
   assert "human-reasoning" in episode
   assert "pipeline t*" in episode
   assert "judge says X" in episode
+  assert "human-drawer" in episode
+  assert "oracle:" in episode
+  assert "oracle" in index.lower()
+  assert "Model code (CoT)" in episode
+  assert "Executed action" in episode
 
+
+def test_build_review_packet_with_oracle_artifacts(sample_zip: Path, tmp_path: Path):
+  pytest.importorskip("jinja2")
+  task_id = "030eeff7-b492-4218-b312-701ec99ee0cc"
+  oracle_dir = tmp_path / "oracle" / "chrome" / task_id
+  oracle_dir.mkdir(parents=True)
+  png = oracle_dir / "human_step_1_obs.png"
+  png.write_bytes(b"\x89PNG\r\n\x1a\n")
+  (oracle_dir / "human_traj.json").write_text(
+    json.dumps(
+      {
+        "task_id": task_id,
+        "domain": "chrome",
+        "oracle_status": "ready",
+        "steps": [
+          {
+            "step": 1,
+            "action_text": "`HOTKEY` Ctrl+Shift+T",
+            "observation_screenshot": "human_step_1_obs.png",
+            "ok": True,
+          }
+        ],
+      }
+    ),
+    encoding="utf-8",
+  )
+  manifest_path = tmp_path / "manifest.json"
+  manifest_path.write_text(
+    json.dumps(
+      {
+        "packet_id": "oracle_packet",
+        "task_groups": [],
+        "episodes": [
+          {
+            "model": "a3b",
+            "episode_id": EPISODE_ID,
+            "domain": "chrome",
+            "task_id": task_id,
+            "t_star": 2,
+            "provisional_primary": "Click Region Error",
+            "run_dir": str(tmp_path),
+          }
+        ],
+      }
+    ),
+    encoding="utf-8",
+  )
+  out = build_review_packet(
+    manifest_path,
+    zip_paths={"a3b": sample_zip},
+    output_dir=tmp_path / "packet_oracle",
+    template_dir=TEMPLATE_DIR,
+    oracle_root=tmp_path / "oracle",
+  )
+  episode = (out / "a3b" / EPISODE_ID.replace("/", "__") / "episode.html").read_text(
+    encoding="utf-8"
+  )
+  assert "oracle: ready" in episode
+  assert "HOTKEY" in episode
+  assert (out / "a3b" / EPISODE_ID.replace("/", "__") / "human" / "human_step_1_obs.png").exists()
+  index = (out / "index.html").read_text(encoding="utf-8")
+  assert "ready" in index
 
 def test_episode_nav_links_resolve(sample_zip: Path, tmp_path: Path):
   pytest.importorskip("jinja2")

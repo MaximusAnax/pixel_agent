@@ -8,6 +8,8 @@ errorAnalysis/config/babel.env
 errorAnalysis/data/babel_outputs/
 errorAnalysis/data/review_packets/
 errorAnalysis/.venv/
+# Human Agent runtime artifacts (screenshots / trajs / caches) — regenerate on Babel
+errorAnalysis/config/osworld/*/oracle/
 .venv/
 .env
 

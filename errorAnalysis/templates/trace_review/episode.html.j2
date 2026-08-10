@@ -7,124 +7,264 @@
   <link rel="stylesheet" href="../../review.css">
 </head>
 <body>
-  <div class="nav">
-    <a href="../../index.html">← Index</a>
-    {% if sibling_href %}<a href="../../{{ sibling_href }}">↔ Same task ({{ sibling_model | upper }})</a>{% endif %}
-    {% if prev_link %}<a href="{{ prev_link }}">← Previous</a>{% endif %}
-    {% if next_link %}<a href="{{ next_link }}">Next →</a>{% endif %}
-  </div>
-
-  <header>
-    <h1>{{ model | upper }} · {{ episode_id }}</h1>
-    <p class="meta">
-      Task <code>{{ task_id }}</code> · OSWorld:
-      {% if success %}pass{% elif success is none %}unknown{% else %}<strong>fail</strong>{% endif %}
-      {% if result_raw %} · raw={{ result_raw }}{% endif %}
-    </p>
-    {% if instruction %}
-    <p class="meta"><strong>Instruction:</strong> {{ instruction }}</p>
-    {% endif %}
-  </header>
-
-  <section class="panel judge-panel">
-    <h2>Judge / pipeline attribution (provisional)</h2>
-    <div class="label-row">
-      <span><strong>Modes (priority order):</strong> {{ judge_modes_ordered | join(' → ') or '—' }}</span>
-      <span><strong>t*:</strong> {{ t_star if t_star is not none else '—' }}</span>
-      <span><strong>Propagated:</strong> {{ propagated }}</span>
-      {% if tier_used %}<span><strong>Tier:</strong> {{ tier_used }}</span>{% endif %}
-      {% if confidence is not none %}<span><strong>Confidence:</strong> {{ confidence }}</span>{% endif %}
-    </div>
-    {% if evidence %}
-    <div class="block">
-      <strong>Judge reasoning</strong>
-      <div class="evidence">{{ evidence }}</div>
-    </div>
-    {% endif %}
-  </section>
-
-  <section class="panel human-panel">
-    <h2>Your taxonomy discovery label</h2>
-    <p class="hint">Select all failure modes that apply, in priority order (1 = primary root cause). Root step may differ from pipeline t*.</p>
-
-    <div class="toolbar annotator-toolbar">
-      <label>Annotator
-        <select id="annotator-select" class="annotator-select"></select>
-      </label>
-      <span id="annotator-banner" class="annotator-banner"></span>
-      <span id="partner-label-badge" class="partner-badge"></span>
-    </div>
-
-    <div class="form-grid">
-      <label>Root failure step<input type="number" id="root-step" min="1" placeholder="e.g. 3"></label>
-      <label>Your confidence (0–1)<input type="number" id="human-confidence" min="0" max="1" step="0.05" placeholder="0.85"></label>
-    </div>
-
-    <div class="modes-picker">
-      <label>Add failure mode
-        <select id="add-mode-select">
-          <option value="">— select leaf —</option>
-          {% for leaf in taxonomy_leaves %}
-          <option value="{{ leaf }}">{{ leaf }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <button type="button" id="add-mode-btn" class="btn">Add</button>
-      <ol id="human-modes-list" class="mode-list"></ol>
-    </div>
-
-    <label class="block">Your reasoning (why these modes, why this root step)
-      <textarea id="human-reasoning" rows="5" placeholder="Explain what you observed in the trace…"></textarea>
-    </label>
-
-    <div class="form-grid checkboxes">
-      <label><input type="checkbox" id="is-propagated"> Symptom is propagated (not root cause)</label>
-      <label>Propagated from step<input type="number" id="propagated-from-step" min="1"></label>
-      <label><input type="checkbox" id="evaluator-mismatch"> Evaluator mismatch</label>
-    </div>
-
-    <label class="block">Taxonomy friction / overlap notes
-      <textarea id="taxonomy-issue" rows="2" placeholder="e.g. overlaps Reasoning Drift vs false success…"></textarea>
-    </label>
-    <label class="block">Candidate new leaf (proposal only)
-      <input type="text" id="candidate-new-leaf" placeholder="Optional">
-    </label>
-    <label class="block">Other notes<textarea id="notes" rows="2"></textarea></label>
-
-    <div class="toolbar">
-      <button type="button" id="btn-save" class="btn btn-primary">Save label</button>
-      <button type="button" id="btn-export" class="btn">Export JSON</button>
-      <label class="btn btn-file">Import<input type="file" id="import-file" accept=".json"></label>
-      <span id="save-status"></span>
-    </div>
-  </section>
-
-  <section class="panel">
-    <h2>Step timeline ({{ steps | length }} steps) — click step # to set root step</h2>
-    {% for step in steps %}
-    <article class="step{% if step.is_t_star %} t-star{% endif %}" data-step="{{ step.step_num }}">
-      <div class="step-head">
-        <span>Step {{ step.step_num }} <button type="button" class="btn-link set-root-step">set as root</button></span>
-        {% if step.is_t_star %}<span class="t-star-badge">pipeline t*</span>{% endif %}
+  <div class="layout" id="layout">
+    <aside class="task-nav" aria-label="Task sidebar">
+      <button type="button" class="tasks-toggle" id="tasks-toggle-collapsed" title="Open pilot task list">
+        Pilot tasks · {{ domain }}/{{ task_id[:8] }}
+      </button>
+      <div class="task-nav-panel">
+        <div class="task-nav-head">
+          <h2>Pilot tasks</h2>
+          <button type="button" class="ghost" id="tasks-close" title="Collapse task list">✕</button>
+        </div>
+        {% for nav in side_nav %}
+        <a class="side-task{% if nav.active %} active{% endif %}" href="{{ nav.href }}">
+          <div class="id">{{ nav.domain }} · {{ nav.task_short }}</div>
+          <div class="prompt">{{ nav.instruction_preview or nav.task_id }}</div>
+        </a>
+        {% endfor %}
+        <p class="hint" style="padding:0.35rem">Collapse this list while labeling to free space.</p>
       </div>
-      <div class="step-body">
-        <div>
-          {% if step.screenshot %}
-          <img src="{{ step.screenshot }}" alt="Step {{ step.step_num }}">
+    </aside>
+
+    <main class="main">
+      <div class="nav-links">
+        <a href="{{ index_href }}">Index</a>
+        {% if sibling_href %}<a href="../../{{ sibling_href }}">Same task ({{ sibling_model | upper }})</a>{% endif %}
+        {% if prev_link %}<a href="{{ prev_link }}">← Previous</a>{% endif %}
+        {% if next_link %}<a href="{{ next_link }}">Next →</a>{% endif %}
+      </div>
+
+      <div class="header-row">
+        <button type="button" class="ghost" id="open-tasks-btn" title="Open pilot task list">← Tasks</button>
+        <h1>{{ model | upper }} · {{ domain }}/{{ task_id[:8] }}…</h1>
+        {% if success %}
+        <span class="badge ok">OSWorld pass{% if result_raw %} · raw={{ result_raw }}{% endif %}</span>
+        {% elif success is none %}
+        <span class="badge">OSWorld unknown</span>
+        {% else %}
+        <span class="badge fail">OSWorld fail{% if result_raw %} · raw={{ result_raw }}{% endif %}</span>
+        {% endif %}
+        {% if oracle_status == 'ready' %}
+        <span class="badge ok">oracle: ready</span>
+        {% elif oracle_status == 'partial' %}
+        <span class="badge warn">oracle: partial</span>
+        {% elif oracle_status == 'failed' %}
+        <span class="badge fail">oracle: failed</span>
+        {% else %}
+        <span class="badge pending">oracle: pending</span>
+        {% endif %}
+        {% if has_action_mismatch %}
+        <span class="badge warn">⚠ action mismatch</span>
+        {% endif %}
+        <button type="button" class="ghost" id="open-human-btn" title="Open human reference">
+          Human ref ({{ human_steps | length }} step{{ 's' if human_steps | length != 1 else '' }}) →
+        </button>
+      </div>
+
+      {% if instruction %}
+      <p class="instruction-line"><strong>Instruction:</strong> {{ instruction }}</p>
+      {% endif %}
+      <p class="hint">
+        Model timeline is agent-only. Human trajectory is in the right drawer (collapsed by default).
+        Human path is <strong>non-binding</strong> — diverge when agent progress is valid.
+      </p>
+
+      <details class="panel">
+        <summary><span>Task context (eval, setup)</span><span></span></summary>
+        <div class="panel-body">
+          {% if eval_bundle %}
+          <pre class="bundle">{{ eval_bundle }}</pre>
           {% else %}
-          <p class="meta">No screenshot</p>
+          <p class="hint">Eval bundle unavailable (vendored OSWorld pin not loaded).</p>
           {% endif %}
         </div>
-        <div>
-          {% if step.thought %}<div class="thought">{{ step.thought }}</div>{% endif %}
-          {% if step.action %}<p><strong>Action:</strong> <code>{{ step.action }}</code></p>{% endif %}
-          {% if step.code %}<pre>{{ step.code }}</pre>{% endif %}
-          <p class="meta">reward={{ step.reward }} · done={{ step.done }}</p>
+      </details>
+
+      <section class="annot-core">
+        <h2>Your taxonomy discovery label</h2>
+        <p class="hint">
+          Each failure mode needs a short reasoning note. Priority order: 1 = primary root cause.
+        </p>
+
+        <div class="annotator-toolbar">
+          <label class="field">Annotator
+            <select id="annotator-select" class="annotator-select"></select>
+          </label>
+          <span id="annotator-banner" class="annotator-banner"></span>
+          <span id="partner-label-badge" class="partner-badge"></span>
+        </div>
+
+        <div class="form-row">
+          <label class="field">Root failure step
+            <input type="number" id="root-step" min="1" placeholder="e.g. 3">
+          </label>
+          <label class="field">Confidence
+            <input type="number" id="human-confidence" min="0" max="1" step="0.05" placeholder="0.85">
+          </label>
+          <label class="field">Add failure mode
+            <select id="add-mode-select">
+              <option value="">— select leaf —</option>
+              {% for leaf in taxonomy_leaves %}
+              <option value="{{ leaf }}">{{ leaf }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="button" class="primary" id="add-mode-btn">Add mode</button>
+          <button type="button" class="primary" id="btn-save">Save label</button>
+        </div>
+
+        <label class="field required grow" style="width:100%; margin-bottom:0.55rem">
+          Reasoning for new mode <span class="req">required</span>
+          <textarea id="new-mode-reason" class="mode-reason" rows="2"
+            placeholder="Brief why this leaf applies…"></textarea>
+        </label>
+
+        <ol class="mode-list" id="human-modes-list"></ol>
+
+        <label class="field required" style="width:100%; margin-bottom:0.55rem">
+          Overall reasoning (root step + mode order) <span class="req">required</span>
+          <textarea id="human-reasoning" rows="3"
+            placeholder="Summarize why this root step and priority order…"></textarea>
+        </label>
+
+        <details class="nested">
+          <summary>Advanced annotation fields</summary>
+          <div class="form-row" style="margin-top:0.5rem">
+            <label><input type="checkbox" id="is-propagated"> Propagated</label>
+            <label>From step <input type="number" id="propagated-from-step" min="1"></label>
+            <label><input type="checkbox" id="evaluator-mismatch"> Evaluator mismatch</label>
+          </div>
+          <label class="field" style="width:100%">Taxonomy friction
+            <textarea id="taxonomy-issue" rows="2" placeholder="Optional notes…"></textarea>
+          </label>
+          <label class="field" style="width:100%">Candidate new leaf
+            <input type="text" id="candidate-new-leaf" placeholder="Optional">
+          </label>
+          <label class="field" style="width:100%">Other notes
+            <textarea id="notes" rows="2"></textarea>
+          </label>
+        </details>
+
+        <div class="form-row" style="margin-top:0.5rem">
+          <button type="button" class="ghost" id="btn-export">Export JSON</button>
+          <label class="btn-file ghost">Import<input type="file" id="import-file" accept=".json"></label>
+          <span id="save-status"></span>
+        </div>
+      </section>
+
+      <details class="panel">
+        <summary>
+          <span>Judge / pipeline attribution (provisional{% if judge_context_version %} · {{ judge_context_version }}{% endif %})</span>
+          <span></span>
+        </summary>
+        <div class="panel-body">
+          <p>
+            <strong>Modes:</strong> {{ judge_modes_ordered | join(' · ') or '—' }}
+            · <strong>t*:</strong> {{ t_star if t_star is not none else '—' }}
+            · <strong>Propagated:</strong> {{ propagated }}
+            {% if confidence is not none %} · <strong>confidence:</strong> {{ confidence }}{% endif %}
+            {% if tier_used %} · <strong>tier:</strong> {{ tier_used }}{% endif %}
+          </p>
+          <p class="hint">Provisional reference only — not gold.</p>
+          {% if evidence %}
+          <pre class="bundle">{{ evidence }}</pre>
+          {% endif %}
+        </div>
+      </details>
+
+      <div class="timeline-tools">
+        <h2>Model step timeline ({{ steps | length }} steps)</h2>
+        <button type="button" class="ghost" id="expand-all">Expand all</button>
+        <button type="button" class="ghost" id="collapse-all">Collapse all</button>
+      </div>
+
+      {% for step in steps %}
+      <details class="step{% if step.is_t_star %} t-star{% endif %}" id="step-{{ step.step_num }}"{% if step.is_t_star %} open{% endif %} data-step="{{ step.step_num }}">
+        <summary>
+          <span class="step-num">
+            Step {{ step.step_num }}
+            <button type="button" class="ghost set-root-step" data-step="{{ step.step_num }}">set as root</button>
+          </span>
+          <div class="step-summary-main">
+            <div class="line"><strong>Executed:</strong> {{ step.action or '—' }}</div>
+            <div class="sub">Intent: {{ step.stated_intent or '—' }}</div>
+          </div>
+          <div class="step-chips">
+            {% if step.grounding_mismatch %}<span class="badge warn">⚠ action mismatch</span>{% endif %}
+            {% if step.is_t_star %}<span class="badge">pipeline t*</span>{% endif %}
+          </div>
+        </summary>
+        <div class="step-body">
+          {% if step.screenshot %}
+          <img class="shot" src="{{ step.screenshot }}" alt="Observation before step {{ step.step_num }}" data-lightbox>
+          {% else %}
+          <div class="shot placeholder">No observation screenshot</div>
+          {% endif %}
+          <div class="label-block">
+            <strong>Executed action (trajectory) — what ran on the VM</strong>
+            <pre>{{ step.action or '(none)' }}</pre>
+          </div>
+          <div class="label-block">
+            <strong>Model code (CoT)</strong>
+            <pre>{{ step.model_code or step.code or '(none)' }}</pre>
+            {% if step.grounding_note %}<div class="coord-note">{{ step.grounding_note }}</div>{% endif %}
+          </div>
+          <div class="label-block">
+            <strong>Stated intent (CoT)</strong>
+            <pre>{{ step.stated_intent or '(none)' }}</pre>
+          </div>
+          {% if step.thought %}
+          <details class="nested">
+            <summary>Reasoning (## Thought:)</summary>
+            <pre style="white-space:pre-wrap;font-size:0.8rem;background:var(--bg);border:1px solid var(--line);padding:0.5rem;border-radius:4px;">{{ step.thought }}</pre>
+          </details>
+          {% endif %}
+          {% if not loop.last %}
+          <p class="post-link">State after action → <a href="#step-{{ steps[loop.index].step_num }}">Step {{ steps[loop.index].step_num }} observation</a></p>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </main>
+
+    <aside class="human-drawer" aria-label="Human reference">
+      <button type="button" class="human-toggle" id="human-toggle-collapsed" title="Open human reference">
+        Human ref · NON-BINDING
+      </button>
+      <div class="human-panel">
+        <div class="human-panel-head">
+          <h2>Human reference · {{ human_steps | length }} steps</h2>
+          <button type="button" class="ghost" id="human-close" title="Collapse">✕</button>
+        </div>
+        <div class="human-panel-body">
+          <p class="human-note">
+            NON-BINDING alternate path. Length may differ from the agent timeline —
+            do not force step alignment. Agent divergence can still be correct.
+            Oracle status: <code>{{ oracle_status }}</code>
+          </p>
+          {% if human_steps %}
+          {% for h in human_steps %}
+          <div class="human-step">
+            <div class="h-num">Human step {{ h.step }}</div>
+            {% if h.screenshot %}
+            <img src="{{ h.screenshot }}" alt="Human obs {{ h.step }}" data-lightbox>
+            {% endif %}
+            <pre style="white-space:pre-wrap;margin:0;font-size:0.8rem;">{{ h.action_text }}</pre>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="hint">No human reference text or screenshots available yet.</p>
+          {% endif %}
         </div>
       </div>
-    </article>
-    {% endfor %}
-  </section>
+    </aside>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <button type="button" class="close ghost" id="lightbox-close">Close</button>
+    <img id="lightbox-img" alt="Enlarged screenshot">
+  </div>
 
   <script>
     window.REVIEW_CONFIG = {
@@ -136,12 +276,6 @@
       annotator: {{ default_annotator | tojson }},
       apiBase: {{ api_base | tojson }}
     };
-    document.querySelectorAll(".set-root-step").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const step = btn.closest(".step")?.dataset?.step;
-        if (step) document.getElementById("root-step").value = step;
-      });
-    });
   </script>
   <script src="../../review.js"></script>
 </body>

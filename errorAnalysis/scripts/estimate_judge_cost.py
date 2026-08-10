@@ -76,12 +76,20 @@ def main() -> int:
     type=float,
     default=float(__import__("os").environ.get("JUDGE_COST_CEILING_USD", "25")),
   )
+  p.add_argument(
+    "--extra-image-tokens-per-call",
+    type=int,
+    default=0,
+    help="Extra input tokens per call for human observation screenshots "
+    "(osworld_v1 multimodal rejudge). Rough rule of thumb: ~1500–2000 tokens "
+    "per screenshot × human steps included in the prompt.",
+  )
   args = p.parse_args()
 
   rows = load_usage_rows(args.reference_run_dir)
   summary = summarize_judge_usage(rows)
   n_calls = max(1, summary["judge_calls"])
-  avg_in = summary["input_tokens"] / n_calls
+  avg_in = summary["input_tokens"] / n_calls + max(0, args.extra_image_tokens_per_call)
   avg_out = summary["output_tokens"] / n_calls
   model = rows[-1].get("model", "claude")
   per_call_cost = estimate_judge_cost_usd(model, round(avg_in), round(avg_out))
@@ -104,6 +112,8 @@ def main() -> int:
 
   print(f"Reference run: {args.reference_run_dir}")
   print(f"  calls={summary['judge_calls']} avg_in={avg_in:.0f} avg_out={avg_out:.0f} model={model}")
+  if args.extra_image_tokens_per_call:
+    print(f"  (+{args.extra_image_tokens_per_call} image tokens/call for human obs)")
   print(f"  per-call cost: ${per_call_cost:.4f}")
   print(f"Projection basis: {basis}")
   print(f"Projected judge calls: {projected_calls}")
