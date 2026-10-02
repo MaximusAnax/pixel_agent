@@ -1,28 +1,29 @@
 # Project state
 
-> Auto-synthesized on 2026-09-25 by `ops/synthesize_state.py` (extractive mode). The compact digest also lives in `AGENTS.md` so Hermes loads it every turn. Edit upstream sources (meeting notes in `ops/meetings/`, weekly reports in `ops/reports/`), not this file — it is regenerated.
+> Auto-synthesized on 2026-10-02 by `ops/synthesize_state.py` (extractive mode). The compact digest also lives in `AGENTS.md` so Hermes loads it every turn. Edit upstream sources (meeting notes in `ops/meetings/`, weekly reports in `ops/reports/`), not this file — it is regenerated.
 
 ## Current snapshot
 
-- **As of:** 2026-09-25
-- **Most recent meeting:** 2026-09-25
-- **Meetings folded in:** 2026-06-24, 2026-07-10, 2026-08-07, 2026-08-14, 2026-08-21, 2026-08-29, 2026-09-04, 2026-09-11, 2026-09-18, 2026-09-25
+- **As of:** 2026-10-02
+- **Most recent meeting:** 2026-10-02
+- **Meetings folded in:** 2026-06-24, 2026-07-10, 2026-08-07, 2026-08-14, 2026-08-21, 2026-08-29, 2026-09-04, 2026-09-11, 2026-09-18, 2026-09-25, 2026-10-02
 
 ## Recent progress
 
-From **2026-W39.md** (At a glance):
-- **Merged PRs:** 0 | **Commits:** 1 | **Lines changed:** +895/−108 across 5 files
-- Quiet maintenance week: only post-meeting state sync committed; no experiment runs, no new artifacts
+From **2026-W40.md** (At a glance):
+- **Merged PRs:** 0 | **Commits:** 1 | **Lines changed:** +895/−98 across 5 files
+- Second consecutive maintenance week: only post-meeting state sync committed; no experiment runs, no new artifacts
 - Carry-forward blockers remain: Oracle → handoff refactor still WIP; PXA-024 (frontier-model Human Agent ceiling run) not yet started
 - Active labeling schema (PXA-001/002/003/016) and failure-taxonomy compendium stable; no regressions
 - State-synthesis pipeline (`ops/synthesize_state.py`) and `AGENTS.md` digest loop operating normally
 
-From **2026-09-25 meeting** (notable updates):
+From **2026-10-02 meeting** (notable updates):
 - Raghav continuing to gather human trajectory screenshots from OSWorld-Human via benchmark environment (still in progress)
 - Abdoul continuing to edit HTML viewer and judge logic
-- **Decision: bring a new person into the project** — agreed unanimously
-- Research summary document published: `https://github.com/raghav3003/pixel_agent/blob/goldjudge-stage/docs/research/2026-09-24-project-summary.md`
-- No new experiment results this window; no PRs merged
+- **New observation:** human evaluators can be wrong — e.g., a referential expression about what to click was incorrect, but the model clicked correctly; LLM judge called it a "reasoning" error, human annotator called it a "grounding" error; suggests judge vs. human disagreement is nuanced
+- Three judges under consideration: Claude, GPT-Luna, offline Qwen 7B
+- Pilot annotation to start from existing paired taxonomy CSV before scaling up
+- No new experiment results; no PRs merged
 
 ## Decisions (cumulative)
 
@@ -30,7 +31,9 @@ From **2026-09-25 meeting** (notable updates):
 - Use **Sonnet 4.6** as LLM judge over OpenCUA-3B and -7B traces _(2026-08-14/21)_
 - **OSWorld-Human not yet folded in** to the judge pipeline — pending Oracle Agent implementation _(2026-08-14/21)_
 - Judge should receive: task description JSON, reference trajectory, predicted trajectory, OSWorld metric score, **and** relevant evaluator metric functions (e.g., `is_expected_tabs` source from `desktop_env/evaluators/metrics`) _(2026-08-14/21; confirmed 2026-09-11/18/25)_
-- Error prioritization to be explored along three axes: step of occurrence, downstream impact, and a to-be-designed prioritization function _(ongoing; no resolution as of 2026-09-25)_
+- **Judge logic to incorporate both human and model screenshots per step** in the trace (not just model screenshots) _(confirmed 2026-10-02)_
+- **Start pilot annotation with existing paired taxonomy CSV** before scaling up — path: `errorAnalysis/data/review_packets/pilot_taxonomy_paired_20260703/taxonomy_discovery_labels.csv` _(confirmed 2026-10-02)_
+- Error prioritization to be explored along three axes: step of occurrence, downstream impact, and a to-be-designed prioritization function _(ongoing; no resolution as of 2026-10-02)_
 - **NeurIPS concurrent-work policy**: papers appearing after March 1 2025 (including CUADebug, arXiv:2608.02643) are considered concurrent; comparison not required _(confirmed 2026-09-25)_
 - **All-applicable labeling**: judge selects all applicable failure modes per episode rather than primary/secondary only _(2026-08-14, PXA-001/002/003/016)_
 - Use **vLLM 0.11.0** as the lab-standard version on Bridges (CUDA 12.6 compatible; do not use vLLM 0.23 which requires CUDA 13, or 0.12.0 which has no prebuilt wheel) _(confirmed working 2026-09-04/09-18/09-25)_
@@ -46,12 +49,12 @@ From **2026-09-25 meeting** (notable updates):
 - **Start from existing HuggingFace trajectories** before generating new ones _(2026-06-24)_
 - **Focus models for trajectory review**: OpenCUA, Kimi, Sonnet 4.5 — not older models _(2026-06-24)_
 - **Tier 1 priority benchmarks** for human ↔ agent comparison: OSWorld-Human, WebArena, VisualWebArena, ClawBench, A3/AITK _(confirmed 2026-09-25)_
-- **Pilot annotation set path:** `errorAnalysis/data/review_packets/pilot_taxonomy_paired_20260703/taxonomy_discovery_labels.csv` _(confirmed 2026-09-25)_
 - Canonical task set and order to be fixed before further annotation runs _(2026-09-18)_
 - Raghav and Abdoul to agree on a **common data format** for sharing trajectories _(2026-09-18)_
 
 ## Open feedback & critiques
 
+- **Human evaluators can be wrong**: in one case, referential expression about what to click was incorrect but model clicked correctly; judge called it "reasoning" error, human annotator called it "grounding" error — judge vs. human disagreement is non-trivial _(2026-10-02)_
 - **OSWorld-Human incomplete steps** cause failures: e.g., instructions say to type in a search bar but never say to press Enter _(ongoing)_
 - **Model races ahead** while screen is still loading from the previous action _(ongoing)_
 - **OSWorld initialization errors**: initial environment not loaded properly (e.g., Chrome not opened on setup) _(ongoing)_
@@ -67,14 +70,15 @@ From **2026-09-25 meeting** (notable updates):
 
 ## Ideas on the table
 
-- **Multi-agent parallel exploration:** Dispatch multiple subagents to explore different UI paths simultaneously (e.g., each clicks a different tab); store results in a vector/text DB so future tasks in the same UI are cheaper. Use separate Chrome instances to reduce side-effects. _(2026-09-25)_
 - **Inter-annotator agreement study**: Raghav and Abdoul each independently annotate the same ~10-trace failure set; compute agreement across pairs: (human A / human B), (human A / judge with gold), (human B / judge with gold), (judge with gold / judge without gold) _(ongoing)_
+- **Three-judge ensemble** (provisional): Claude, GPT-Luna, offline Qwen 7B — not yet decided _(2026-10-02)_
 - **Gold trajectory generation via frontier model**: where only human notes exist (OSWorld-Human), prompt a frontier model with those notes during live task execution; target ~100% success rate as gold standard _(ongoing)_
 - **Failure mode prioritization function**: weight by step of occurrence (earlier = higher importance) and downstream failure count as impact signal _(ongoing)_
 - **"Oracle Agent"** that replays human actions in OpenCUA to generate a screenshot for every human step _(ongoing)_
 - **Consolidated HTML annotation viewer** with: task ID display, canonical task ordering, real task description from JSON, multi-failure-mode support, enlarged image on click, side-by-side AI vs. human trace, optional reasoning trace toggle (collapsed by default), always-shown actions, left-nav with category/prompt/step count, "failing step" integer field _(ongoing)_
 - Give the Judge both agent and human trajectory; ask it to select **all applicable failure modes** _(ongoing)_
 - Run OSWorld with a frontier model reading OSWorld-Human notes → check if it achieves ~100%; diagnose why not _(ongoing)_
+- **Multi-agent parallel exploration:** Dispatch multiple subagents to explore different UI paths simultaneously (e.g., each clicks a different tab); store results in a vector/text DB so future tasks in the same UI are cheaper. Use separate Chrome instances to reduce side-effects. _(2026-09-25)_
 - **AI-assisted idea generation workflow**: ask model to critique a specific paper; ask for 10 variants of an implementation idea; ask for 10 most closely related papers to a given idea and how each limits novelty _(ongoing)_
 - **Multi-path human trajectory analysis**: A3 has ~3 valid human trajectories per task, enabling strategy variation analysis _(ongoing)_
 - Generate grounding labels with an image diffusion model (Stable Diffusion 3); detect generated marker via traditional CV or a highly unusual synthetic pattern (e.g., houndstooth) _(ongoing)_
@@ -96,8 +100,9 @@ From **2026-09-25 meeting** (notable updates):
 
 ## Action items
 
+- [ ] @Abdoul — Refine judge logic to incorporate both human and model screenshots per step in the trace _(confirmed 2026-10-02)_
+- [ ] @Abdoul — Continue editing HTML viewer to surface judge assessments alongside paired trajectories _(ongoing)_
 - [ ] @Abdoul — Improve judge calibration on 5 pilot tasks: human-agent succeeded, OpenCUA-3B and -7B both failed, judge produced a failure-mode conclusion _(ongoing)_
-- [ ] @Abdoul — Refine judge logic to incorporate both human and model screenshots per step in the trace _(ongoing)_
 - [ ] @Abdoul — Refine taxonomy discovery labels starting from pilot path: `errorAnalysis/data/review_packets/pilot_taxonomy_paired_20260703/taxonomy_discovery_labels.csv` _(ongoing)_
 - [ ] @Abdoul — Continue reading failure analysis papers for taxonomy categorization approaches (including CUADebug arXiv:2608.02643) _(ongoing)_
 - [ ] @Abdoul — Read the space of other benchmarks (besides OSWorld) and determine whether existing error analysis would render our error analysis non-novel _(ongoing)_
@@ -114,6 +119,7 @@ From **2026-09-25 meeting** (notable updates):
 - [ ] @Raghav — Investigate and document OSWorld initialization bugs causing hanging states (e.g., Chrome not opening on setup) _(ongoing)_
 - [ ] @Raghav — Build Oracle Agent within OpenCUA that replays human actions and generates a screenshot per step _(ongoing)_
 - [ ] @Raghav — Manually annotate a set of ~10 selected pilot traces for inter-annotator agreement study _(ongoing)_
+- [ ] @Raghav + @Abdoul — Read failure analysis papers to survey existing failure categorization schemes and inform taxonomy updates _(confirmed 2026-10-02)_
 - [ ] @Raghav + @Abdoul — Agree on a common data format for sharing trajectories _(ongoing)_
 - [ ] @Raghav + @Abdoul — Add evaluation-script output (success/fail metadata + evaluator function descriptions from `desktop_env/evaluators/metrics`) to judge input and to the human review viewer _(ongoing)_
 - [ ] @Raghav + @Abdoul — Consolidate HTML annotation viewer features: task ID display, canonical task ordering, real task description from JSON, multi-failure-mode support, enlarged image on click, side-by-side AI vs. human trace, optional reasoning trace toggle (collapsed by default), always-shown actions, left-nav with category/prompt/step count, "failing step" integer field _(ongoing)_
@@ -130,13 +136,14 @@ From **2026-09-25 meeting** (notable updates):
 ## Open questions
 
 - Does existing error analysis on benchmarks other than OSWorld already answer the team's core research question, rendering the approach non-novel? _(ongoing)_
-- How should the failure taxonomy be updated, and should prioritization weight step-of-occurrence, downstream impact, or a custom function? _(ongoing; no resolution as of 2026-09-25)_
+- How should the failure taxonomy be updated given observations from OSWorld-Human trajectories? _(ongoing)_
+- Which failure-mode prioritization strategy is most appropriate: step order, downstream impact, or a custom function? _(ongoing; no resolution as of 2026-10-02)_
+- When judge and human annotator disagree on error category (e.g., "reasoning" vs. "grounding"), how do we arbitrate — and does this reflect a fundamental ambiguity in the taxonomy? _(2026-10-02)_
 - Why is Chrome not opened on setup in OSWorld initialization? What other environment initialization bugs exist? _(ongoing)_
 - Do incomplete human steps in OSWorld-Human systematically skew success/failure rates, and how should they be handled? _(ongoing)_
 - Has anyone already answered: *how much do successful (gold) trajectories improve automated error analysis, and what trajectory properties drive that improvement?* _(ongoing)_
 - Is OSWorld still a relevant benchmark now that frontier models are evaluated on v2.0? Is error analysis only valuable for small models? _(ongoing)_
 - If we run OSWorld with a frontier model that sees the OSWorld-Human notes, do we get ~100% success? If not, why not? _(ongoing)_
-- Should failure modes be prioritized by step of occurrence, downstream impact, or a custom function — and who defines that function? _(ongoing)_
 - How many of the ~300 A3/AITK human trajectories are publicly downloadable as a standalone archive? _(ongoing)_
 - Can ClawBench human reference runs be bulk-downloaded before committing to it as a Tier 1 benchmark? _(ongoing)_
 - What is the SOTA for small models (≤7B) on GUI grounding (ScreenSpot V2, OSWorld-G) and on pixel-based computer use (OSWorld-Verified)? _(ongoing)_
@@ -146,11 +153,11 @@ From **2026-09-25 meeting** (notable updates):
 - Does giving a VLM screenshot history actually hurt performance, and if so, why? Are any current models trained to understand sequences of frames? _(ongoing)_
 - Is there value in allowing a pixel-only GUI agent to use code (CodeAct-style)? _(ongoing)_
 - Do small VLMs exhibit qualitatively different failure modes than large VLMs, and if so, can those failures be fixed via harness or training changes? _(ongoing)_
-- Can multi-agent parallel UI exploration be made practical given that CUA interactions are not side-effect-free? _(2026-09-25)_
+- Can multi-agent parallel UI exploration be made practical given that CUA interactions are not side-effect-free? _(ongoing)_
 
 ## Technologies & tools discussed
 
-- **Models:** UITARS-72B (grounding), OpenCUA-3B, OpenCUA-7B, Qwen3.5-VL 0.8B (CUA), Qwen3.5-VL 9B (judge), Sonnet 4.6 (judge), Opus 5 (frontier ceiling run, ~$150 for high usage)
+- **Models:** UITARS-72B (grounding), OpenCUA-3B, OpenCUA-7B, Qwen3.5-VL 0.8B (CUA), Qwen3.5-VL 9B (judge), Sonnet 4.6 (judge), Opus 5 (frontier ceiling run, ~$150 for high usage); Claude, GPT-Luna, Qwen 7B (offline) — three judges under consideration _(2026-10-02)_
 - **Benchmarks/Datasets:** OSWorld, OSWorld-Human (`WukLab/osworld-human`), OSWorld-G, OSWorld-Verified, ScreenSpot V2, ScreenSpot Pro, WebArena (179 human Playwright traces), VisualWebArena (233 human Playwright traces), ClawBench, A3/AITK (~3 trajectories/task), OmniGUI (708 expert episodes), VideoCUA/CUA-Suite (~10K human-demonstrated tasks), UI-Vision, Mind2Web, WebLINX (BrowserGym-integrated), Android in the Wild (AITW, ~715K episodes), WebChain (31,725 traces), PC Agent-E (312 traces), AndroidWorld
 - **Compute:** Babel (L40S GPUs), PSC Bridges-2 (GPU-shared, node v016, `cis260099p`), Slurm
 - **Bridges-2 hardware (for reference):** 10× Cray HPE XD670 (8× H100-80GB, 2048GB RAM); 3× HPE DL380aG12 (8× L40S-48GB, 1024GB RAM); 24× original nodes (8× V100-32GB, 512GB RAM); migrated nodes (8× V100-16GB, 192GB RAM); 1× DGX-2 (16× V100-32GB, 1.5TB RAM)
